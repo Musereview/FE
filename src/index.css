@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 
-/* ===== Pretendard (self-hosted: public/fonts/) ===== */
+/* ===== Pretendard ===== */
 @font-face {
   font-family: 'Pretendard';
   src: url('/fonts/Pretendard-Thin.woff2') format('woff2');
@@ -41,7 +41,7 @@
   font-display: swap;
 }
 
-/* ===== 디자인 토큰 (Figma 변수 기준) =====
+/* ===== 디자인 토큰 =====
  * 사용 예) bg-primary-400, text-gray-300, border-gray-800
  */
 @theme {
@@ -104,7 +104,7 @@
   }
 }
 
-/* ===== 타이포그래피 (Figma Typography 토큰 기준) =====
+/* ===== 타이포그래피 =====
  * 사용 예) <h1 className="heading-large">, <p className="body-medium">
  */
 @layer components {
