@@ -1,0 +1,246 @@
+@import 'tailwindcss';
+
+/* ===== Pretendard ===== */
+@font-face {
+  font-family: 'Pretendard';
+  src: url('/fonts/Pretendard-Thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('/fonts/Pretendard-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('/fonts/Pretendard-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('/fonts/Pretendard-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('/fonts/Pretendard-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ===== 디자인 토큰 =====
+ * 사용 예) bg-primary-400, text-gray-300, border-gray-800
+ */
+@theme {
+  --font-sans: 'Pretendard', system-ui, sans-serif;
+
+  /* Gray Scale */
+  --color-gray-100: #ffffff;
+  --color-gray-200: #f0f1f1;
+  --color-gray-300: #e7e7e8; /* Text */
+  --color-gray-400: #cecfd1; /* Icon */
+  --color-gray-500: #aeb1b6;
+  --color-gray-600: #868a91;
+  --color-gray-700: #55585e;
+  --color-gray-800: #2b2e36;
+  --color-gray-900: #1b1e27;
+  --color-gray-950: #0b0f19;
+
+  /* Primary */
+  --color-primary-100: #f3fffa;
+  --color-primary-200: #d0ffeb;
+  --color-primary-300: #9cffd6;
+  --color-primary-400: #69ffc0; /* Main */
+  --color-primary-500: #3aeca2;
+  --color-primary-600: #11d684;
+  --color-primary-700: #13b16f;
+  --color-primary-800: #04854f;
+  --color-primary-900: #07653e;
+
+  /* Secondary */
+  --color-secondary-100: #faf2ff;
+  --color-secondary-200: #ebd3ff;
+  --color-secondary-300: #daaffc;
+  --color-secondary-400: #c680ff; /* Main */
+  --color-secondary-500: #af5df1;
+  --color-secondary-600: #882fd0;
+  --color-secondary-700: #5c07a0;
+  --color-secondary-800: #3b006a;
+  --color-secondary-900: #2a024a;
+
+  /* Level (학습 레벨) */
+  --color-level-bgn: #60e272; /* 입문 */
+  --color-level-int: #a2acff; /* 중급 */
+  --color-level-mjr: #f0abff; /* 전공 */
+
+  /* State */
+  --color-error: #ff5d6b;
+  --color-warning: #ffc107;
+}
+
+@layer base {
+  html {
+    font-family: 'Pretendard', system-ui, sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: normal;
+    color: var(--color-gray-300);
+    background-color: var(--color-gray-950);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ===== 타이포그래피 =====
+ * 사용 예) <h1 className="heading-large">, <p className="body-medium">
+ */
+@layer components {
+  /* Display */
+  .display-large {
+    font-size: 200px;
+    font-weight: 100;
+    line-height: 300px;
+    letter-spacing: -1px;
+  }
+  .display-small {
+    font-size: 150px;
+    font-weight: 500;
+    line-height: 184px;
+    letter-spacing: -2px;
+  }
+
+  /* Heading */
+  .heading-large {
+    font-size: 52px;
+    font-weight: 600;
+    line-height: 74px;
+    letter-spacing: -1px;
+  }
+  .heading-medium-b {
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 44px;
+    letter-spacing: -1px;
+  }
+  .heading-medium-m {
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 42px;
+    letter-spacing: -1px;
+  }
+  .heading-small-b {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 36px;
+    letter-spacing: -1px;
+  }
+  .heading-small-m {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 36px;
+    letter-spacing: -1px;
+  }
+
+  /* Body */
+  .body-large-b {
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 32px;
+    letter-spacing: -1px;
+  }
+  .body-large-m {
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 32px;
+    letter-spacing: -1px;
+  }
+  .body-medium {
+    font-size: 20px;
+    font-weight: 400;
+    line-height: 30px;
+    letter-spacing: -1px;
+  }
+  .body-regular1 {
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 30px;
+    letter-spacing: 0;
+  }
+  .body-regular2 {
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 30px;
+    letter-spacing: 0;
+  }
+  .body-small {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 24px;
+    letter-spacing: 0;
+  }
+
+  /* Button */
+  .button-large1 {
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 28px;
+    letter-spacing: 0;
+  }
+  .button-large2 {
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 30px;
+    letter-spacing: 0;
+  }
+  .button-medium {
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 30px;
+    letter-spacing: 0;
+  }
+  .button-small {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 28px;
+    letter-spacing: 0;
+  }
+  .button-label1 {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 22px;
+    letter-spacing: -1px;
+  }
+  .button-label2 {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22px;
+    letter-spacing: 0;
+  }
+
+  /* Caption */
+  .caption-medium {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 22px;
+    letter-spacing: 0;
+  }
+  .caption-regular {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    letter-spacing: 0;
+  }
+}
