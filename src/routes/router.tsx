@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom';
+import AppLayout from '@/layout/AppLayout';
 import LandingPage from '@/pages/landing/LandingPage';
 import LoginPage from '@/pages/auth/LoginPage';
 import RoleSelectPage from '@/pages/onboarding/RoleSelectPage';
@@ -81,99 +82,104 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    path: '/main',
-    element: <MainPage />,
-  },
-  {
-    path: '/practice',
+    element: <AppLayout />,
     children: [
       {
-        index: true,
-        element: <PracticePage />,
+        path: '/main',
+        element: <MainPage />,
       },
       {
-        path: 'new',
-        element: <PracticeCreatePage />,
-      },
-      {
-        path: ':practiceId',
-        element: <PracticeDetailPage />,
-      },
-      {
-        path: ':practiceId/play',
-        element: <PracticePlayPage />,
-      },
-      {
-        path: ':practiceId/settings',
-        element: <PracticeSettingsPage />,
-      },
-      {
-        path: ':practiceId/analysis',
-        element: <AnalysisSelectPage />,
-      },
-      {
-        path: ':practiceId/analysis/result',
-        element: <AnalysisResultPage />,
-      },
-    ],
-  },
-  {
-    path: '/learn',
-    children: [
-      {
-        index: true,
-        element: <LearnPage />,
-      },
-      {
-        path: 'curriculum',
+        path: '/practice',
         children: [
           {
             index: true,
-            element: <CurriculumPage />,
+            element: <PracticePage />,
           },
           {
-            path: ':curriculumId',
-            element: <StepLearningPage />,
+            path: 'new',
+            element: <PracticeCreatePage />,
           },
           {
-            path: ':curriculumId/settings',
-            element: <StepLearningSettingsPage />,
+            path: ':practiceId',
+            element: <PracticeDetailPage />,
           },
           {
-            path: ':curriculumId/play',
-            element: <StepLearningPlayPage />,
+            path: ':practiceId/play',
+            element: <PracticePlayPage />,
           },
           {
-            path: ':curriculumId/score',
-            element: <ScorePage />,
+            path: ':practiceId/settings',
+            element: <PracticeSettingsPage />,
+          },
+          {
+            path: ':practiceId/analysis',
+            element: <AnalysisSelectPage />,
+          },
+          {
+            path: ':practiceId/analysis/result',
+            element: <AnalysisResultPage />,
           },
         ],
       },
-    ],
-  },
-  {
-    path: '/history',
-    children: [
       {
-        index: true,
-        element: <HistoryPage />,
+        path: '/learn',
+        children: [
+          {
+            index: true,
+            element: <LearnPage />,
+          },
+          {
+            path: 'curriculum',
+            children: [
+              {
+                index: true,
+                element: <CurriculumPage />,
+              },
+              {
+                path: ':curriculumId',
+                element: <StepLearningPage />,
+              },
+              {
+                path: ':curriculumId/settings',
+                element: <StepLearningSettingsPage />,
+              },
+              {
+                path: ':curriculumId/play',
+                element: <StepLearningPlayPage />,
+              },
+              {
+                path: ':curriculumId/score',
+                element: <ScorePage />,
+              },
+            ],
+          },
+        ],
       },
       {
-        path: ':historyId',
-        element: <HistoryDetailPage />,
+        path: '/history',
+        children: [
+          {
+            index: true,
+            element: <HistoryPage />,
+          },
+          {
+            path: ':historyId',
+            element: <HistoryDetailPage />,
+          },
+        ],
       },
-    ],
-  },
-  {
-    path: '/profile',
-    children: [
       {
-        index: true,
-        element: <ProfilePage />,
-      },
-      {
-        path: 'edit',
-        element: <ProfileEditPage />,
+        path: '/profile',
+        children: [
+          {
+            index: true,
+            element: <ProfilePage />,
+          },
+          {
+            path: 'edit',
+            element: <ProfileEditPage />,
+          },
+        ],
       },
     ],
   },
