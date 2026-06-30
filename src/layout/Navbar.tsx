@@ -26,8 +26,15 @@ function Navbar() {
       {/* 상단: 로고 / 메뉴 */}
       <div className="flex flex-col items-center gap-[42px]">
         {/* 로고 */}
-        <NavLink to="/main" className="flex h-[54px] items-center justify-center p-1.5 opacity-80" aria-label="홈">
-          <LogoIcon className="text-primary-400 w-[41px]" />
+        <NavLink
+          to="/main"
+          className={({ isActive }) =>
+            `flex h-[54px] items-center justify-center p-1.5 transition-colors ${
+              isActive ? 'text-primary-400' : 'text-gray-400'
+            }`
+          }
+          aria-label="홈">
+          <LogoIcon className="w-[41px]" />
         </NavLink>
 
         {/* 메뉴 */}
