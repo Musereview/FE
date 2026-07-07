@@ -1,7 +1,7 @@
 // 로그인 / 회원가입 페이지
 import LogoTypo from '@/assets/landing/logo.svg?react';
-import kakaoIcon from '@/assets/auth/kakao.png';
-import googleIcon from '@/assets/auth/google.png';
+import KakaoIcon from '@/assets/auth/kakao.svg?react';
+import GoogleIcon from '@/assets/auth/google.svg?react';
 
 function LoginPage() {
   return (
@@ -20,7 +20,7 @@ function LoginPage() {
             type="button"
             className="heading-small-m text-gray-950 flex w-full items-center justify-center gap-3 rounded-full bg-[#ffe812] px-6 py-3">
             <span className="flex size-[52px] items-center justify-center">
-              <img src={kakaoIcon} alt="" className="size-[42px] rounded-full object-cover" />
+              <KakaoIcon className="size-7" />
             </span>
             카카오로 시작하기
           </button>
@@ -30,7 +30,7 @@ function LoginPage() {
             type="button"
             className="heading-small-m text-gray-950 flex w-full items-center justify-center gap-3 rounded-full bg-white px-6 py-3">
             <span className="flex size-[52px] items-center justify-center">
-              <img src={googleIcon} alt="" className="size-8 object-cover" />
+              <GoogleIcon className="size-8" />
             </span>
             Google로 시작하기
           </button>
