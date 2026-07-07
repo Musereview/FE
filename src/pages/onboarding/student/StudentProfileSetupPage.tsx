@@ -101,13 +101,19 @@ function StudentProfileSetupPage() {
           </div>
         </div>
 
-        {/* 이전 버튼 */}
-        <div className="mt-[200px] flex">
+        {/* 이전 / 다음 버튼 */}
+        <div className="mt-[200px] flex justify-between">
           <button
             type="button"
             onClick={() => navigate(-1)}
             className="button-large1 flex h-[76px] w-[388px] items-center justify-center rounded-md border-[0.5px] border-gray-600 text-gray-300">
             이전
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/onboarding/student/plan')}
+            className="button-large1 bg-primary-400 flex h-[76px] w-[388px] items-center justify-center rounded-md text-gray-950">
+            다음
           </button>
         </div>
       </main>
