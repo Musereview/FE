@@ -109,12 +109,14 @@ function StudentProfileSetupPage() {
             className="button-large1 flex h-[76px] w-[388px] items-center justify-center rounded-md border-[0.5px] border-gray-600 text-gray-300">
             이전
           </button>
-          <button
-            type="button"
-            onClick={() => navigate('/onboarding/student/plan')}
-            className="button-large1 bg-primary-400 flex h-[76px] w-[388px] items-center justify-center rounded-md text-gray-950">
-            다음
-          </button>
+          {level && (
+            <button
+              type="button"
+              onClick={() => navigate('/onboarding/student/plan')}
+              className="button-large1 bg-primary-400 flex h-[76px] w-[388px] items-center justify-center rounded-md text-gray-950">
+              다음
+            </button>
+          )}
         </div>
       </main>
     </div>
