@@ -63,7 +63,11 @@ function StudentProfileSetupPage() {
               />
               <button
                 type="button"
-                className="button-medium shrink-0 rounded border-[0.5px] border-gray-300 px-4 py-2 text-gray-300">
+                className={`button-medium shrink-0 rounded px-4 py-2 ${
+                  nickname
+                    ? 'bg-primary-400 text-gray-950'
+                    : 'border-[0.5px] border-gray-300 text-gray-300'
+                }`}>
                 중복확인
               </button>
             </div>
