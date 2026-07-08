@@ -41,7 +41,7 @@ function StartButton({ variant }: { variant: 'light' | 'dark' }) {
     <button
       type="button"
       onClick={() => navigate('/login')}
-      className={`button-large1 flex h-[76px] w-[236px] items-center justify-center gap-2.5 rounded-md ${
+      className={`button-large1 flex h-[76px] w-[236px] cursor-pointer items-center justify-center gap-2.5 rounded-md ${
         isLight ? 'bg-primary-400 text-gray-950' : 'bg-gray-950 text-gray-300'
       }`}>
       뮤즈리뷰 시작하기
