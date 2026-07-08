@@ -1,6 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import AppLayout from '@/layout/AppLayout';
-import LandingPage from '@/pages/landing/LandingPage';
+import LandingGate from '@/pages/landing/LandingGate';
 import LoginPage from '@/pages/auth/LoginPage';
 import RoleSelectPage from '@/pages/onboarding/RoleSelectPage';
 import PlanSelectPage from '@/pages/onboarding/PlanSelectPage';
@@ -40,7 +40,7 @@ import TeacherMyPageEditPage from '@/pages/admin/mypage/TeacherMyPageEditPage';
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <LandingPage />,
+    element: <LandingGate />,
   },
   {
     path: '/login',
