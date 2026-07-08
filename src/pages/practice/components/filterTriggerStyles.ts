@@ -8,23 +8,15 @@ export function getFilterChevronClassName(isOpen: boolean) {
   return `size-6 ${isOpen ? 'rotate-180 text-primary-500' : 'text-gray-400'}`;
 }
 
-export const FILTER_PANEL_BASE_CLASSNAME =
-  'absolute top-[calc(100%+8px)] left-0 z-10 rounded-[6px] border-[0.5px] border-gray-600 bg-gray-700';
+const FILTER_PANEL_POSITION_CLASSNAME =
+  'absolute top-[calc(100%+20px)] z-10 rounded-[6px] border-[0.5px] border-gray-600';
 
-interface SelectableOptionStyleOptions {
-  selected: boolean;
-  selectedTypography?: string;
-  unselectedTypography?: string;
-  unselectedExtra?: string;
-}
+export const FILTER_PANEL_BASE_CLASSNAME = `${FILTER_PANEL_POSITION_CLASSNAME} left-1/2 -translate-x-1/2 bg-gray-700`;
 
-export function getSelectableOptionClassName({
-  selected,
-  selectedTypography = 'button-label2',
-  unselectedTypography = 'button-label2',
-  unselectedExtra = '',
-}: SelectableOptionStyleOptions) {
-  return selected
-    ? `${selectedTypography} bg-primary-400 text-gray-950`
-    : `${unselectedTypography} text-gray-200 ${unselectedExtra}`;
+export const FILTER_OPTION_LIST_PANEL_CLASSNAME = `${FILTER_PANEL_POSITION_CLASSNAME} left-0 flex min-w-full flex-col overflow-hidden`;
+
+export function getSelectableOptionRowClassName(selected: boolean) {
+  return `button-small flex h-10 w-full items-center px-[18px] py-1 text-left whitespace-nowrap ${
+    selected ? 'bg-primary-400 text-gray-950' : 'bg-gray-700 text-gray-300 hover:bg-primary-200 hover:text-gray-900'
+  }`;
 }

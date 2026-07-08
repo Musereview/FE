@@ -4,7 +4,6 @@ import {
   FILTER_PANEL_BASE_CLASSNAME,
   getFilterChevronClassName,
   getFilterTriggerClassName,
-  getSelectableOptionClassName,
 } from './filterTriggerStyles';
 
 const SHARP_NOTE_GROUPS = [
@@ -31,11 +30,11 @@ function KeyOptionButton({ label, selected, onSelect, className = 'w-9' }: KeyOp
     <button
       type="button"
       onClick={onSelect}
-      className={`flex h-8 items-center justify-center rounded-[4px] ${className} ${getSelectableOptionClassName({
-        selected,
-        selectedTypography: 'button-label1',
-        unselectedExtra: 'border-[0.3px] border-gray-500',
-      })}`}>
+      className={`flex h-8 items-center justify-center rounded-[4px] ${className} ${
+        selected
+          ? 'button-label1 bg-primary-400 text-gray-950'
+          : 'button-label2 hover:border-primary-200 hover:bg-primary-200 border-[0.3px] border-gray-500 text-gray-200 hover:text-gray-900'
+      }`}>
       {label}
     </button>
   );

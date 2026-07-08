@@ -1,9 +1,9 @@
 import ChevronDownIcon from '@/assets/practice/chevron-down.svg?react';
 import {
-  FILTER_PANEL_BASE_CLASSNAME,
+  FILTER_OPTION_LIST_PANEL_CLASSNAME,
   getFilterChevronClassName,
   getFilterTriggerClassName,
-  getSelectableOptionClassName,
+  getSelectableOptionRowClassName,
 } from './filterTriggerStyles';
 
 interface SelectDropdownOption<T extends string> {
@@ -44,7 +44,7 @@ function SelectDropdown<T extends string>({
       </button>
 
       {isOpen && (
-        <div className={`${FILTER_PANEL_BASE_CLASSNAME} flex min-w-full flex-col gap-1 p-2`}>
+        <div className={FILTER_OPTION_LIST_PANEL_CLASSNAME}>
           {options.map((option) => (
             <button
               key={option.value}
@@ -53,10 +53,7 @@ function SelectDropdown<T extends string>({
                 onChange(option.value);
                 onOpenChange(false);
               }}
-              className={`rounded-[4px] px-3 py-1.5 text-left whitespace-nowrap ${getSelectableOptionClassName({
-                selected: value === option.value,
-                unselectedExtra: 'hover:bg-gray-600',
-              })}`}>
+              className={getSelectableOptionRowClassName(value === option.value)}>
               {option.label}
             </button>
           ))}
