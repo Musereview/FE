@@ -30,6 +30,18 @@ function TrackCard({ track, onClick }: TrackCardProps) {
   return (
     <div
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
       className={`flex w-full flex-col gap-4 rounded-[10px] bg-gray-800 p-6 ${onClick ? 'cursor-pointer' : ''}`}>
       <div className="flex w-full flex-col gap-4">
         <div className="flex w-full flex-col gap-0.5">
