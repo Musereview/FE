@@ -1,4 +1,5 @@
 // 서비스 소개 페이지 (스플래시 이후 스크롤 랜딩)
+import { useNavigate } from 'react-router-dom';
 import LogoTypo from '@/assets/landing/logo.svg?react';
 import ArrowUpperLeft from '@/assets/landing/intro/arrow.svg?react';
 import TopButton from '@/assets/landing/intro/top-button.svg?react';
@@ -34,10 +35,12 @@ const FEATURES = [
 
 // 뮤즈리뷰 시작하기 버튼
 function StartButton({ variant }: { variant: 'light' | 'dark' }) {
+  const navigate = useNavigate();
   const isLight = variant === 'light';
   return (
     <button
       type="button"
+      onClick={() => navigate('/login')}
       className={`button-large1 flex h-[76px] w-[236px] items-center justify-center gap-2.5 rounded-md ${
         isLight ? 'bg-primary-400 text-gray-950' : 'bg-gray-950 text-gray-300'
       }`}>
