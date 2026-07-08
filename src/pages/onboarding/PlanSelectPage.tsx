@@ -1,5 +1,6 @@
 // 요금제 선택 페이지 - 학생/강사 공용 사용
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import LogoTypo from '@/assets/landing/logo.svg?react';
 import CheckIcon from '@/assets/onboarding/check.svg?react';
 
@@ -32,6 +33,7 @@ const PLANS: Plan[] = [
 ];
 
 function PlanSelectPage() {
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<string | null>(null);
 
   return (
@@ -50,12 +52,19 @@ function PlanSelectPage() {
           {PLANS.map(({ name, price, tagline, features }) => {
             const isSelected = selected === name;
             return (
-              <button
+              <div
                 key={name}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelected(name)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelected(name);
+                  }
+                }}
                 aria-pressed={isSelected}
-                className={`flex w-[361px] flex-col gap-[68px] rounded-[10px] p-9 text-left transition-colors ${
+                className={`flex w-[361px] cursor-pointer flex-col gap-[68px] rounded-[10px] p-9 text-left transition-colors ${
                   isSelected ? 'border-primary-400 border bg-gray-900' : 'border-[0.5px] border-gray-600 bg-gray-950'
                 }`}>
                 {/* 이름 / 가격 */}
@@ -81,15 +90,24 @@ function PlanSelectPage() {
                 </div>
 
                 {/* 시작하기 버튼 */}
-                <span
-                  className={`flex h-[60px] w-full items-center justify-center rounded-md transition-colors ${
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isSelected) {
+                      navigate('/main');
+                    } else {
+                      setSelected(name);
+                    }
+                  }}
+                  className={`flex h-[60px] w-full cursor-pointer items-center justify-center rounded-md transition-colors ${
                     isSelected
                       ? 'button-large1 bg-primary-400 text-gray-950'
                       : 'button-large2 border-primary-400 text-primary-400 border-[0.5px]'
                   }`}>
                   시작하기
-                </span>
-              </button>
+                </button>
+              </div>
             );
           })}
         </div>
