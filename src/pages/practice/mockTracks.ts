@@ -1,6 +1,6 @@
 import type { Track } from '@/types/track';
 
-export const GENRES = ['Jazz', 'Blues', 'Pop', 'Rock'] as const;
+export const GENRES = ['Jazz', 'Pop', 'Blues', '기타'] as const;
 
 export const RECOMMENDED_TRACKS: Track[] = [
   {
@@ -52,7 +52,7 @@ export const RECOMMENDED_TRACKS: Track[] = [
     mode: 'minor',
     timeSignature: '4/4',
     chords: ['Em', 'C', 'G', 'D'],
-    genre: 'Rock',
+    genre: '기타',
     bpm: 140,
     difficulty: 'intermediate',
     duration: '1:20',
