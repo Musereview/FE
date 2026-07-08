@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import LandingPage from './LandingPage';
 import IntroPage from './IntroPage';
 
-const SPLASH_DURATION = 5000;
+const SPLASH_DURATION = 3000;
 
 function LandingGate() {
   const [showIntro, setShowIntro] = useState(false);

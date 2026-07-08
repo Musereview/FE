@@ -19,11 +19,9 @@ const ROLES: {
 
 function RoleSelectPage() {
   const navigate = useNavigate();
-  const [role, setRole] = useState<Role | null>(null);
+  const [role, setRole] = useState<Role>('student');
 
-  const handleNext = () => {
-    if (role) navigate(`/onboarding/${role}/profile`);
-  };
+  const handleNext = () => navigate(`/onboarding/${role}/profile`);
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-950 px-[202px]">
@@ -68,8 +66,7 @@ function RoleSelectPage() {
           <button
             type="button"
             onClick={handleNext}
-            disabled={!role}
-            className="button-large1 bg-primary-400 h-[76px] w-[388px] rounded-md text-gray-950 transition-opacity disabled:opacity-40">
+            className="button-large1 bg-primary-400 h-[76px] w-[388px] rounded-md text-gray-950">
             다음
           </button>
         </div>
