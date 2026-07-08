@@ -20,7 +20,7 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 left-[90px] z-50 flex items-center justify-center bg-black/60">
+    <div className="fixed inset-y-0 right-0 left-[90px] z-50 flex items-center justify-center bg-black/90">
       <div className="relative flex h-[960px] w-[960px] flex-col rounded-[10px] border-[0.3px] border-gray-600 bg-gray-900 px-[84px] pt-[60px]">
         {/* 닫힘 버튼 */}
         <button onClick={onClose} aria-label="닫기" className="absolute top-[29px] right-[38px]">
