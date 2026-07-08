@@ -3,6 +3,7 @@ import AppLayout from '@/layout/AppLayout';
 import LandingGate from '@/pages/landing/LandingGate';
 import LoginPage from '@/pages/auth/LoginPage';
 import RoleSelectPage from '@/pages/onboarding/RoleSelectPage';
+import TermPage from '@/pages/onboarding/TermPage';
 import PlanSelectPage from '@/pages/onboarding/PlanSelectPage';
 import StudentProfileSetupPage from '@/pages/onboarding/student/StudentProfileSetupPage';
 import TeacherProfileSetupPage from '@/pages/onboarding/teacher/TeacherProfileSetupPage';
@@ -49,6 +50,10 @@ export const router = createBrowserRouter([
   {
     path: '/onboarding',
     children: [
+      {
+        path: 'terms',
+        element: <TermPage />,
+      },
       {
         path: 'role',
         element: <RoleSelectPage />,
