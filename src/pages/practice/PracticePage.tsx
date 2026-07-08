@@ -6,8 +6,8 @@ import { RECOMMENDED_TRACKS, ALL_TRACKS, GENRES } from './mockTracks';
 import TrackCard from './components/TrackCard';
 import RecommendedTrackCarousel from './components/RecommendedTrackCarousel';
 import SelectDropdown from './components/SelectDropdown';
-import BpmFilterDropdown from './components/BpmFilterDropdown';
 import KeyFilterDropdown from './components/KeyFilterDropdown';
+import BpmFilterDropdown from './components/BpmFilterDropdown';
 import PlusIcon from '@/assets/practice/plus.svg?react';
 
 type SortBy = 'popularity' | 'latest';
@@ -17,7 +17,9 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: 'latest', label: '최신순' },
 ];
 
-const GENRE_OPTIONS = [{ value: 'all', label: '전체' }, ...GENRES.map((genre) => ({ value: genre, label: genre }))];
+const GENRE_OPTIONS = GENRES.map((genre) => ({ value: genre, label: genre }));
+
+const DEFAULT_BPM = 125;
 
 type FilterKey = 'sort' | 'genre' | 'key' | 'bpm';
 
@@ -27,8 +29,8 @@ function PracticePage() {
   const navigate = useNavigate();
 
   const [sortBy, setSortBy] = useState<SortBy>('popularity');
-  const [genre, setGenre] = useState('all');
-  const [bpmMax, setBpmMax] = useState<number | null>(null);
+  const [genre, setGenre] = useState(GENRE_OPTIONS[0].value);
+  const [bpm, setBpm] = useState(DEFAULT_BPM);
   const [keyValue, setKeyValue] = useState('');
   const [keyMode, setKeyMode] = useState<KeyMode | null>(null);
 
@@ -48,9 +50,9 @@ function PracticePage() {
 
   const filteredTracks = useMemo(() => {
     const filtered = ALL_TRACKS.filter((track) => {
-      if (genre !== 'all' && track.genre !== genre) return false;
-      if (bpmMax !== null && track.bpm > bpmMax) return false;
-      if (keyValue.trim() && track.key.toLowerCase() !== keyValue.trim().toLowerCase()) return false;
+      if (track.genre !== genre) return false;
+      if (track.bpm > bpm) return false;
+      if (keyValue && track.key !== keyValue) return false;
       if (keyMode && track.mode !== keyMode) return false;
       return true;
     });
@@ -60,7 +62,7 @@ function PracticePage() {
         ? b.popularity - a.popularity
         : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }, [genre, bpmMax, keyValue, keyMode, sortBy]);
+  }, [genre, bpm, keyValue, keyMode, sortBy]);
 
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -68,7 +70,7 @@ function PracticePage() {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [genre, bpmMax, keyValue, keyMode, sortBy]);
+  }, [genre, bpm, keyValue, keyMode, sortBy]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
@@ -130,8 +132,8 @@ function PracticePage() {
                 onOpenChange={(open) => setOpenFilter(open ? 'key' : null)}
               />
               <BpmFilterDropdown
-                value={bpmMax}
-                onChange={setBpmMax}
+                value={bpm}
+                onChange={setBpm}
                 isOpen={openFilter === 'bpm'}
                 onOpenChange={(open) => setOpenFilter(open ? 'bpm' : null)}
               />
