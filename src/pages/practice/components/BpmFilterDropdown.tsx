@@ -38,6 +38,7 @@ function BpmFilterDropdown({ value, onChange, isOpen, onOpenChange }: BpmFilterD
           <div className="flex w-[220px] flex-col gap-1">
             <input
               type="range"
+              aria-label="BPM"
               min={BPM_MIN}
               max={BPM_MAX}
               value={value}
