@@ -1,8 +1,9 @@
 import { createBrowserRouter } from 'react-router-dom';
 import AppLayout from '@/layout/AppLayout';
-import LandingPage from '@/pages/landing/LandingPage';
+import LandingGate from '@/pages/landing/LandingGate';
 import LoginPage from '@/pages/auth/LoginPage';
 import RoleSelectPage from '@/pages/onboarding/RoleSelectPage';
+import TermPage from '@/pages/onboarding/TermPage';
 import PlanSelectPage from '@/pages/onboarding/PlanSelectPage';
 import StudentProfileSetupPage from '@/pages/onboarding/student/StudentProfileSetupPage';
 import TeacherProfileSetupPage from '@/pages/onboarding/teacher/TeacherProfileSetupPage';
@@ -40,7 +41,7 @@ import TeacherMyPageEditPage from '@/pages/admin/mypage/TeacherMyPageEditPage';
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <LandingPage />,
+    element: <LandingGate />,
   },
   {
     path: '/login',
@@ -49,6 +50,10 @@ export const router = createBrowserRouter([
   {
     path: '/onboarding',
     children: [
+      {
+        path: 'terms',
+        element: <TermPage />,
+      },
       {
         path: 'role',
         element: <RoleSelectPage />,
