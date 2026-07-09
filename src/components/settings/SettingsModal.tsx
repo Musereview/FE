@@ -3,6 +3,8 @@ import { useSettingStore } from '@/stores/settingsStore';
 import * as Tone from 'tone';
 import CloseIcon from '@/assets/close.svg?react';
 import CheckIcon from '@/assets/check.svg?react';
+import DropdownIcon from '@/assets/dropdown.svg?react';
+import { useState } from 'react';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -13,6 +15,8 @@ interface SettingsModalProps {
 export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }: SettingsModalProps) {
   const { inputs } = useMidi(); //기기목록만 사용
   const { inputId, bpm, keyCount, latencyMs, setInput, setBpm, setKeyCount } = useSettingStore();
+  const [inputOpen, setInputOpen] = useState(false);
+  const [keyOpen, setKeyOpen] = useState(false);
 
   const handleStart = async () => {
     await Tone.start(); // 오디오 잠금 해제 - 클릭 핸들러 안에서만 가능
@@ -23,29 +27,52 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
     <div className="fixed inset-y-0 right-0 left-[90px] z-50 flex items-center justify-center bg-black/90">
       <div className="relative flex h-[960px] w-[960px] flex-col rounded-[10px] border-[0.3px] border-gray-600 bg-gray-900 px-[84px] pt-[60px]">
         {/* 닫힘 버튼 */}
-        <button onClick={onClose} aria-label="닫기" className="absolute top-[29px] right-[38px]">
+        <button onClick={onClose} aria-label="닫기" className="absolute top-[29px] right-[38px] cursor-pointer">
           <CloseIcon className="h-6 w-6" />
         </button>
         {/* 미디 입력, 출력 설정 */}
         <div className="flex w-[792px] flex-col items-start gap-6 border-b-[0.5px] border-gray-700 pt-6 pb-12">
           <p className="body-medium">미디 입력 및 출력 설정</p>
           <div className="flex w-full gap-3">
-            <select
-              value={inputId ?? ''}
-              onChange={(e) => setInput(e.target.value)}
-              className="button-medium flex h-[60px] w-[388px] items-center justify-center gap-2 rounded-[6px] border-gray-600 bg-gray-800 p-[12px] text-center">
-              <option value="" disabled>
-                Input
-              </option>
-              {inputs.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-            <div className="button-medium flex h-[60px] w-[388px] items-center justify-center gap-2 rounded-[6px] border-gray-600 bg-gray-800 p-[12px] text-center">
-              Output
+            {/* Input — 커스텀 드롭다운 */}
+            <div className="relative w-[388px]">
+              <button
+                type="button"
+                onClick={() => setInputOpen((v) => !v)}
+                className="button-medium flex h-[60px] w-full cursor-pointer items-center justify-center gap-3 rounded-[6px] bg-gray-800">
+                {inputs.find((d) => d.id === inputId)?.name ?? 'Input'}
+                <DropdownIcon className={`h-6 w-6 shrink-0 ${inputOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {inputOpen && (
+                <ul className="absolute top-full z-10 mt-1 w-full overflow-hidden rounded-[6px] bg-gray-800">
+                  {inputs.length === 0 && (
+                    <li className="flex h-[48px] items-center justify-center text-gray-400">연결된 기기가 없습니다</li>
+                  )}
+                  {inputs.map((d) => (
+                    <li key={d.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInput(d.id);
+                          setInputOpen(false);
+                        }}
+                        className="h-[48px] w-full cursor-pointer text-center hover:bg-gray-700">
+                        {d.name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
+
+            {/* Output — 같은 생김새, 스피커 고정 */}
+            <button
+              type="button"
+              className="button-medium flex h-[60px] w-[388px] items-center justify-center gap-3 rounded-[6px] bg-gray-800">
+              Output
+              <DropdownIcon className="h-6 w-6 shrink-0" />
+            </button>
           </div>
         </div>
         {/* 레이턴시 체크 - 측정 전/후 상태 분기 */}
@@ -54,7 +81,7 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
           <div className="flex w-full items-end justify-between">
             {latencyMs === null ? (
               <>
-                <button className="button-large2 flex h-[60px] w-[190px] items-center justify-center gap-2 rounded-[6px] border border-gray-800 bg-gray-800 py-[6px] pr-3 pl-[14px]">
+                <button className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-gray-800 bg-gray-800 py-[6px] pr-3 pl-[14px]">
                   체크하기
                   <CheckIcon />
                 </button>
@@ -62,7 +89,7 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
               </>
             ) : (
               <>
-                <button className="button-large2 flex h-[60px] w-[190px] items-center justify-center gap-[8px] rounded-[6px] px-[12px] py-[6px]">
+                <button className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] px-[12px] py-[6px]">
                   재설정
                 </button>
                 <p className="body-ragular1 text-right text-[#69FFC0]">레이턴시 설정이 완료되었습니다.</p>
@@ -85,13 +112,40 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
         {/* 피아노 건반 개수 */}
         <div className="flex w-[190px] flex-col items-start gap-6 py-12">
           <p className="body-medium">피아노 건반 개수</p>
-          <select
-            value={keyCount}
-            onChange={(e) => setKeyCount(Number(e.target.value) as 88 | 61)}
-            className="flex h-[56px] items-center justify-between self-stretch rounded-[6px] bg-gray-800 px-[18px] py-1">
-            <option value={88}>88</option>
-            <option value={61}>61</option>
-          </select>
+
+          <div className="relative self-stretch">
+            <button
+              type="button"
+              onClick={() => setKeyOpen((v) => !v)}
+              className={`button-medium flex h-[56px] w-full cursor-pointer items-center justify-between rounded-[6px] border px-[18px] py-1 ${
+                keyOpen ? 'border-primary-400 text-primary-500 bg-gray-900' : 'border-gray-500 bg-gray-900'
+              }`}>
+              {keyCount}
+              <DropdownIcon className={`h-[24px] w-[24px] ${keyOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {keyOpen && (
+              <ul className="absolute top-full z-10 mt-1 w-full overflow-hidden rounded-[6px]">
+                {([88, 61] as const).map((n) => (
+                  <li key={n}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setKeyCount(n);
+                        setKeyOpen(false);
+                      }}
+                      className={`button-medium h-[56px] w-full cursor-pointer px-[18px] text-left ${
+                        keyCount === n
+                          ? 'bg-primary-500 text-gray-950' // 선택된 옵션
+                          : 'bg-gray-700 text-gray-300' // 나머지
+                      }`}>
+                      {n}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
         <button
           onClick={handleStart}
