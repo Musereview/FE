@@ -5,10 +5,11 @@ import type { KeyMode, TrackDifficulty } from '@/types/track';
 import { GENRES } from './mockTracks';
 import ChevronLeftIcon from '@/assets/practice/chevron-left.svg?react';
 import TitleField from './components/create/TitleField';
-import CreateSelectField from './components/create/CreateSelectField';
-import BpmField from './components/create/BpmField';
-import ChordProgressionGrid from './components/create/ChordProgressionGrid';
-import { addMeasures, createInitialMeasures } from './components/create/chordGrid';
+import { isValidTitle } from './components/create/titleValidation';
+import SelectDropdown from './components/SelectDropdown';
+import BpmDropdown from './components/BpmDropdown';
+import ChordProgressionGrid, { type ChordCell } from './components/create/ChordProgressionGrid';
+import { createInitialMeasures } from './components/create/chordGrid';
 import AudioUploadField from './components/create/AudioUploadField';
 
 type TimeSignature = '4/4' | '3/4';
@@ -32,12 +33,10 @@ const TIME_SIGNATURE_OPTIONS: { value: TimeSignature; label: string }[] = [
   { value: '3/4', label: '3/4' },
 ];
 
-// 이 화면의 Figma 시안 텍스트는 '고급'이지만, TrackCard 및 #8 트랙 상세 모달(trackDisplay.ts)에서
-// 이미 advanced='전공'으로 확정되어 있어 앱 전체 라벨 일관성을 위해 '전공'으로 맞춤.
 const DIFFICULTY_OPTIONS: { value: TrackDifficulty; label: string }[] = [
   { value: 'beginner', label: '초급' },
   { value: 'intermediate', label: '중급' },
-  { value: 'advanced', label: '전공' },
+  { value: 'advanced', label: '고급' },
 ];
 
 const ACCESS_OPTIONS: { value: TrackAccess; label: string }[] = [
@@ -45,7 +44,7 @@ const ACCESS_OPTIONS: { value: TrackAccess; label: string }[] = [
   { value: 'public', label: '전체 공개' },
 ];
 
-const DEFAULT_BPM = 120;
+const DEFAULT_BPM = 60;
 
 type FilterKey = 'genre' | 'key' | 'mode' | 'bpm' | 'timeSignature' | 'difficulty' | 'access';
 
@@ -61,6 +60,7 @@ function PracticeCreatePage() {
   const [difficulty, setDifficulty] = useState<TrackDifficulty>('beginner');
   const [access, setAccess] = useState<TrackAccess>('private');
   const [measures, setMeasures] = useState(() => createInitialMeasures(TIME_SIGNATURE_OPTIONS[0].value));
+  const [selectedChordCell, setSelectedChordCell] = useState<ChordCell | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
 
   const [openField, setOpenField] = useState<FilterKey | null>(null);
@@ -68,21 +68,12 @@ function PracticeCreatePage() {
   const handleTimeSignatureChange = (next: TimeSignature) => {
     setTimeSignature(next);
     setMeasures(createInitialMeasures(next));
+    setSelectedChordCell(null);
   };
-
-  const handleChordCellChange = (measureIndex: number, cellIndex: number, value: string) => {
-    setMeasures((prev) =>
-      prev.map((measure, m) =>
-        m === measureIndex ? measure.map((cell, c) => (c === cellIndex ? value : cell)) : measure,
-      ),
-    );
-  };
-
-  const handleAddMeasures = () => setMeasures((prev) => addMeasures(prev, timeSignature));
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || !isValidTitle(title)) return;
 
     navigate('/practice');
   };
@@ -105,8 +96,10 @@ function PracticeCreatePage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="flex w-full items-start justify-between">
             <TitleField value={title} onChange={setTitle} className="w-[500px]" />
-            <CreateSelectField
+            <SelectDropdown
               label="장르"
+              size="large"
+              showLabel
               options={GENRE_OPTIONS}
               value={genre}
               onChange={setGenre}
@@ -118,8 +111,10 @@ function PracticeCreatePage() {
 
           <div className="flex w-full items-start justify-between">
             <div className="flex items-start gap-3">
-              <CreateSelectField
+              <SelectDropdown
                 label="Key"
+                size="large"
+                showLabel
                 options={KEY_NOTE_OPTIONS}
                 value={keyNote}
                 onChange={setKeyNote}
@@ -127,8 +122,10 @@ function PracticeCreatePage() {
                 onOpenChange={(open) => setOpenField(open ? 'key' : null)}
                 className="w-[135px]"
               />
-              <CreateSelectField
+              <SelectDropdown
                 label="Key"
+                size="large"
+                showLabel
                 hideLabel
                 options={KEY_MODE_OPTIONS}
                 value={keyMode}
@@ -139,18 +136,22 @@ function PracticeCreatePage() {
               />
             </div>
 
-            <BpmField
+            <BpmDropdown
               value={bpm}
               onChange={setBpm}
               isOpen={openField === 'bpm'}
               onOpenChange={(open) => setOpenField(open ? 'bpm' : null)}
+              size="large"
+              showLabel
               className="w-[135px]"
             />
           </div>
 
           <div className="flex w-full items-start justify-between">
-            <CreateSelectField
+            <SelectDropdown
               label="박자"
+              size="large"
+              showLabel
               options={TIME_SIGNATURE_OPTIONS}
               value={timeSignature}
               onChange={handleTimeSignatureChange}
@@ -158,8 +159,10 @@ function PracticeCreatePage() {
               onOpenChange={(open) => setOpenField(open ? 'timeSignature' : null)}
               className="w-[144px]"
             />
-            <CreateSelectField
+            <SelectDropdown
               label="난이도"
+              size="large"
+              showLabel
               options={DIFFICULTY_OPTIONS}
               value={difficulty}
               onChange={setDifficulty}
@@ -171,14 +174,16 @@ function PracticeCreatePage() {
 
           <ChordProgressionGrid
             measures={measures}
-            onCellChange={handleChordCellChange}
-            onAddMeasures={handleAddMeasures}
+            selectedCell={selectedChordCell}
+            onSelectCell={setSelectedChordCell}
           />
 
           <div className="flex w-full items-start justify-between">
             <AudioUploadField file={audioFile} onChange={setAudioFile} className="w-[500px]" />
-            <CreateSelectField
+            <SelectDropdown
               label="사용 권한"
+              size="large"
+              showLabel
               options={ACCESS_OPTIONS}
               value={access}
               onChange={setAccess}
