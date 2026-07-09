@@ -7,7 +7,7 @@ import TrackCard from './components/TrackCard';
 import RecommendedTrackCarousel from './components/RecommendedTrackCarousel';
 import SelectDropdown from './components/SelectDropdown';
 import KeyFilterDropdown from './components/KeyFilterDropdown';
-import BpmFilterDropdown from './components/BpmFilterDropdown';
+import BpmDropdown from './components/BpmDropdown';
 import PlusIcon from '@/assets/practice/plus.svg?react';
 
 type SortBy = 'popularity' | 'latest';
@@ -17,9 +17,12 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: 'latest', label: '최신순' },
 ];
 
+// '장르 전체'가 GENRES의 첫 항목 — 필터 기본값이자 "필터링 안 함" 의미로 쓰인다.
+const GENRE_ALL = GENRES[0];
 const GENRE_OPTIONS = GENRES.map((genre) => ({ value: genre, label: genre }));
 
-const DEFAULT_BPM = 125;
+const DEFAULT_BPM = 60;
+const BPM_FILTER_RANGE = 20;
 
 type FilterKey = 'sort' | 'genre' | 'key' | 'bpm';
 
@@ -35,23 +38,11 @@ function PracticePage() {
   const [keyMode, setKeyMode] = useState<KeyMode | null>(null);
 
   const [openFilter, setOpenFilter] = useState<FilterKey | null>(null);
-  const filterRowRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (filterRowRef.current && !filterRowRef.current.contains(event.target as Node)) {
-        setOpenFilter(null);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const filteredTracks = useMemo(() => {
     const filtered = ALL_TRACKS.filter((track) => {
-      if (track.genre !== genre) return false;
-      if (track.bpm > bpm) return false;
+      if (genre !== GENRE_ALL && track.genre !== genre) return false;
+      if (Math.abs(track.bpm - bpm) > BPM_FILTER_RANGE) return false;
       if (keyValue && track.key !== keyValue) return false;
       if (keyMode && track.mode !== keyMode) return false;
       return true;
@@ -105,7 +96,7 @@ function PracticePage() {
           <h2 className="heading-medium-b text-gray-200">전체</h2>
 
           <div className="flex flex-wrap items-center gap-6">
-            <div ref={filterRowRef} className="flex flex-wrap items-start gap-3">
+            <div className="flex flex-wrap items-start gap-3">
               <SelectDropdown
                 label="인기순"
                 options={SORT_OPTIONS}
@@ -113,7 +104,7 @@ function PracticePage() {
                 onChange={setSortBy}
                 isOpen={openFilter === 'sort'}
                 onOpenChange={(open) => setOpenFilter(open ? 'sort' : null)}
-                className="w-[101px]"
+                className="w-[102px]"
               />
               <SelectDropdown
                 label="장르"
@@ -131,11 +122,12 @@ function PracticePage() {
                 isOpen={openFilter === 'key'}
                 onOpenChange={(open) => setOpenFilter(open ? 'key' : null)}
               />
-              <BpmFilterDropdown
+              <BpmDropdown
                 value={bpm}
                 onChange={setBpm}
                 isOpen={openFilter === 'bpm'}
                 onOpenChange={(open) => setOpenFilter(open ? 'bpm' : null)}
+                className="w-[106px]"
               />
             </div>
 
