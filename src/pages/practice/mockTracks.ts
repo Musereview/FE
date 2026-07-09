@@ -1,6 +1,6 @@
 import type { Track } from '@/types/track';
 
-export const GENRES = ['Jazz', 'Pop', 'Blues', '기타'] as const;
+export const GENRES = ['장르 전체', 'Jazz', 'Pop', 'Blues', '기타'] as const;
 
 export const RECOMMENDED_TRACKS: Track[] = [
   {
