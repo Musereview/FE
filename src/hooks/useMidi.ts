@@ -20,6 +20,13 @@ export function useMidi(onNoteOn?: NoteHandler, onNoteOff?: (note: number) => vo
   useEffect(() => {
     let cancelled = false;
 
+    if (!navigator.requestMIDIAccess) {
+      setError('이 브라우저는 MIDI를 지원하지 않습니다. Chrome 또는 Edge를 사용해 주세요.');
+      return () => {
+        cancelled = true;
+      };
+    }
+
     navigator
       .requestMIDIAccess()
       .then((access) => {
@@ -46,7 +53,7 @@ export function useMidi(onNoteOn?: NoteHandler, onNoteOff?: (note: number) => vo
         attach();
         access.onstatechange = attach; // 연결/해제 시 목록 갱신
       })
-      .catch(() => setError('MIDI 접근이 거부되었거나 지원되지 않는 브라우저입니다.'));
+      .catch(() => setError('MIDI 접근이 거부되었습니다. 브라우저 설정에서 권한을 허용해 주세요.'));
 
     return () => {
       cancelled = true;
