@@ -3,7 +3,7 @@ export const NICKNAME_MIN_LENGTH = 2;
 export const NICKNAME_MAX_LENGTH = 10;
 
 // 공백/특수문자 없이 한글, 영문, 숫자만 허용
-const NICKNAME_CHAR_REGEX = /^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]+$/;
+const NICKNAME_CHAR_REGEX = /^[가-힣a-zA-Z0-9]+$/;
 
 export type NicknameFormatError = 'length' | 'format';
 
