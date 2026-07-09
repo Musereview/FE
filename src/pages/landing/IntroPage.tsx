@@ -52,7 +52,7 @@ function IntroPage() {
       {/* 배경 */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[1300px] bg-[radial-gradient(155%_95%_at_50%_6%,#0b0f19_0%,#0b0f19_45%,rgba(11,15,25,0.82)_60%,rgba(11,15,25,0.55)_70%,rgba(11,15,25,0.3)_80%,rgba(11,15,25,0.12)_88%,rgba(11,15,25,0.03)_94%,rgba(11,15,25,0)_100%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[1300px] bg-[radial-gradient(155%_95%_at_50%_6%,var(--color-gray-950)_0%,var(--color-gray-950)_45%,color-mix(in_srgb,var(--color-gray-950)_82%,transparent)_60%,color-mix(in_srgb,var(--color-gray-950)_55%,transparent)_70%,color-mix(in_srgb,var(--color-gray-950)_30%,transparent)_80%,color-mix(in_srgb,var(--color-gray-950)_12%,transparent)_88%,color-mix(in_srgb,var(--color-gray-950)_3%,transparent)_94%,transparent_100%)]"
       />
 
       {/* 상단 여백 */}
@@ -62,9 +62,9 @@ function IntroPage() {
       <section
         className={`relative z-10 flex flex-col items-center gap-[260px] pt-[180px] pb-[240px] ${SECTION_PADDING}`}>
         <div className="flex flex-col items-center gap-[60px]">
-          <h1 className="heading-large text-center text-gray-200">
+          <div className="heading-large text-center text-gray-200">
             막막한 독학 연습의 순간마다, 내 곁에 함께하는 AI 음악 멘토
-          </h1>
+          </div>
           <StartButton variant="light" />
         </div>
 
@@ -108,9 +108,7 @@ function IntroPage() {
       <section className="relative z-10 bg-gray-950">
         <div className={`mx-auto flex w-full max-w-[1920px] flex-col gap-[220px] py-[184px] ${SECTION_PADDING}`}>
           <div className="grid gap-10 xl:grid-cols-[minmax(0,790px)_minmax(420px,1fr)] xl:items-center xl:gap-[120px]">
-            <h2 className="heading-large text-primary-400">
-              뮤즈리뷰는 그 의도를 발견합니다.
-            </h2>
+            <h2 className="heading-large text-primary-400">뮤즈리뷰는 그 의도를 발견합니다.</h2>
             <p className="body-medium min-w-0 text-gray-300">
               우리는 단순히 연습하라고 재촉하지 않습니다.
               <br />

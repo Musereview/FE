@@ -82,6 +82,10 @@ function LandingPage() {
     const heightTex = makeTex(1);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
+    const rootStyles = getComputedStyle(document.documentElement);
+    const gray950 = rootStyles.getPropertyValue('--color-gray-950').trim();
+    const gray200 = rootStyles.getPropertyValue('--color-gray-200').trim();
+
     const drawScene = (w: number, h: number, dpr: number) => {
       const c = document.createElement('canvas');
       c.width = w * dpr;
@@ -89,12 +93,12 @@ function LandingPage() {
       const ctx = c.getContext('2d');
       if (!ctx) return c;
       ctx.scale(dpr, dpr);
-      ctx.fillStyle = '#0b0f19';
+      ctx.fillStyle = gray950;
       ctx.fillRect(0, 0, w, h);
       if (img1) drawCover(ctx, img1, w, h);
       if (img2) drawCover(ctx, img2, w, h);
       const fs = Math.min(Math.max(44, 0.095 * w), 150);
-      ctx.fillStyle = '#f0f1f1';
+      ctx.fillStyle = gray200;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = `500 ${fs}px Pretendard, sans-serif`;
