@@ -10,6 +10,10 @@ import FRAG from './glass.frag.glsl?raw';
 
 const TITLE = '흘러간 영감을 다시 듣다.';
 
+interface LandingPageProps {
+  onEnterIntro?: () => void;
+}
+
 // 이미지 로드
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -27,7 +31,7 @@ function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, w: numb
   ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
 }
 
-function LandingPage() {
+function LandingPage({ onEnterIntro }: LandingPageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -82,10 +86,6 @@ function LandingPage() {
     const heightTex = makeTex(1);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
-    const rootStyles = getComputedStyle(document.documentElement);
-    const gray950 = rootStyles.getPropertyValue('--color-gray-950').trim();
-    const gray200 = rootStyles.getPropertyValue('--color-gray-200').trim();
-
     const drawScene = (w: number, h: number, dpr: number) => {
       const c = document.createElement('canvas');
       c.width = w * dpr;
@@ -93,12 +93,12 @@ function LandingPage() {
       const ctx = c.getContext('2d');
       if (!ctx) return c;
       ctx.scale(dpr, dpr);
-      ctx.fillStyle = gray950;
+      ctx.fillStyle = '#0b0f19';
       ctx.fillRect(0, 0, w, h);
       if (img1) drawCover(ctx, img1, w, h);
       if (img2) drawCover(ctx, img2, w, h);
       const fs = Math.min(Math.max(44, 0.095 * w), 150);
-      ctx.fillStyle = gray200;
+      ctx.fillStyle = '#f0f1f1';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = `500 ${fs}px Pretendard, sans-serif`;
@@ -207,7 +207,17 @@ function LandingPage() {
   }, []);
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-gray-950">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onEnterIntro}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onEnterIntro?.();
+        }
+      }}
+      className="relative h-screen w-full cursor-pointer overflow-hidden bg-gray-950">
       {/* 배경 + 타이틀 + 유리 굴절 */}
       <canvas ref={canvasRef} className="absolute inset-0 z-0 block size-full" />
       <h1 className="sr-only">{TITLE}</h1>

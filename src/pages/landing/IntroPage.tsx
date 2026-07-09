@@ -1,5 +1,6 @@
 // 서비스 소개 페이지
 import { useNavigate } from 'react-router-dom';
+import LogoTypo from '@/assets/landing/logo.svg?react';
 import ArrowUpperLeft from '@/assets/landing/intro/arrow.svg?react';
 import TopButton from '@/assets/landing/intro/top-button.svg?react';
 import NrWave from '@/assets/landing/intro/wave-logo.svg?react';
@@ -56,7 +57,9 @@ function IntroPage() {
       />
 
       {/* 상단 여백 */}
-      <header aria-hidden className="relative z-10 h-[124px]" />
+      <header className="relative z-10 flex h-[124px] items-start justify-center px-2.5 py-1">
+        <LogoTypo className="text-primary-400 h-[29px] w-[174px]" aria-label="MUSE REVIEW" />
+      </header>
 
       {/* 히어로 */}
       <section
