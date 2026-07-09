@@ -46,8 +46,8 @@ function TermPage() {
 
   return (
     <div className="relative flex min-h-screen flex-col bg-gray-950 px-6">
-      {/* 본문 (세로 중앙 정렬) */}
-      <div className="flex flex-1 items-center justify-center">
+      {/* 본문 */}
+      <div className="flex flex-1 items-center justify-center pb-[120px]">
         <div className="flex w-full max-w-[618px] flex-col items-start gap-[110px]">
           {/* 로고 */}
           <LogoTypo className="text-primary-400 h-auto w-full" aria-label="MUSE REVIEW" />
@@ -81,14 +81,16 @@ function TermPage() {
         </div>
       </div>
 
-      {/* 전체 동의 시에만 노출되는 다음 버튼 (디자인 좌표: left calc(62.5%-30px), 하단) */}
+      {/* 다음 버튼 */}
       {allChecked && (
-        <button
-          type="button"
-          onClick={() => navigate('/onboarding/role')}
-          className="button-large1 bg-primary-400 absolute right-[362px] bottom-[58px] flex h-[76px] w-[388px] items-center justify-center rounded-md text-gray-950">
-          다음
-        </button>
+        <div className="absolute inset-x-6 bottom-[58px] mx-auto flex w-auto max-w-[1196px] justify-end">
+          <button
+            type="button"
+            onClick={() => navigate('/onboarding/role')}
+            className="button-large1 bg-primary-400 flex h-[76px] w-full max-w-[388px] items-center justify-center rounded-md text-gray-950">
+            다음
+          </button>
+        </div>
       )}
     </div>
   );

@@ -24,14 +24,14 @@ function RoleSelectPage() {
   const handleNext = () => navigate(`/onboarding/${role}/profile`);
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-950 px-[202px]">
+    <div className="relative flex min-h-screen flex-col bg-gray-950 px-6">
       {/* 상단 로고 */}
       <header className="flex h-[124px] shrink-0 items-center justify-center px-2.5 py-1">
         <LogoTypo className="text-primary-400 h-[29px] w-[174px]" aria-label="MUSE REVIEW" />
       </header>
 
       {/* 본문 */}
-      <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-6 pb-12">
+      <main className="mx-auto flex w-full max-w-[1196px] flex-1 flex-col pb-[160px]">
         <h1 className="heading-large mt-[100px] text-gray-200">
           어떤 방식으로
           <br />
@@ -48,7 +48,7 @@ function RoleSelectPage() {
                 type="button"
                 onClick={() => setRole(key)}
                 aria-pressed={selected}
-                className={`flex flex-1 items-center gap-11 rounded-md p-10 text-left transition-colors ${
+                className={`flex min-h-[164px] flex-1 items-center gap-11 rounded-md p-10 text-left transition-colors ${
                   selected ? 'bg-primary-400 text-gray-950' : 'border-[0.5px] border-gray-600 text-gray-400'
                 }`}>
                 <Icon className={`size-14 shrink-0 ${selected ? 'text-gray-950' : 'text-gray-300'}`} />
@@ -60,17 +60,17 @@ function RoleSelectPage() {
             );
           })}
         </div>
-
-        {/* 다음 버튼 */}
-        <div className="mt-auto flex justify-end pt-16">
-          <button
-            type="button"
-            onClick={handleNext}
-            className="button-large1 bg-primary-400 h-[76px] w-[388px] rounded-md text-gray-950">
-            다음
-          </button>
-        </div>
       </main>
+
+      {/* 다음 버튼 */}
+      <div className="absolute inset-x-6 bottom-[58px] mx-auto flex w-auto max-w-[1196px] justify-end">
+        <button
+          type="button"
+          onClick={handleNext}
+          className="button-large1 bg-primary-400 flex h-[76px] w-full max-w-[388px] items-center justify-center rounded-md text-gray-950">
+          다음
+        </button>
+      </div>
     </div>
   );
 }
