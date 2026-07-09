@@ -4,17 +4,9 @@ import {
   getFilterChevronClassName,
   getFilterTriggerClassName,
 } from './filterTriggerStyles';
+import { BPM_MAX, BPM_MIN, BPM_SLIDER_TRACK_CLASSNAME, clampBpm, getBpmStepperButtonClassName } from './bpmSlider';
 
-const BPM_MIN = 50;
-const BPM_MAX = 200;
-
-const SLIDER_CLASSNAME =
-  'h-1 w-full cursor-pointer appearance-none rounded-full bg-gray-950 ' +
-  '[&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-300 ' +
-  '[&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-primary-300';
-
-const STEPPER_BUTTON_CLASSNAME =
-  'button-small flex size-8 shrink-0 items-center justify-center bg-primary-400 text-gray-950';
+const STEPPER_BUTTON_CLASSNAME = getBpmStepperButtonClassName('size-8');
 
 interface BpmFilterDropdownProps {
   value: number;
@@ -24,7 +16,7 @@ interface BpmFilterDropdownProps {
 }
 
 function BpmFilterDropdown({ value, onChange, isOpen, onOpenChange }: BpmFilterDropdownProps) {
-  const setClampedValue = (next: number) => onChange(Math.min(Math.max(next, BPM_MIN), BPM_MAX));
+  const setClampedValue = (next: number) => onChange(clampBpm(next));
 
   return (
     <div className="relative">
@@ -43,7 +35,7 @@ function BpmFilterDropdown({ value, onChange, isOpen, onOpenChange }: BpmFilterD
               max={BPM_MAX}
               value={value}
               onChange={(event) => setClampedValue(Number(event.target.value))}
-              className={SLIDER_CLASSNAME}
+              className={BPM_SLIDER_TRACK_CLASSNAME}
             />
             <div className="flex items-center justify-between">
               <span className="caption-regular text-gray-400">{BPM_MIN}</span>
