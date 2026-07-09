@@ -34,7 +34,7 @@ const PLANS: Plan[] = [
 
 function PlanSelectPage() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-950">
@@ -50,22 +50,20 @@ function PlanSelectPage() {
         {/* 플랜 카드 */}
         <div className="flex w-full justify-between">
           {PLANS.map(({ name, price, tagline, features }) => {
-            const isSelected = selected === name;
+            const isHovered = hovered === name;
             return (
               <div
                 key={name}
-                role="button"
-                tabIndex={0}
-                onClick={() => setSelected(name)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSelected(name);
+                onMouseEnter={() => setHovered(name)}
+                onMouseLeave={() => setHovered(null)}
+                onFocus={() => setHovered(name)}
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget)) {
+                    setHovered(null);
                   }
                 }}
-                aria-pressed={isSelected}
                 className={`flex w-[361px] cursor-pointer flex-col gap-[68px] rounded-[10px] p-9 text-left transition-colors ${
-                  isSelected ? 'border-primary-400 border bg-gray-900' : 'border-[0.5px] border-gray-600 bg-gray-950'
+                  isHovered ? 'border-primary-400 border bg-gray-900' : 'border-[0.5px] border-gray-600 bg-gray-950'
                 }`}>
                 {/* 이름 / 가격 */}
                 <div className="flex flex-col gap-[15px]">
@@ -92,16 +90,9 @@ function PlanSelectPage() {
                 {/* 시작하기 버튼 */}
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (isSelected) {
-                      navigate('/main');
-                    } else {
-                      setSelected(name);
-                    }
-                  }}
+                  onClick={() => navigate('/main')}
                   className={`flex h-[60px] w-full cursor-pointer items-center justify-center rounded-md transition-colors ${
-                    isSelected
+                    isHovered
                       ? 'button-large1 bg-primary-400 text-gray-950'
                       : 'button-large2 border-primary-400 text-primary-400 border-[0.5px]'
                   }`}>
