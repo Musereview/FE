@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LogoTypo from '@/assets/landing/logo.svg?react';
-import CheckIcon from '@/assets/onboarding/check.svg?react';
+import CheckIcon from '@/assets/onboarding/planCheck.svg?react';
 
 interface Plan {
   name: string;
