@@ -5,8 +5,19 @@ import LogoTypo from '@/assets/landing/logo.svg?react';
 import BeginnerIcon from '@/assets/onboarding/beginner.svg?react';
 import IntermediateIcon from '@/assets/onboarding/intermediate.svg?react';
 import MajorIcon from '@/assets/onboarding/major.svg?react';
+import { useCheckNickname } from '@/hooks/useCheckNickname';
+import { validateNicknameFormat } from '@/utils/validateNickname';
 
 type Level = 'beginner' | 'intermediate' | 'major';
+
+type NicknameStatus = 'idle' | 'length' | 'format' | 'duplicate' | 'available';
+
+const NICKNAME_MESSAGE: Record<Exclude<NicknameStatus, 'idle'>, { text: string; tone: 'error' | 'success' }> = {
+  length: { text: '2~10자의 닉네임을 입력해 주세요.', tone: 'error' },
+  format: { text: '공백 및 특수문자는 사용할 수 없습니다.', tone: 'error' },
+  duplicate: { text: '사용 중인 닉네임입니다.', tone: 'error' },
+  available: { text: '사용 가능한 닉네임입니다.', tone: 'success' },
+};
 
 const LEVELS: {
   key: Level;
@@ -30,6 +41,30 @@ function StudentProfileSetupPage() {
   const navigate = useNavigate();
   const [nickname, setNickname] = useState('');
   const [level, setLevel] = useState<Level | null>(null);
+  const [nicknameStatus, setNicknameStatus] = useState<NicknameStatus>('idle');
+
+  const { mutate: checkNickname, isPending } = useCheckNickname();
+
+  // 닉네임 수정 시 이전 검증 결과 초기화
+  const handleNicknameChange = (value: string) => {
+    setNickname(value);
+    setNicknameStatus('idle');
+  };
+
+  // 중복확인\
+  const handleCheckNickname = () => {
+    const formatError = validateNicknameFormat(nickname);
+    if (formatError) {
+      setNicknameStatus(formatError);
+      return;
+    }
+    checkNickname(nickname, {
+      onSuccess: (data) => setNicknameStatus(data.available ? 'available' : 'duplicate'),
+    });
+  };
+
+  const isNicknameConfirmed = nicknameStatus === 'available';
+  const canSubmit = isNicknameConfirmed && level !== null;
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-950 px-[202px]">
@@ -49,24 +84,34 @@ function StudentProfileSetupPage() {
         <div className="mt-[220px] flex flex-col gap-[120px]">
           {/* 닉네임 */}
           <div className="flex flex-col gap-4">
-            <label htmlFor="nickname" className="body-large-b text-gray-300">
-              닉네임*
-            </label>
+            <div className="flex items-start justify-between">
+              <label htmlFor="nickname" className="body-large-b text-gray-300">
+                닉네임*
+              </label>
+              {nicknameStatus !== 'idle' && (
+                <p
+                  className={`body-large-m text-right ${
+                    NICKNAME_MESSAGE[nicknameStatus].tone === 'error' ? 'text-error' : 'text-primary-400'
+                  }`}>
+                  {NICKNAME_MESSAGE[nicknameStatus].text}
+                </p>
+              )}
+            </div>
             <div className="flex h-[76px] items-center gap-10 rounded-md bg-gray-800 p-5">
               <input
                 id="nickname"
                 type="text"
                 value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
+                onChange={(e) => handleNicknameChange(e.target.value)}
                 placeholder="2~10자의 한글, 영문, 숫자만 사용해 주세요. (공백/특수문자 불가)"
                 className="body-medium min-w-0 flex-1 bg-transparent text-gray-300 outline-none placeholder:text-gray-300"
               />
               <button
                 type="button"
+                onClick={handleCheckNickname}
+                disabled={!nickname || isPending}
                 className={`button-medium shrink-0 rounded px-4 py-2 ${
-                  nickname
-                    ? 'bg-primary-400 text-gray-950'
-                    : 'border-[0.5px] border-gray-300 text-gray-300'
+                  nickname ? 'bg-primary-400 text-gray-950' : 'border-[0.5px] border-gray-300 text-gray-300'
                 }`}>
                 중복확인
               </button>
@@ -86,9 +131,7 @@ function StudentProfileSetupPage() {
                     onClick={() => setLevel(key)}
                     aria-pressed={selected}
                     className={`flex size-[348px] flex-col items-center justify-center gap-10 rounded-md px-6 py-10 text-center drop-shadow-[0px_4px_2px_rgba(0,0,0,0.25)] transition-colors ${
-                      selected
-                        ? 'border-primary-400 border bg-gray-900'
-                        : 'border-[0.5px] border-gray-600 bg-gray-950'
+                      selected ? 'border-primary-400 border bg-gray-900' : 'border-[0.5px] border-gray-600 bg-gray-950'
                     }`}>
                     <Icon className="size-14 shrink-0 text-gray-400" />
                     <span className="flex flex-col gap-[25px]">
@@ -113,7 +156,7 @@ function StudentProfileSetupPage() {
             className="button-large1 flex h-[76px] w-[388px] items-center justify-center rounded-md border-[0.5px] border-gray-600 text-gray-300">
             이전
           </button>
-          {level && (
+          {canSubmit && (
             <button
               type="button"
               onClick={() => navigate('/onboarding/student/plan')}

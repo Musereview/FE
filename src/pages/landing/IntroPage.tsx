@@ -1,4 +1,4 @@
-// 서비스 소개 페이지 (스플래시 이후 스크롤 랜딩)
+// 서비스 소개 페이지
 import { useNavigate } from 'react-router-dom';
 import LogoTypo from '@/assets/landing/logo.svg?react';
 import ArrowUpperLeft from '@/assets/landing/intro/arrow.svg?react';
