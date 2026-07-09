@@ -1,6 +1,5 @@
 // 서비스 소개 페이지
 import { useNavigate } from 'react-router-dom';
-import LogoTypo from '@/assets/landing/logo.svg?react';
 import ArrowUpperLeft from '@/assets/landing/intro/arrow.svg?react';
 import TopButton from '@/assets/landing/intro/top-button.svg?react';
 import NrWave from '@/assets/landing/intro/wave-logo.svg?react';
@@ -17,19 +16,16 @@ const FEATURES = [
     icon: feature1Url,
     title: '데이터 기반 피드백',
     desc: '반복되는 습관과 성장의 변화를 데이터로 보여줍니다.',
-    grow: 'grow-[428]',
   },
   {
     icon: feature2Url,
     title: '실시간 화성학 통역사',
     desc: '연주에 담긴 의도를 음악 이론 언어로 해석합니다.',
-    grow: 'grow-[466]',
   },
   {
     icon: feature3Url,
     title: '지능형 큐레이션',
     desc: '실력과 연주 패턴에 맞는 학습 방향을 제안합니다.',
-    grow: 'grow-[385]',
   },
 ];
 
@@ -59,10 +55,8 @@ function IntroPage() {
         className="pointer-events-none absolute inset-x-0 top-0 h-[1300px] bg-[radial-gradient(155%_95%_at_50%_6%,#0b0f19_0%,#0b0f19_45%,rgba(11,15,25,0.82)_60%,rgba(11,15,25,0.55)_70%,rgba(11,15,25,0.3)_80%,rgba(11,15,25,0.12)_88%,rgba(11,15,25,0.03)_94%,rgba(11,15,25,0)_100%)]"
       />
 
-      {/* 상단 로고 */}
-      <header className="relative z-10 flex h-[124px] items-center justify-center px-2.5 py-1">
-        <LogoTypo className="text-primary-400 h-[29px] w-[174px]" aria-label="MUSE REVIEW" />
-      </header>
+      {/* 상단 여백 */}
+      <header aria-hidden className="relative z-10 h-[124px]" />
 
       {/* 히어로 */}
       <section
@@ -113,20 +107,20 @@ function IntroPage() {
       {/* Sub2 */}
       <section className="relative z-10 bg-gray-950">
         <div className={`mx-auto flex w-full max-w-[1920px] flex-col gap-[220px] py-[184px] ${SECTION_PADDING}`}>
-          <div className="flex flex-col gap-10 xl:flex-row xl:items-center xl:gap-[120px]">
-            <h2 className="heading-large text-primary-400 xl:w-[790px] xl:shrink-0">
+          <div className="grid gap-10 xl:grid-cols-[minmax(0,790px)_minmax(420px,1fr)] xl:items-center xl:gap-[120px]">
+            <h2 className="heading-large text-primary-400">
               뮤즈리뷰는 그 의도를 발견합니다.
             </h2>
-            <p className="body-medium min-w-0 text-gray-300 xl:flex-1">
+            <p className="body-medium min-w-0 text-gray-300">
               우리는 단순히 연습하라고 재촉하지 않습니다.
               <br />
               데이터와 자연어로 연주자의 재생적 분석력을 키웁니다.
             </p>
           </div>
 
-          <ul className="flex justify-between gap-10">
-            {FEATURES.map(({ icon, title, desc, grow }) => (
-              <li key={title} className={`flex min-w-0 basis-0 flex-col gap-[52px] ${grow}`}>
+          <ul className="grid gap-16 md:grid-cols-3 xl:gap-[80px]">
+            {FEATURES.map(({ icon, title, desc }) => (
+              <li key={title} className="flex min-w-0 flex-col items-start gap-[52px]">
                 <img src={icon} alt="" className="size-[100px] object-cover" />
                 <div className="flex flex-col gap-2">
                   <h3 className="heading-small-b text-primary-400">{title}</h3>
