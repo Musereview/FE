@@ -14,7 +14,7 @@ interface SettingsModalProps {
 
 export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }: SettingsModalProps) {
   const { inputs } = useMidi(); //기기목록만 사용
-  const { inputId, bpm, keyCount, latencyMs, setInput, setBpm, setKeyCount } = useSettingStore();
+  const { inputId, bpm, keyCount, latencyMs, setInput, setKeyCount } = useSettingStore();
   const [inputOpen, setInputOpen] = useState(false);
   const [outputOpen, setOutputOpen] = useState(false);
   const [outputSelected, setOutputSelected] = useState(false);
@@ -131,17 +131,12 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
             )}
           </div>
         </div>
-        {/* BPM */}
+        {/* BPM — 곡 고정값, 표시 전용 */}
         <div className="flex w-[190px] flex-col items-start gap-6 py-12">
           <p className="body-medium">BPM</p>
-          <input
-            type="number"
-            value={bpm}
-            min={50}
-            max={200}
-            onChange={(e) => setBpm(Number(e.target.value))}
-            className="button-medium flex h-[56px] items-center gap-1 self-stretch rounded-[6px] bg-gray-800 px-[18px] py-1"
-          />
+          <div className="button-medium flex h-[56px] items-center self-stretch rounded-[6px] bg-gray-800 px-[18px] py-1 text-gray-400">
+            {bpm}
+          </div>
         </div>
         {/* 피아노 건반 개수 */}
         <div className="flex w-[190px] flex-col items-start gap-6 py-12">
