@@ -131,7 +131,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '
               <>
                 <button
                   onClick={onLatencyCheck}
-                  className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] px-[12px] py-[6px]">
+                  className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] bg-[#FF5D6B] px-[12px] py-[6px]">
                   재설정
                 </button>
                 <p className="body-ragular1 text-right text-[#69FFC0]">레이턴시 설정이 완료되었습니다.</p>
