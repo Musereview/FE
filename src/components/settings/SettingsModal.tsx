@@ -16,6 +16,8 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
   const { inputs } = useMidi(); //기기목록만 사용
   const { inputId, bpm, keyCount, latencyMs, setInput, setBpm, setKeyCount } = useSettingStore();
   const [inputOpen, setInputOpen] = useState(false);
+  const [outputOpen, setOutputOpen] = useState(false);
+  const [outputSelected, setOutputSelected] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
 
   const handleStart = async () => {
@@ -66,15 +68,35 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
               )}
             </div>
 
-            {/* Output — 같은 생김새, 스피커 고정 */}
-            <button
-              type="button"
-              className="button-medium flex h-[60px] w-[388px] items-center justify-center gap-3 rounded-[6px] bg-gray-800">
-              Output
-              <DropdownIcon className="h-6 w-6 shrink-0" />
-            </button>
+            {/* Output : 시스템 설정 고정*/}
+            <div className="relative w-[388px]">
+              <button
+                type="button"
+                onClick={() => setOutputOpen((v) => !v)}
+                className="button-medium flex h-[60px] w-full cursor-pointer items-center justify-center gap-3 rounded-[6px] bg-gray-800">
+                {outputSelected ? '시스템 설정: 스피커' : 'Output'}
+                <DropdownIcon className={`h-6 w-6 shrink-0 ${outputOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {outputOpen && (
+                <ul className="absolute top-full z-10 mt-1 w-full overflow-hidden rounded-[6px] bg-gray-800">
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOutputSelected(true);
+                        setOutputOpen(false);
+                      }}
+                      className="h-[48px] w-full cursor-pointer text-center hover:bg-gray-700">
+                      시스템 설정: 스피커
+                    </button>
+                  </li>
+                </ul>
+              )}
+            </div>
           </div>
         </div>
+
         {/* 레이턴시 체크 - 측정 전/후 상태 분기 */}
         <div className="flex w-[792px] flex-col items-start gap-6 border-b-[0.5px] border-gray-700 py-12">
           <p className="body-medium">레이턴시 체크</p>
@@ -149,8 +171,8 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
         </div>
         <button
           onClick={handleStart}
-          disabled={!inputId}
-          className="button-large2 bg-primary-400 mt-auto mb-[36px] flex h-[60px] w-[346px] items-center justify-center gap-[8px] self-end rounded-[6px] px-[12px] py-[6px] text-gray-950">
+          disabled={!inputId || !outputSelected}
+          className="button-large2 bg-primary-400 mt-auto mb-[36px] flex h-[60px] w-[346px] cursor-pointer items-center justify-center gap-[8px] self-end rounded-[6px] px-[12px] py-[6px] text-gray-950 disabled:cursor-default disabled:opacity-40">
           {startLabel}
         </button>
       </div>
