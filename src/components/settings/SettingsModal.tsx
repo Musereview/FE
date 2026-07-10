@@ -41,7 +41,11 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
               <button
                 type="button"
                 onClick={() => setInputOpen((v) => !v)}
-                className="button-medium flex h-[60px] w-full cursor-pointer items-center justify-center gap-3 rounded-[6px] bg-gray-800">
+                className={`button-medium flex h-[60px] w-full cursor-pointer items-center justify-center gap-3 rounded-[6px] border ${
+                  inputOpen
+                    ? 'text-primary-500 border-gray-800 bg-gray-800'
+                    : 'border-transparent bg-gray-800 text-white'
+                }`}>
                 {inputs.find((d) => d.id === inputId)?.name ?? 'Input'}
                 <DropdownIcon className={`h-6 w-6 shrink-0 ${inputOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -59,7 +63,9 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
                           setInput(d.id);
                           setInputOpen(false);
                         }}
-                        className="h-[48px] w-full cursor-pointer text-center hover:bg-gray-700">
+                        className={`h-[48px] w-full cursor-pointer text-center ${
+                          inputId === d.id ? 'bg-primary-500 text-gray-950' : 'bg-gray-800 text-gray-300'
+                        }`}>
                         {d.name}
                       </button>
                     </li>
@@ -73,7 +79,11 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
               <button
                 type="button"
                 onClick={() => setOutputOpen((v) => !v)}
-                className="button-medium flex h-[60px] w-full cursor-pointer items-center justify-center gap-3 rounded-[6px] bg-gray-800">
+                className={`button-medium flex h-[60px] w-full cursor-pointer items-center justify-center gap-3 rounded-[6px] border ${
+                  outputOpen
+                    ? 'text-primary-500 border-gray-800 bg-gray-800'
+                    : 'border-transparent bg-gray-800 text-white'
+                }`}>
                 {outputSelected ? '시스템 설정: 스피커' : 'Output'}
                 <DropdownIcon className={`h-6 w-6 shrink-0 ${outputOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -87,7 +97,9 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
                         setOutputSelected(true);
                         setOutputOpen(false);
                       }}
-                      className="h-[48px] w-full cursor-pointer text-center hover:bg-gray-700">
+                      className={`h-[48px] w-full cursor-pointer text-center ${
+                        outputSelected ? 'bg-primary-500 text-gray-950' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}>
                       시스템 설정: 스피커
                     </button>
                   </li>
