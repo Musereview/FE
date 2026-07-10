@@ -8,14 +8,18 @@ export interface MidiDevice {
 }
 export type NoteHandler = (note: number, velocity: number, time: number) => void;
 
-export function useMidi(onNoteOn?: NoteHandler, onNoteOff?: (note: number) => void) {
+export function useMidi(
+  onNoteOn?: NoteHandler,
+  onNoteOff?: (note: number) => void,
+  activeInputId?: string | null, // ← 선택된 기기 id (없으면 전체 수신)
+) {
   const [inputs, setInputs] = useState<MidiDevice[]>([]);
   const [error, setError] = useState<string | null>(null);
   const accessRef = useRef<MIDIAccess | null>(null);
 
   // 핸들러를 ref로 유지 → 재렌더마다 리스너 재등록 방지
-  const handlers = useRef({ onNoteOn, onNoteOff });
-  handlers.current = { onNoteOn, onNoteOff };
+  const handlers = useRef({ onNoteOn, onNoteOff, activeInputId });
+  handlers.current = { onNoteOn, onNoteOff, activeInputId };
 
   useEffect(() => {
     let cancelled = false;
@@ -32,6 +36,10 @@ export function useMidi(onNoteOn?: NoteHandler, onNoteOff?: (note: number) => vo
 
           for (const input of list) {
             input.onmidimessage = (e) => {
+              // 기기를 선택한 상태면, 그 기기의 입력만 처리
+              const active = handlers.current.activeInputId;
+              if (active && input.id !== active) return;
+
               const [status, note, velocity] = e.data!;
               const cmd = status & 0xf0;
               if (cmd === 0x90 && velocity > 0) {
