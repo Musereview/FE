@@ -186,7 +186,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '
         </div>
         <button
           onClick={handleStart}
-          disabled={!inputId || !outputSelected}
+          disabled={!inputId || !outputSelected || latencyMs === null}
           className="button-large2 bg-primary-400 mt-auto mb-[36px] flex h-[60px] w-[346px] cursor-pointer items-center justify-center gap-[8px] self-end rounded-[6px] px-[12px] py-[6px] text-gray-950 disabled:cursor-default disabled:opacity-40">
           {startLabel}
         </button>
