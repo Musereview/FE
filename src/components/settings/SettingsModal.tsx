@@ -121,7 +121,8 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '
               <>
                 <button
                   onClick={onLatencyCheck}
-                  className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-gray-800 bg-gray-800 py-[6px] pr-3 pl-[14px]">
+                  disabled={!inputId || !outputSelected}
+                  className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-gray-800 bg-gray-800 py-[6px] pr-3 pl-[14px] disabled:cursor-default disabled:opacity-40">
                   체크하기
                   <CheckIcon />
                 </button>
@@ -131,7 +132,8 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '
               <>
                 <button
                   onClick={onLatencyCheck}
-                  className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] bg-[#FF5D6B] px-[12px] py-[6px]">
+                  disabled={!inputId || !outputSelected}
+                  className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] bg-[#FF5D6B] px-[12px] py-[6px] disabled:cursor-default disabled:opacity-40">
                   재설정
                 </button>
                 <p className="body-ragular1 text-right text-[#69FFC0]">레이턴시 설정이 완료되었습니다.</p>
