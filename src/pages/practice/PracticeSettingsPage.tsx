@@ -19,7 +19,7 @@ function PracticeSettingsPage() {
       <SettingsModal
         onClose={() => navigate(`/practice/${practiceId}`)} // X 클릭 → 상세 화면
         onStart={() => navigate(`/practice/${practiceId}/play`)} // 시작하기 → 연주 화면
-        onLatencyCheck={() => navigate(`/practice/${practiceId}/latency-check`)}
+        onLatencyCheck={() => navigate(`/latency-check`)} //체크하기 -> 레이턴시 체크 화면
       />
     </div>
   );
