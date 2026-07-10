@@ -9,16 +9,20 @@ import { useState } from 'react';
 interface SettingsModalProps {
   onClose: () => void;
   onStart: () => void;
+  onLatencyCheck: () => void; // 레이턴시 체크 경로 (다를 수 있음)
   startLabel?: string; // 대시보드/연습: '시작하기'(기본), 학습: '계속하기'
 }
 
-export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }: SettingsModalProps) {
+export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '시작하기' }: SettingsModalProps) {
   const { inputs } = useMidi(); //기기목록만 사용
-  const { inputId, bpm, keyCount, latencyMs, setInput, setKeyCount } = useSettingStore();
+  const { inputId, bpm, keyCount, latencyByDevice, setInput, setKeyCount } = useSettingStore();
   const [inputOpen, setInputOpen] = useState(false);
   const [outputOpen, setOutputOpen] = useState(false);
   const [outputSelected, setOutputSelected] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
+
+  // 현재 선택된 기기의 레이턴시 (없으면 null)
+  const latencyMs = inputId ? (latencyByDevice[inputId] ?? null) : null;
 
   const handleStart = async () => {
     await Tone.start(); // 오디오 잠금 해제 - 클릭 핸들러 안에서만 가능
@@ -115,7 +119,9 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
           <div className="flex w-full items-end justify-between">
             {latencyMs === null ? (
               <>
-                <button className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-gray-800 bg-gray-800 py-[6px] pr-3 pl-[14px]">
+                <button
+                  onClick={onLatencyCheck}
+                  className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-gray-800 bg-gray-800 py-[6px] pr-3 pl-[14px]">
                   체크하기
                   <CheckIcon />
                 </button>
@@ -123,7 +129,9 @@ export function SettingsModal({ onClose, onStart, startLabel = '시작하기' }:
               </>
             ) : (
               <>
-                <button className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] px-[12px] py-[6px]">
+                <button
+                  onClick={onLatencyCheck}
+                  className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] px-[12px] py-[6px]">
                   재설정
                 </button>
                 <p className="body-ragular1 text-right text-[#69FFC0]">레이턴시 설정이 완료되었습니다.</p>
