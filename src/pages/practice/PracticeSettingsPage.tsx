@@ -9,13 +9,16 @@ import { ALL_TRACKS, RECOMMENDED_TRACKS } from '@/pages/practice/mockTracks';
 function PracticeSettingsPage() {
   const navigate = useNavigate();
   const { practiceId } = useParams();
-  const { keyCount, setBpm } = useSettingStore();
+  const { keyCount, setBpm, setBeatsPerBar } = useSettingStore();
 
   useEffect(() => {
     // 추천/전체 목록 모두에서 곡 찾기
     const track = [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((t) => t.id === practiceId);
-    if (track) setBpm(track.bpm);
-  }, [practiceId, setBpm]);
+    if (track) {
+      setBpm(track.bpm);
+      setBeatsPerBar(Number(track.timeSignature.split('/')[0])); // '4/4'→4, '3/4'→3
+    }
+  }, [practiceId, setBpm, setBeatsPerBar]);
 
   return (
     <div className="flex h-full flex-col px-[135px]">
