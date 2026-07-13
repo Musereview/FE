@@ -37,6 +37,9 @@ export function useNicknameCheck(initialNickname = '') {
     });
   };
 
+  // 최종 저장 시점에 서버가 중복(409)을 반환하면 중복 상태로 표시
+  const markDuplicate = () => setStatus('duplicate');
+
   const message = status === 'idle' ? null : NICKNAME_MESSAGE[status];
   const isConfirmed = status === 'available';
 
@@ -48,5 +51,6 @@ export function useNicknameCheck(initialNickname = '') {
     isConfirmed,
     handleNicknameChange,
     checkDuplicate,
+    markDuplicate,
   };
 }

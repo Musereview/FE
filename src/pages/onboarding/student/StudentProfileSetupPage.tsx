@@ -1,39 +1,63 @@
 // 학생 프로필 초기 설정 페이지
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import LogoTypo from '@/assets/landing/logo.svg?react';
 import BeginnerIcon from '@/assets/onboarding/beginner.svg?react';
 import IntermediateIcon from '@/assets/onboarding/intermediate.svg?react';
 import MajorIcon from '@/assets/onboarding/major.svg?react';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
-
-type Level = 'beginner' | 'intermediate' | 'major';
+import { useRegisterProfile } from '@/hooks/useProfile';
+import type { SkillLevel } from '@/types/profile';
 
 const LEVELS: {
-  key: Level;
+  key: SkillLevel;
   Icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
   title: string;
   subtitle: string;
   desc: string;
 }[] = [
-  { key: 'beginner', Icon: BeginnerIcon, title: '입문', subtitle: '도레미부터', desc: '화성학을 처음 시작합니다.' },
+  { key: 'BEGINNER', Icon: BeginnerIcon, title: '입문', subtitle: '도레미부터', desc: '화성학을 처음 시작합니다.' },
   {
-    key: 'intermediate',
+    key: 'INTERMEDIATE',
     Icon: IntermediateIcon,
     title: '중급',
     subtitle: '코드 반주 가능',
     desc: '기본 코드 진행을 이해합니다.',
   },
-  { key: 'major', Icon: MajorIcon, title: '전공', subtitle: '텐션/모드 정복', desc: '고급 화성학 이론을 활용합니다.' },
+  { key: 'ADVANCED', Icon: MajorIcon, title: '전공', subtitle: '텐션/모드 정복', desc: '고급 화성학 이론을 활용합니다.' },
 ];
+
+const NEXT_PATH = '/onboarding/student/plan';
 
 function StudentProfileSetupPage() {
   const navigate = useNavigate();
-  const [level, setLevel] = useState<Level | null>(null);
+  const [level, setLevel] = useState<SkillLevel | null>(null);
 
-  const { nickname, message, isPending, isConfirmed, handleNicknameChange, checkDuplicate } = useNicknameCheck();
+  const { nickname, message, isPending, isConfirmed, handleNicknameChange, checkDuplicate, markDuplicate } =
+    useNicknameCheck();
+  const { mutate: registerProfile, isPending: isSubmitting } = useRegisterProfile();
 
   const canSubmit = isConfirmed && level !== null;
+
+  const handleSubmit = () => {
+    if (level === null) return;
+    registerProfile(
+      { nickname, skillLevel: level },
+      {
+        onSuccess: () => navigate(NEXT_PATH),
+        onError: (error) => {
+          if (!isAxiosError<{ code?: string }>(error) || error.response?.status !== 409) return;
+          // 이미 등록된 사용자(PROFILE_409_02)는 다음 단계로, 닉네임 중복(PROFILE_409_01)은 재입력 유도
+          if (error.response.data?.code === 'PROFILE_409_02') {
+            navigate(NEXT_PATH);
+          } else {
+            markDuplicate();
+          }
+        },
+      },
+    );
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-950 px-[202px]">
@@ -126,8 +150,9 @@ function StudentProfileSetupPage() {
           {canSubmit && (
             <button
               type="button"
-              onClick={() => navigate('/onboarding/student/plan')}
-              className="button-large1 bg-primary-400 flex h-[76px] w-[388px] items-center justify-center rounded-md text-gray-950">
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="button-large1 bg-primary-400 flex h-[76px] w-[388px] items-center justify-center rounded-md text-gray-950 disabled:opacity-50">
               다음
             </button>
           )}
