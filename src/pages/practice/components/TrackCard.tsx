@@ -5,7 +5,7 @@ import ChordDividerIcon from '@/assets/practice/chord-divider.svg?react';
 const DIFFICULTY_LABEL: Record<TrackDifficulty, string> = {
   beginner: '초급',
   intermediate: '중급',
-  advanced: '전공',
+  advanced: '고급',
 };
 
 const DIFFICULTY_COLOR: Record<TrackDifficulty, string> = {

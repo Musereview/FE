@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { KeyMode } from '@/types/track';
 import ChevronDownIcon from '@/assets/practice/chevron-down.svg?react';
 import {
@@ -57,8 +58,23 @@ function KeyFilterDropdown({
   isOpen,
   onOpenChange,
 }: KeyFilterDropdownProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        onOpenChange(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, onOpenChange]);
+
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative w-[106px]">
       <button type="button" onClick={() => onOpenChange(!isOpen)} className={getFilterTriggerClassName(isOpen)}>
         Key
         <ChevronDownIcon className={getFilterChevronClassName(isOpen)} />
