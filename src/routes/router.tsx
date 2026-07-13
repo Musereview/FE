@@ -37,6 +37,7 @@ import TrackEditPage from '@/pages/admin/track/TrackEditPage';
 import AdminMyPage from '@/pages/admin/mypage/AdminMyPage';
 import AdminMyPageEditPage from '@/pages/admin/mypage/AdminMyPageEditPage';
 import TeacherMyPageEditPage from '@/pages/admin/mypage/TeacherMyPageEditPage';
+import LatencyCheckPage from '@/pages/latency/LatencyCheckPage';
 
 export const router = createBrowserRouter([
   {
@@ -92,6 +93,10 @@ export const router = createBrowserRouter([
       {
         path: '/main',
         element: <MainPage />,
+      },
+      {
+        path: '/latency-check',
+        element: <LatencyCheckPage />,
       },
       {
         path: '/practice',
