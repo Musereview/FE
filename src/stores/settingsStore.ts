@@ -2,10 +2,12 @@ import { create } from 'zustand';
 
 interface SettingsState {
   inputId: string | null;
+  outputSelected: boolean; // ← 추가
   bpm: number;
   keyCount: 88 | 61;
   latencyByDevice: Record<string, number | 'failed'>; // 기기 id → 레이턴시(ms)
   setInput: (id: string) => void;
+  setOutputSelected: (v: boolean) => void;
   setBpm: (bpm: number) => void;
   setKeyCount: (k: 88 | 61) => void;
   setLatency: (deviceId: string, ms: number | 'failed') => void;
@@ -14,10 +16,12 @@ interface SettingsState {
 
 export const useSettingStore = create<SettingsState>((set) => ({
   inputId: null,
+  outputSelected: false,
   bpm: 120,
   keyCount: 88,
   latencyByDevice: {},
   setInput: (inputId) => set({ inputId }),
+  setOutputSelected: (outputSelected) => set({ outputSelected }),
   setBpm: (bpm) => set({ bpm }),
   setKeyCount: (keyCount) => set({ keyCount }),
   setLatency: (deviceId, ms) =>

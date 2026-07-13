@@ -10,15 +10,15 @@ interface SettingsModalProps {
   onClose: () => void;
   onStart: () => void;
   onLatencyCheck: () => void; // 레이턴시 체크 경로 (다를 수 있음)
-  startLabel?: string; // 대시보드/연습: '시작하기'(기본), 학습: '계속하기'
 }
 
-export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '시작하기' }: SettingsModalProps) {
+export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModalProps) {
   const { inputs } = useMidi(); //기기목록만 사용
-  const { inputId, bpm, keyCount, latencyByDevice, setInput, setKeyCount } = useSettingStore();
+  const { inputId, bpm, keyCount, latencyByDevice, outputSelected, setInput, setKeyCount, setOutputSelected } =
+    useSettingStore();
   const [inputOpen, setInputOpen] = useState(false);
   const [outputOpen, setOutputOpen] = useState(false);
-  const [outputSelected, setOutputSelected] = useState(false);
+
   const [keyOpen, setKeyOpen] = useState(false);
 
   // 현재 선택된 기기의 레이턴시 (없으면 null)
@@ -147,7 +147,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '
                 <button
                   onClick={onLatencyCheck}
                   disabled={!inputId || !outputSelected}
-                  className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] bg-gray-800 px-[12px] py-[6px] disabled:cursor-default disabled:opacity-40">
+                  className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] bg-[#FF5D6B] px-[12px] py-[6px] disabled:cursor-default disabled:opacity-40">
                   재설정
                 </button>
                 <p className="body-regular1 text-right text-[#69FFC0]">레이턴시 설정이 완료되었습니다.</p>
@@ -204,7 +204,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '
           onClick={handleStart}
           disabled={!inputId || !outputSelected || typeof latency !== 'number'}
           className="button-large2 bg-primary-400 mt-auto mb-[36px] flex h-[60px] w-[346px] cursor-pointer items-center justify-center gap-[8px] self-end rounded-[6px] px-[12px] py-[6px] text-gray-950 disabled:cursor-default disabled:opacity-40">
-          {startLabel}
+          {latency !== undefined ? '계속하기' : '시작하기'}
         </button>
       </div>
     </div>
