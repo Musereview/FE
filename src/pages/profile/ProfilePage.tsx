@@ -44,7 +44,7 @@ function ProfilePage() {
           <div className="flex flex-1 flex-col gap-2">
             <p className="body-small text-gray-300">악기</p>
             <div className="flex items-center gap-2 rounded-[6px] bg-gray-800 px-5 py-4">
-              <PianoIcon className="size-6 shrink-0" />
+              <PianoIcon className="text-primary-400 size-6 shrink-0" />
               <p className="body-large-m text-gray-100">Piano</p>
             </div>
           </div>
