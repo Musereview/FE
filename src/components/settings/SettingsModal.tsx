@@ -115,7 +115,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModa
         </div>
 
         {/* 레이턴시 체크 - 측정 전/후 상태 분기 */}
-        <div className="flex w-[792px] flex-col items-start gap-6 border-b-[0.5px] border-gray-700 py-12">
+        <div className="flex w-full flex-col items-start gap-6 border-b-[0.5px] border-gray-700 py-12">
           <p className="body-medium">레이턴시 체크</p>
           <div className="flex w-full items-end justify-between">
             {latency === undefined ? (
