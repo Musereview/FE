@@ -22,7 +22,8 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '
   const [keyOpen, setKeyOpen] = useState(false);
 
   // 현재 선택된 기기의 레이턴시 (없으면 null)
-  const latencyMs = inputId ? (latencyByDevice[inputId] ?? null) : null;
+  const latency = inputId ? latencyByDevice[inputId] : undefined;
+  // undefined = 미측정, 'failed' = 실패, number = 성공
 
   const handleStart = async () => {
     await Tone.start(); // 오디오 잠금 해제 - 클릭 핸들러 안에서만 가능
@@ -117,7 +118,8 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '
         <div className="flex w-[792px] flex-col items-start gap-6 border-b-[0.5px] border-gray-700 py-12">
           <p className="body-medium">레이턴시 체크</p>
           <div className="flex w-full items-end justify-between">
-            {latencyMs === null ? (
+            {latency === undefined ? (
+              /* 1) 미측정 */
               <>
                 <button
                   onClick={onLatencyCheck}
@@ -126,9 +128,10 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '
                   체크하기
                   <CheckIcon />
                 </button>
-                <p className="body-ragular1 text-right text-[#69FFC0]">시작 전 레이턴시를 체크해 주세요.</p>
+                <p className="body-regular1 text-right text-[#69FFC0]">시작 전 레이턴시를 체크해 주세요.</p>
               </>
-            ) : (
+            ) : latency === 'failed' ? (
+              /* 2) 측정 실패 */
               <>
                 <button
                   onClick={onLatencyCheck}
@@ -136,7 +139,18 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '
                   className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] bg-[#FF5D6B] px-[12px] py-[6px] disabled:cursor-default disabled:opacity-40">
                   재설정
                 </button>
-                <p className="body-ragular1 text-right text-[#69FFC0]">레이턴시 설정이 완료되었습니다.</p>
+                <p className="body-regular1 text-right text-[#FF5D6B]">레이턴시 측정에 실패했습니다.</p>
+              </>
+            ) : (
+              /* 3) 측정 성공 */
+              <>
+                <button
+                  onClick={onLatencyCheck}
+                  disabled={!inputId || !outputSelected}
+                  className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] bg-gray-800 px-[12px] py-[6px] disabled:cursor-default disabled:opacity-40">
+                  재설정
+                </button>
+                <p className="body-regular1 text-right text-[#69FFC0]">레이턴시 설정이 완료되었습니다.</p>
               </>
             )}
           </div>
@@ -188,7 +202,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '
         </div>
         <button
           onClick={handleStart}
-          disabled={!inputId || !outputSelected || latencyMs === null}
+          disabled={!inputId || !outputSelected || typeof latency !== 'number'}
           className="button-large2 bg-primary-400 mt-auto mb-[36px] flex h-[60px] w-[346px] cursor-pointer items-center justify-center gap-[8px] self-end rounded-[6px] px-[12px] py-[6px] text-gray-950 disabled:cursor-default disabled:opacity-40">
           {startLabel}
         </button>
