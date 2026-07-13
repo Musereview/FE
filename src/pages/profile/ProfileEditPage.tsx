@@ -4,48 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import ProfileImage from '@/assets/profile/profile.svg?react';
 import PianoIcon from '@/assets/profile/piano.svg?react';
 import ChevronDownIcon from '@/assets/practice/chevron-down.svg?react';
-import { useCheckNickname } from '@/hooks/useCheckNickname';
-import { validateNicknameFormat } from '@/utils/validateNickname';
+import { useNicknameCheck } from '@/hooks/useNicknameCheck';
 
 const LEVEL_OPTIONS = ['입문', '중급', '전공'];
-
-type NicknameStatus = 'idle' | 'length' | 'format' | 'duplicate' | 'available';
-
-const NICKNAME_MESSAGE: Record<Exclude<NicknameStatus, 'idle'>, { text: string; tone: 'error' | 'success' }> = {
-  length: { text: '2~10자의 닉네임을 입력해 주세요.', tone: 'error' },
-  format: { text: '공백 및 특수문자는 사용할 수 없습니다.', tone: 'error' },
-  duplicate: { text: '사용 중인 닉네임입니다.', tone: 'error' },
-  available: { text: '사용 가능한 닉네임입니다.', tone: 'success' },
-};
 
 function ProfileEditPage() {
   const navigate = useNavigate();
 
-  const [nickname, setNickname] = useState('김뮤즈');
-  const [nicknameStatus, setNicknameStatus] = useState<NicknameStatus>('idle');
+  const { nickname, message, isPending, handleNicknameChange, checkDuplicate } = useNicknameCheck('김뮤즈');
   const [level, setLevel] = useState('중급');
   const [levelOpen, setLevelOpen] = useState(false);
   const levelRef = useRef<HTMLDivElement>(null);
-
-  const { mutate: checkNickname, isPending } = useCheckNickname();
-
-  // 닉네임 수정 시 이전 검증 결과 초기화
-  const handleNicknameChange = (value: string) => {
-    setNickname(value);
-    setNicknameStatus('idle');
-  };
-
-  // 중복확인
-  const handleCheckNickname = () => {
-    const formatError = validateNicknameFormat(nickname);
-    if (formatError) {
-      setNicknameStatus(formatError);
-      return;
-    }
-    checkNickname(nickname, {
-      onSuccess: (data) => setNicknameStatus(data.available ? 'available' : 'duplicate'),
-    });
-  };
 
   useEffect(() => {
     if (!levelOpen) return;
@@ -73,12 +42,9 @@ function ProfileEditPage() {
             <label htmlFor="nickname" className="body-small text-gray-300">
               닉네임
             </label>
-            {nicknameStatus !== 'idle' && (
-              <p
-                className={`body-small text-right ${
-                  NICKNAME_MESSAGE[nicknameStatus].tone === 'error' ? 'text-error' : 'text-primary-400'
-                }`}>
-                {NICKNAME_MESSAGE[nicknameStatus].text}
+            {message && (
+              <p className={`body-small text-right ${message.tone === 'error' ? 'text-error' : 'text-primary-400'}`}>
+                {message.text}
               </p>
             )}
           </div>
@@ -93,7 +59,7 @@ function ProfileEditPage() {
             />
             <button
               type="button"
-              onClick={handleCheckNickname}
+              onClick={checkDuplicate}
               disabled={!nickname || isPending}
               className={`button-medium shrink-0 rounded-[4px] px-4 py-2 ${
                 nickname ? 'bg-primary-400 text-gray-950' : 'border-[0.5px] border-gray-300 text-gray-300'
