@@ -1,6 +1,18 @@
 import type { Track } from '@/types/track';
+import { CURRENT_USER } from './trackDisplay';
 
 export const GENRES = ['장르 전체', 'Jazz', 'Pop', 'Blues', '기타'] as const;
+
+const JAZZ_STANDARD_PROGRESSION: Track['chordProgression'] = [
+  ['CM7', 'AM7', null, null],
+  ['AM7', null, 'AM7', null],
+  ['CM7', null, 'G7', null],
+  ['G7', null, null, null],
+  ['CM7', null, 'G7', null],
+  ['G7', null, null, null],
+  ['CM7', 'AM7', null, null],
+  ['AM7', null, 'AM7', null],
+];
 
 export const RECOMMENDED_TRACKS: Track[] = [
   {
@@ -16,6 +28,8 @@ export const RECOMMENDED_TRACKS: Track[] = [
     duration: '0:30',
     popularity: 92,
     createdAt: '2026-07-01',
+    creator: 'ADMIN',
+    chordProgression: JAZZ_STANDARD_PROGRESSION,
   },
   {
     id: 'recommended-2',
@@ -30,6 +44,7 @@ export const RECOMMENDED_TRACKS: Track[] = [
     duration: '0:50',
     popularity: 88,
     createdAt: '2026-07-02',
+    creator: 'ADMIN',
   },
   {
     id: 'recommended-3',
@@ -44,6 +59,7 @@ export const RECOMMENDED_TRACKS: Track[] = [
     duration: '2:30',
     popularity: 81,
     createdAt: '2026-06-28',
+    creator: 'ADMIN',
   },
   {
     id: 'recommended-4',
@@ -58,6 +74,7 @@ export const RECOMMENDED_TRACKS: Track[] = [
     duration: '1:20',
     popularity: 76,
     createdAt: '2026-07-03',
+    creator: 'ADMIN',
   },
 ];
 
@@ -75,13 +92,40 @@ export const ALL_TRACKS: Track[] = [
     duration: '0:30',
     popularity: 92,
     createdAt: '2026-07-01',
+    creator: 'ADMIN',
+    chordProgression: JAZZ_STANDARD_PROGRESSION,
+  },
+  {
+    id: 'track-3',
+    title: 'Jazz Waltz Practice',
+    key: 'G',
+    mode: 'major',
+    timeSignature: '3/4',
+    chords: ['Gmaj7', 'Em7', 'CM7', 'D7'],
+    genre: 'Jazz',
+    bpm: 100,
+    difficulty: 'beginner',
+    duration: '1:10',
+    popularity: 68,
+    createdAt: '2026-07-05',
+    creator: CURRENT_USER,
+    chordProgression: [
+      ['GM7', 'Em7', null],
+      ['Em7', null, 'Em7'],
+      ['CM7', null, 'D7'],
+      ['D7', null, null],
+      ['CM7', null, 'D7'],
+      ['D7', null, null],
+      ['GM7', 'Em7', null],
+      ['Em7', null, 'Em7'],
+    ],
   },
   {
     id: 'track-2',
     title: 'Twelve Bar Blues',
     key: 'E',
     mode: 'major',
-    timeSignature: '4/4',
+    timeSignature: '3/4',
     chords: ['E7', 'A7', 'E7', 'B7'],
     genre: 'Blues',
     bpm: 95,
@@ -89,5 +133,16 @@ export const ALL_TRACKS: Track[] = [
     duration: '2:10',
     popularity: 74,
     createdAt: '2026-06-18',
+    creator: 'ADMIN',
+    chordProgression: [
+      ['E7', 'A7', null],
+      ['A7', null, 'A7'],
+      ['E7', null, 'B7'],
+      ['B7', null, null],
+      ['E7', null, 'B7'],
+      ['B7', null, null],
+      ['E7', 'A7', null],
+      ['A7', null, 'A7'],
+    ],
   },
 ];
