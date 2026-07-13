@@ -9,6 +9,7 @@ interface SettingsState {
   setBpm: (bpm: number) => void;
   setKeyCount: (k: 88 | 61) => void;
   setLatency: (deviceId: string, ms: number) => void;
+  clearLatency: (deviceId: string) => void;
 }
 
 export const useSettingStore = create<SettingsState>((set) => ({
@@ -23,4 +24,11 @@ export const useSettingStore = create<SettingsState>((set) => ({
     set((state) => ({
       latencyByDevice: { ...state.latencyByDevice, [deviceId]: ms },
     })),
+  clearLatency: (deviceId) =>
+    // 레이턴시 삭제
+    set((state) => {
+      const next = { ...state.latencyByDevice };
+      delete next[deviceId];
+      return { latencyByDevice: next };
+    }),
 }));

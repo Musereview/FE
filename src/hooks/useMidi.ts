@@ -1,5 +1,6 @@
 // src/hooks/useMidi.ts
 // Web MIDI API와의 통신을 전담하는 훅
+import { useSettingStore } from '@/stores/settingsStore';
 import { useEffect, useRef, useState } from 'react';
 
 export interface MidiDevice {
@@ -51,8 +52,16 @@ export function useMidi(
           }
         };
 
-        attach();
-        access.onstatechange = attach; // 연결/해제 시 목록 갱신
+        // attach 함수 안, onstatechange 부분을 이렇게
+        access.onstatechange = (e) => {
+          const port = e.port;
+          // 입력 기기가 해제되면 그 기기의 레이턴시 삭제
+          if (port && port.type === 'input' && port.state === 'disconnected') {
+            useSettingStore.getState().clearLatency(port.id);
+          }
+          attach(); // 목록 갱신
+        };
+        attach(); // 최초 1회 실행
       })
       .catch(() => setError('MIDI 접근이 거부되었거나 지원되지 않는 브라우저입니다.'));
 
