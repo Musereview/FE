@@ -32,13 +32,13 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck, startLabel = '
 
   return (
     <div className="fixed inset-y-0 right-0 left-[90px] z-50 flex items-center justify-center bg-black/90">
-      <div className="relative flex h-[960px] w-[960px] flex-col rounded-[10px] border-[0.3px] border-gray-600 bg-gray-900 px-[84px] pt-[60px]">
+      <div className="relative flex h-[960px] max-h-[calc(100dvh-32px)] w-[960px] flex-col overflow-y-auto rounded-[10px] border-[0.3px] border-gray-600 bg-gray-900 px-[84px] pt-[60px]">
         {/* 닫힘 버튼 */}
         <button onClick={onClose} aria-label="닫기" className="absolute top-[29px] right-[38px] cursor-pointer">
           <CloseIcon className="h-6 w-6" />
         </button>
         {/* 미디 입력, 출력 설정 */}
-        <div className="flex w-[792px] flex-col items-start gap-6 border-b-[0.5px] border-gray-700 pt-6 pb-12">
+        <div className="flex w-full flex-col items-start gap-6 border-b-[0.5px] border-gray-700 pt-6 pb-12">
           <p className="body-medium">미디 입력 및 출력 설정</p>
           <div className="flex w-full gap-3">
             {/* Input — 커스텀 드롭다운 */}
