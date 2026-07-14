@@ -1,17 +1,50 @@
 // 레이턴시 체크 페이지 (연습/학습 공용)
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Piano from '@/components/piano/Piano';
 import Metronome from '@/components/metronome/MetronomeDots';
 import { useActiveNotes } from '@/hooks/useActiveNotes';
+import { useMetronome } from '@/hooks/useMetronome';
 import { useSettingStore } from '@/stores/settingsStore';
 import RefreshIcon from '@/assets/restart.svg?react';
+
+type Phase = 'intro' | 'countdown' | 'measuring';
 
 function LatencyCheckPage() {
   const navigate = useNavigate();
   const { activeNotes } = useActiveNotes();
-  const { keyCount, inputId, setLatency } = useSettingStore();
+  const { keyCount, inputId, bpm, setLatency } = useSettingStore();
+  const { start, stop } = useMetronome();
 
-  // TODO: 실제 측정 로직으로 대체 — 지금은 임시로 고정값 저장 후 복귀
+  const [phase, setPhase] = useState<Phase>('intro');
+  const [beatInBar, setBeatInBar] = useState(-1);
+  const [countdown, setCountdown] = useState(4); // 4→3→2→1
+  const countdownDoneRef = useRef(false);
+
+  // 화면 진입 → intro 3초 후 카운트다운 시작
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPhase('countdown');
+      start(bpm, 4, (_time, bib) => {
+        setBeatInBar(bib);
+        setCountdown(4 - bib);
+        // 마지막 박(1) 다음 박에서 측정으로 → "1"이 한 박 보인 뒤 전환
+        if (bib === 0 && countdownDoneRef.current) {
+          setPhase('measuring');
+          stop();
+        }
+        if (bib === 3) countdownDoneRef.current = true;
+      });
+    }, 3000);
+
+    return () => {
+      clearTimeout(timer);
+      stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 마운트 시 1회만
+
+  // TODO: 실제 측정 로직 — 지금은 임시 저장
   const handleComplete = () => {
     if (inputId) setLatency(inputId, 20);
     navigate(-1);
@@ -19,7 +52,7 @@ function LatencyCheckPage() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* 상단 헤더 */}
+      {/* 헤더 */}
       <header className="flex w-full items-center justify-between bg-gray-900 px-[160px] py-[28px]">
         <div className="heading-medium-b text-gray-200">레이턴시 체크</div>
         <button className="button-large2 flex h-[60px] w-[175px] items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
@@ -28,20 +61,36 @@ function LatencyCheckPage() {
         </button>
       </header>
 
-      {/* TODO: 레이턴시 저장을 위한 임시 코드 — 측정 로직 완성 시 제거 */}
-      <button onClick={handleComplete} className="bg-primary-400 mt-4 w-fit rounded-[6px] px-4 py-2 text-gray-950">
-        측정 완료 (임시)
-      </button>
-
       {/* 본문 */}
       <div className="relative flex flex-1 flex-col px-[135px]">
-        {/* 진행 점 — 상단 중앙 (TODO: 측정 로직에서 current 연결) */}
-        <div className="mt-[151px] flex justify-center">
-          <Metronome total={4} current={0} />
+        {/* 진행 점 — 카운트다운/측정 단계에만 */}
+        {phase !== 'intro' && (
+          <div className="mt-[267px] flex justify-center">
+            <Metronome total={4} current={beatInBar} />
+          </div>
+        )}
+
+        {/* 가운데 콘텐츠 — 단계별 */}
+        <div className="flex flex-1 flex-col items-center justify-center">
+          {phase === 'intro' && (
+            <p className="text-center text-gray-300">
+              박자에 맞춰 건반을 눌러주세요.
+              <br />
+              정확한 레이턴시 측정을 위해 위에 3회 이상 입력해 주세요.
+            </p>
+          )}
+          {phase === 'countdown' && <span className="text-[120px] font-bold text-gray-400">{countdown}</span>}
+          {/* phase === 'measuring' → 노트바 (나중에) */}
         </div>
 
-        {/* 노트바 영역 (나중에) */}
-        <div className="flex-1" />
+        {/* TODO: 측정 로직 완성 시 제거 */}
+        {phase === 'measuring' && (
+          <button
+            onClick={handleComplete}
+            className="bg-primary-400 mx-auto mb-4 w-fit rounded-[6px] px-4 py-2 text-gray-950">
+            측정 완료 (임시)
+          </button>
+        )}
 
         <Piano keyCount={keyCount} activeNotes={activeNotes} />
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { createMetronome, type Metronome } from '@/utils/metronome';
 
 export function useMetronome() {
@@ -15,9 +15,12 @@ export function useMetronome() {
     };
   }, []);
 
-  return {
-    start: (bpm: number, beatsPerBar: number, onBeat: (time: number, beatInBar: number) => void) =>
+  const start = useCallback(
+    (bpm: number, beatsPerBar: number, onBeat: (time: number, beatInBar: number) => void) =>
       ref.current!.start(bpm, beatsPerBar, onBeat),
-    stop: () => ref.current!.stop(),
-  };
+    [],
+  );
+  const stop = useCallback(() => ref.current!.stop(), []);
+
+  return { start, stop };
 }

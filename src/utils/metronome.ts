@@ -17,6 +17,7 @@ export function createMetronome() {
       transport.scheduleRepeat((time) => {
         const beatInBar = beat % beatsPerBar;
         const buffer = beatInBar === 0 ? hiBuffer : loBuffer;
+        console.log('재생 시도 - context:', Tone.getContext().state, 'loaded:', buffer.loaded); // ← 추가
         if (buffer.loaded) {
           // 매 박마다 새 Player 생성 → 겹침 없음, 재생 후 자동 정리
           const player = new Tone.Player(buffer).toDestination();
