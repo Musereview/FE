@@ -35,7 +35,7 @@ function LatencyCheckPage() {
         }
         if (bib === 3) countdownDoneRef.current = true;
       });
-    }, 3000);
+    }, 2000);
 
     return () => {
       clearTimeout(timer);
@@ -51,7 +51,7 @@ function LatencyCheckPage() {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col">
       {/* 헤더 */}
       <header className="flex w-full items-center justify-between bg-gray-900 px-[160px] py-[28px]">
         <div className="heading-medium-b text-gray-200">레이턴시 체크</div>
@@ -61,25 +61,33 @@ function LatencyCheckPage() {
         </button>
       </header>
 
+      {/* intro 블러 오버레이 — 화면 전체 덮음 */}
+      {phase === 'intro' && (
+        <div className="absolute inset-0 z-20 bg-[#0B0F19]/90">
+          <p className="heading-medium-b absolute top-[428px] left-1/2 -translate-x-1/2 text-center text-gray-200">
+            박자에 맞춰 건반을 눌러주세요.
+            <br />
+            정확한 레이턴시 측정을 위해 3회 이상 입력해 주세요.
+          </p>
+        </div>
+      )}
+
       {/* 본문 */}
       <div className="relative flex flex-1 flex-col px-[135px]">
         {/* 진행 점 — 카운트다운/측정 단계에만 */}
         {phase !== 'intro' && (
-          <div className="mt-[267px] flex justify-center">
+          <div className="mt-[151px] flex justify-center">
             <Metronome total={4} current={beatInBar} />
           </div>
         )}
 
         {/* 가운데 콘텐츠 — 단계별 */}
         <div className="flex flex-1 flex-col items-center justify-center">
-          {phase === 'intro' && (
-            <p className="text-center text-gray-300">
-              박자에 맞춰 건반을 눌러주세요.
-              <br />
-              정확한 레이턴시 측정을 위해 위에 3회 이상 입력해 주세요.
-            </p>
+          {phase === 'countdown' && (
+            <span className="display-large absolute top-[266px] left-1/2 -translate-x-1/2 text-center text-gray-700">
+              {countdown}
+            </span>
           )}
-          {phase === 'countdown' && <span className="text-[120px] font-bold text-gray-400">{countdown}</span>}
           {/* phase === 'measuring' → 노트바 (나중에) */}
         </div>
 

@@ -38,7 +38,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModa
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 left-[90px] z-50 flex items-center justify-center bg-black/90">
+    <div className="fixed inset-y-0 right-0 left-[90px] z-50 flex items-center justify-center bg-[#0B0F19]/90">
       <div className="relative flex h-[960px] max-h-[calc(100dvh-32px)] w-[960px] flex-col overflow-y-auto rounded-[10px] border-[0.3px] border-gray-600 bg-gray-900 px-[84px] pt-[60px]">
         {/* 닫힘 버튼 */}
         <button onClick={onClose} aria-label="닫기" className="absolute top-[29px] right-[38px] cursor-pointer">
