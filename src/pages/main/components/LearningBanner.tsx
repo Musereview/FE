@@ -1,68 +1,3 @@
-// // //진행 중인 학습 배너
-// // src/pages/main/components/LearningBanner.tsx
-// import { useNavigate } from 'react-router-dom';
-
-// interface LearningBannerProps {
-//   data: {
-//     learningId: number;
-//     title: string;
-//     subtitle: string;
-//     level: string; // "ADVANCED" | "INTERMEDIATE" | "BEGINNER"
-//     progressRate: number; // 10
-//   } | null;
-// }
-
-// export default function LearningBanner({ data }: LearningBannerProps) {
-//   const navigate = useNavigate();
-
-//   if (!data) {
-//     return (
-//       <div className="flex w-full max-w-[1831px] mx-auto items-center justify-center h-[198px] px-[160px] text-gray-400 bg-[#0B0F19] rounded-2xl border border-gray-800 tracking-tight">
-//         현재 진행 중인 학습이 없습니다.
-//       </div>
-//     );
-//   }
-
-//   const { learningId, title, subtitle, level, progressRate } = data;
-//   const levelLabel = level === 'ADVANCED' ? '고급' : level === 'INTERMEDIATE' ? '중급' : '초급';
-
-//   return (
-//     <div
-//       onClick={() => navigate(`/learn/curriculum/${learningId}`)}
-
-//       className="flex w-full max-w-[1831px] mx-auto justify-between items-end p-8 h-[198px] text-white rounded-[20px] cursor-pointer tracking-tight select-none transition-all duration-300 hover:scale-[1.005] active:scale-[0.995] shrink-0 min-w-[1024px] overflow-hidden"
-
-//       style={{
-//         background: 'linear-gradient(90deg, #2E0854 0%, #111827 50%, #115E59 100%)',
-//       }}
-//     >
-//       {/* ── 좌측 영역: 타이틀 & 설명 ── */}
-//       <div className="flex flex-col gap-1.5 shrink-0 text-left">
-//         <div className="flex items-center gap-2.5">
-//           <h3 className="text-[28px] font-bold text-white tracking-tight whitespace-nowrap">
-//             {title}
-//           </h3>
-
-//           <span className="px-3 py-0.5 text-xs font-semibold rounded-full bg-[#1F1E33]/80 text-[#AEB1B6] border border-[#3E3D59]">
-//             {levelLabel}
-//           </span>
-//         </div>
-//         <p className="text-base font-normal text-gray-200/90 whitespace-nowrap">
-//           {subtitle}
-//         </p>
-//       </div>
-
-//       {/* ── 우측 영역: 진행률 %  ── */}
-//       <div className="text-right shrink-0 whitespace-nowrap">
-//         <span className="text-xl font-medium text-white/80 mr-2">진행률</span>
-//         <span className="text-[24px] font-bold text-white tracking-tighter">
-//           {progressRate}%
-//         </span>
-//       </div>
-
-//     </div>
-//   );
-// }
 // src/pages/main/components/LearningBanner.tsx
 import { useNavigate } from 'react-router-dom';
 import bannerBg from '@/assets/main/image-mesh-gradient.png';
@@ -79,42 +14,77 @@ interface LearningBannerProps {
 
 export default function LearningBanner({ data }: LearningBannerProps) {
   const navigate = useNavigate();
-
   if (!data) return null;
 
   const { learningId, title, subtitle, level, progressRate } = data;
-  const levelLabel = level === 'ADVANCED' ? '고급' : level === 'INTERMEDIATE' ? '중급' : '초급';
+  const isAdvanced = level === 'ADVANCED';
 
   return (
-    <div className="flex w-full flex-col gap-3.5 text-left">
-      {/* 섹션 라벨 타이틀 */}
-      <h2 className="text-xl font-bold tracking-tight text-white">진행 중인 학습</h2>
+    <div
+      onClick={() => navigate(`/learn/curriculum/${learningId}`)}
 
-      {/* 배너 카드 본체 */}
-      <div
-        onClick={() => navigate(`/learn/curriculum/${learningId}`)}
+      className="cursor-pointer text-white transition-colors select-none hover:opacity-90"
+      style={{
+        display: 'flex',
+        height: '198px',
+        padding: '32px',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        alignSelf: 'stretch',
+        borderRadius: '6px',
+        backgroundImage: `linear-gradient(180deg, rgba(11, 15, 25, 0.00) 44.7%, rgba(11, 15, 25, 0.70) 100%), url(${bannerBg})`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: '0.132px 0px',
+        backgroundSize: '100% 100%',
+        backgroundColor: 'lightgray',
+      }}>
+      {/* ── 좌측 영역: 타이틀 & 설명 ── */}
 
-        className="flex h-[198px] w-full cursor-pointer items-end justify-between overflow-hidden rounded-[6px] bg-cover bg-center bg-no-repeat p-8 text-white"
-        style={{
-          backgroundImage: `linear-gradient(180deg, rgba(11, 15, 25, 0.00) 44.7%, rgba(11, 15, 25, 0.70) 100%), url(${bannerBg})`,
-        }}>
-        {/* ── 좌측 영역: 타이틀 & 설명 ── */}
-        <div className="flex shrink-0 flex-col gap-2 text-left">
-          <div className="flex items-center gap-2.5">
-            <h3 className="text-[28px] leading-none font-bold tracking-tight text-white">{title}</h3>
-            <span className="rounded-full border border-[#3E3D59] bg-[#1F1E33]/80 px-3 py-1 text-xs leading-none font-semibold text-[#AEB1B6]">
-              {levelLabel}
+      <div className="flex shrink-0 flex-col items-start gap-2 text-left">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span className="font-sans text-2xl font-bold tracking-tight">{title}</span>
+
+          {/* 난이도 뱃지 */}
+          <div
+            style={{
+              display: 'flex',
+              width: '40px',
+              padding: '4px 6px',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '10px',
+              borderRadius: '999px',
+              border: isAdvanced ? '0.5px solid #F0ABFF' : '0.5px solid #A2ACFF',
+              background: '#1B1E27',
+            }}
+            className="shrink-0">
+            <span
+              style={{
+                fontFamily: 'Pretendard',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: isAdvanced ? '#F0ABFF' : '#A2ACFF',
+              }}>
+              {isAdvanced ? '고급' : '중급'}
             </span>
           </div>
-          <p className="text-base font-normal tracking-tight text-gray-300">{subtitle}</p>
         </div>
-
-        {/* ── 우측 영역: 진행률 % 표기 ── */}
-        <div className="shrink-0 pb-0.5 text-right">
-          <span className="mr-2 text-xl font-medium tracking-tight text-white/80">진행률</span>
-          <span className="text-[24px] leading-none font-bold tracking-tighter text-white">{progressRate}%</span>
-        </div>
+        <p className="font-sans text-sm tracking-wide text-gray-300">{subtitle}</p>
       </div>
+
+      {/* ── 우측 영역: 진행률 ── */}
+
+      <span
+        className="font-normal whitespace-nowrap"
+        style={{
+          color: '#E7E7E8',
+          fontFamily: 'Pretendard',
+          fontSize: '20px',
+          lineHeight: '30px',
+          letterSpacing: '-0.4px',
+        }}>
+        진행률 {progressRate}%
+      </span>
     </div>
   );
 }
