@@ -33,7 +33,6 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModa
   // 추가
   const handleLatencyCheck = async () => {
     await Tone.start(); // 클릭 시점에 오디오 잠금 해제 → 레이턴시 체크 화면에서 자동 재생 가능
-    console.log('오디오 상태:', Tone.getContext().state); // 'running'이어야 함
     onLatencyCheck();
   };
 
