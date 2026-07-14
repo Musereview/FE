@@ -122,7 +122,7 @@ export default function MainPage() {
               알림
             </h3>
             <span className="cursor-pointer font-sans text-xs text-gray-500 transition-colors hover:text-gray-400">
-              전체 보기 &gt;
+              전체 보기
             </span>
           </div>
           <DashboardNoti data={mockDashboardData.notifications} />
