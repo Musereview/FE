@@ -30,8 +30,14 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModa
     onStart();
   };
 
+  // 추가
+  const handleLatencyCheck = async () => {
+    await Tone.start(); // 클릭 시점에 오디오 잠금 해제 → 레이턴시 체크 화면에서 자동 재생 가능
+    onLatencyCheck();
+  };
+
   return (
-    <div className="fixed inset-y-0 right-0 left-[90px] z-50 flex items-center justify-center bg-black/90">
+    <div className="fixed inset-y-0 right-0 left-[90px] z-50 flex items-center justify-center bg-[#0B0F19]/90">
       <div className="relative flex h-[960px] max-h-[calc(100dvh-32px)] w-[960px] flex-col overflow-y-auto rounded-[10px] border-[0.3px] border-gray-600 bg-gray-900 px-[84px] pt-[60px]">
         {/* 닫힘 버튼 */}
         <button onClick={onClose} aria-label="닫기" className="absolute top-[29px] right-[38px] cursor-pointer">
@@ -115,14 +121,14 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModa
         </div>
 
         {/* 레이턴시 체크 - 측정 전/후 상태 분기 */}
-        <div className="flex w-[792px] flex-col items-start gap-6 border-b-[0.5px] border-gray-700 py-12">
+        <div className="flex w-full flex-col items-start gap-6 border-b-[0.5px] border-gray-700 py-12">
           <p className="body-medium">레이턴시 체크</p>
           <div className="flex w-full items-end justify-between">
             {latency === undefined ? (
               /* 1) 미측정 */
               <>
                 <button
-                  onClick={onLatencyCheck}
+                  onClick={handleLatencyCheck}
                   disabled={!inputId || !outputSelected}
                   className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-gray-800 bg-gray-800 py-[6px] pr-3 pl-[14px] disabled:cursor-default disabled:opacity-40">
                   체크하기
@@ -134,7 +140,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModa
               /* 2) 측정 실패 */
               <>
                 <button
-                  onClick={onLatencyCheck}
+                  onClick={handleLatencyCheck}
                   disabled={!inputId || !outputSelected}
                   className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] bg-[#FF5D6B] px-[12px] py-[6px] disabled:cursor-default disabled:opacity-40">
                   재설정
@@ -145,7 +151,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModa
               /* 3) 측정 성공 */
               <>
                 <button
-                  onClick={onLatencyCheck}
+                  onClick={handleLatencyCheck}
                   disabled={!inputId || !outputSelected}
                   className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] bg-[#FF5D6B] px-[12px] py-[6px] disabled:cursor-default disabled:opacity-40">
                   재설정
