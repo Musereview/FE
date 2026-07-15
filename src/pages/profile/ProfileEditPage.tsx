@@ -41,6 +41,7 @@ function ProfileEditForm({ profile }: { profile: Profile }) {
     useNicknameCheck(profile.nickname);
   const [level, setLevel] = useState<SkillLevel>(profile.skillLevel);
   const [levelOpen, setLevelOpen] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const levelRef = useRef<HTMLDivElement>(null);
 
   const { mutate: updateProfile, isPending: isSaving } = useUpdateProfile();
@@ -60,15 +61,19 @@ function ProfileEditForm({ profile }: { profile: Profile }) {
 
   const handleSubmit = () => {
     if (!validateFormat()) return;
+    setSubmitError(null);
     updateProfile(
       { nickname, skillLevel: level },
       {
         onSuccess: () => navigate('/profile'),
-        // 중복확인을 통과했어도 최종 저장 시 다른 사용자가 선점하면 409
         onError: (error) => {
+          // 중복확인을 통과했어도 최종 저장 시 다른 사용자가 선점하면 409
           if (isAxiosError(error) && error.response?.status === 409) {
             markDuplicate();
+            return;
           }
+          // 그 외 오류는 일반 오류 메시지로 피드백
+          setSubmitError('저장에 실패했어요. 잠시 후 다시 시도해 주세요.');
         },
       },
     );
@@ -173,8 +178,11 @@ function ProfileEditForm({ profile }: { profile: Profile }) {
         </div>
       </div>
 
+      {/* 저장 실패 안내 */}
+      {submitError && <p className="body-small text-error mt-auto w-full text-center">{submitError}</p>}
+
       {/* 하단 버튼 */}
-      <div className="mt-auto flex w-full items-center justify-between gap-4 pt-16">
+      <div className={`flex w-full items-center justify-between gap-4 pt-16 ${submitError ? '' : 'mt-auto'}`}>
         <button
           type="button"
           onClick={() => navigate('/profile')}
