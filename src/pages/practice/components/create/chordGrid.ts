@@ -16,25 +16,50 @@ export function createInitialMeasures(timeSignature: string): string[][] {
 }
 
 export function toEditableMeasures(chordProgression: ChordMeasure[]): string[][] {
-  return chordProgression.map((measure) => measure.map((chord) => chord ?? ''));
+  let previous = '';
+  return chordProgression.map((measure) =>
+    measure.map((chord) => {
+      if (chord) previous = chord;
+      return chord ?? previous;
+    }),
+  );
 }
 
-// 겹치는 칸 보존 (4/4→3/4: 4번 삭제, 3/4→4/4: 4번 빈칸 추가)
+// 겹치는 칸 보존
 export function resizeMeasures(measures: string[][], timeSignature: string): string[][] {
   const chordsPerMeasure = getChordsPerMeasure(timeSignature);
   return measures.map((measure) => Array.from({ length: chordsPerMeasure }, (_, i) => measure[i] ?? ''));
 }
 
-// 빈 칸 = 직전 코드 유지. 빈 칸 클릭 시 앞쪽 코드 칸으로 위임
-export function resolveOwningCell(measures: string[][], cell: ChordCell): ChordCell {
-  if (measures[cell.measureIndex]?.[cell.cellIndex]) return cell;
+// 수정한 칸부터 이어지던 동일 코드 구간(다음 칸이 이전 값과 같을 때) 새 코드로 함께 갱신
+export function applyChordCascade(measures: string[][], cell: ChordCell, newValue: string): string[][] {
+  const next = measures.map((measure) => [...measure]);
+  const oldValue = next[cell.measureIndex][cell.cellIndex];
 
-  for (let measureIndex = cell.measureIndex; measureIndex >= 0; measureIndex -= 1) {
-    const startCellIndex = measureIndex === cell.measureIndex ? cell.cellIndex : measures[measureIndex].length - 1;
-    for (let cellIndex = startCellIndex; cellIndex >= 0; cellIndex -= 1) {
-      if (measures[measureIndex][cellIndex]) return { measureIndex, cellIndex };
+  let measureIndex = cell.measureIndex;
+  let cellIndex = cell.cellIndex;
+
+  while (measureIndex < next.length && next[measureIndex][cellIndex] === oldValue) {
+    next[measureIndex][cellIndex] = newValue;
+
+    cellIndex += 1;
+    if (cellIndex >= next[measureIndex].length) {
+      measureIndex += 1;
+      cellIndex = 0;
     }
   }
 
-  return cell;
+  return next;
+}
+
+// 같은 코드 연속되면 처음 칸에서만 보이도록 화면 표시에서 숨김
+export function getDisplayMeasures(measures: string[][]): string[][] {
+  let previous = '';
+  return measures.map((measure) =>
+    measure.map((chord) => {
+      const isRepeat = chord !== '' && chord === previous;
+      previous = chord;
+      return isRepeat ? '' : chord;
+    }),
+  );
 }

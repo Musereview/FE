@@ -9,7 +9,7 @@ import SelectDropdown from '../SelectDropdown';
 import BpmDropdown from '../BpmDropdown';
 import ChordProgressionGrid, { type ChordCell } from './ChordProgressionGrid';
 import ChordEditorPanel from './ChordEditorPanel';
-import { createInitialMeasures, resizeMeasures, resolveOwningCell } from './chordGrid';
+import { createInitialMeasures, resizeMeasures, applyChordCascade, getDisplayMeasures } from './chordGrid';
 import AudioUploadField from './AudioUploadField';
 
 export type TimeSignature = '4/4' | '3/4';
@@ -86,8 +86,6 @@ function TrackForm({ heading, submitLabel, initialValues }: TrackFormProps) {
 
   const [openField, setOpenField] = useState<FilterKey | null>(null);
 
-  const owningChordCell = selectedChordCell ? resolveOwningCell(measures, selectedChordCell) : null;
-
   const handleTimeSignatureChange = (next: TimeSignature) => {
     setTimeSignature(next);
     setMeasures((prev) => resizeMeasures(prev, next));
@@ -95,13 +93,8 @@ function TrackForm({ heading, submitLabel, initialValues }: TrackFormProps) {
   };
 
   const handleApplyChord = (chordLabel: string) => {
-    if (!owningChordCell) return;
-    const { measureIndex, cellIndex } = owningChordCell;
-    setMeasures((prev) =>
-      prev.map((measure, i) =>
-        i === measureIndex ? measure.map((cell, j) => (j === cellIndex ? chordLabel : cell)) : measure,
-      ),
-    );
+    if (!selectedChordCell) return;
+    setMeasures((prev) => applyChordCascade(prev, selectedChordCell, chordLabel));
     setSelectedChordCell(null);
   };
 
@@ -207,7 +200,7 @@ function TrackForm({ heading, submitLabel, initialValues }: TrackFormProps) {
           </div>
 
           <ChordProgressionGrid
-            measures={measures}
+            measures={getDisplayMeasures(measures)}
             selectedCell={selectedChordCell}
             onSelectCell={setSelectedChordCell}
           />
@@ -235,10 +228,10 @@ function TrackForm({ heading, submitLabel, initialValues }: TrackFormProps) {
         </form>
       </div>
 
-      {selectedChordCell && owningChordCell && (
+      {selectedChordCell && (
         <ChordEditorPanel
           key={`${selectedChordCell.measureIndex}-${selectedChordCell.cellIndex}`}
-          initialValue={measures[owningChordCell.measureIndex][owningChordCell.cellIndex]}
+          initialValue={measures[selectedChordCell.measureIndex][selectedChordCell.cellIndex]}
           onApply={handleApplyChord}
           onCancel={() => setSelectedChordCell(null)}
         />
