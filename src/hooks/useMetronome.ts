@@ -3,24 +3,26 @@ import { createMetronome, type Metronome } from '@/utils/metronome';
 
 export function useMetronome() {
   const ref = useRef<Metronome | null>(null);
-  if (ref.current === null) {
-    ref.current = createMetronome();
-  }
-
+  const getMetronome = useCallback(() => {
+    if (ref.current === null) {
+      ref.current = createMetronome();
+    }
+    return ref.current;
+  }, []);
   useEffect(() => {
-    const m = ref.current!;
     return () => {
-      m.stop();
-      m.dispose();
+      if (ref.current) {
+        ref.current.stop();
+        ref.current.dispose();
+        ref.current = null;
+      }
     };
   }, []);
-
   const start = useCallback(
     (bpm: number, beatsPerBar: number, onBeat: (time: number, beatInBar: number) => void) =>
-      ref.current!.start(bpm, beatsPerBar, onBeat),
-    [],
+      getMetronome().start(bpm, beatsPerBar, onBeat),
+    [getMetronome],
   );
-  const stop = useCallback(() => ref.current!.stop(), []);
-
+  const stop = useCallback(() => ref.current?.stop(), []);
   return { start, stop };
 }
