@@ -15,10 +15,10 @@ const PROFILE_ENDPOINT = '/api/users/me/profile';
 
 // 닉네임 중복 여부를 조회한다.
 export async function checkNicknameDuplicate(nickname: string): Promise<CheckNicknameResponse> {
-  const { data } = await axiosInstance.get<CheckNicknameResponse>(CHECK_NICKNAME_ENDPOINT, {
+  const { data } = await axiosInstance.get<ApiResponse<CheckNicknameResponse>>(CHECK_NICKNAME_ENDPOINT, {
     params: { nickname },
   });
-  return data;
+  return data.data;
 }
 
 // 프로필 조회 (닉네임/악기/숙련도/요금제/통계)
