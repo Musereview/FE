@@ -25,13 +25,19 @@ export function useNicknameCheck(initialNickname = '') {
     setStatus('idle');
   };
 
-  // 중복확인
-  const checkDuplicate = () => {
+  // 형식(길이/문자) 검증만 수행하고 실패 시 상태에 반영한다. 통과하면 true.
+  const validateFormat = () => {
     const formatError = validateNicknameFormat(nickname);
     if (formatError) {
       setStatus(formatError);
-      return;
+      return false;
     }
+    return true;
+  };
+
+  // 중복확인
+  const checkDuplicate = () => {
+    if (!validateFormat()) return;
     checkNickname(nickname, {
       onSuccess: (data) => setStatus(data.available ? 'available' : 'duplicate'),
     });
@@ -52,5 +58,6 @@ export function useNicknameCheck(initialNickname = '') {
     handleNicknameChange,
     checkDuplicate,
     markDuplicate,
+    validateFormat,
   };
 }

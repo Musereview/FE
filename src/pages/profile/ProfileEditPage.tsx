@@ -34,13 +34,11 @@ function ProfileEditPage() {
   return <ProfileEditForm profile={profile} />;
 }
 
-// 로드된 프로필로 폼 상태를 초기화한다.
 function ProfileEditForm({ profile }: { profile: Profile }) {
   const navigate = useNavigate();
 
-  const { nickname, message, isPending, handleNicknameChange, checkDuplicate, markDuplicate } = useNicknameCheck(
-    profile.nickname,
-  );
+  const { nickname, message, isPending, handleNicknameChange, checkDuplicate, markDuplicate, validateFormat } =
+    useNicknameCheck(profile.nickname);
   const [level, setLevel] = useState<SkillLevel>(profile.skillLevel);
   const [levelOpen, setLevelOpen] = useState(false);
   const levelRef = useRef<HTMLDivElement>(null);
@@ -61,6 +59,7 @@ function ProfileEditForm({ profile }: { profile: Profile }) {
   }, [levelOpen]);
 
   const handleSubmit = () => {
+    if (!validateFormat()) return;
     updateProfile(
       { nickname, skillLevel: level },
       {
