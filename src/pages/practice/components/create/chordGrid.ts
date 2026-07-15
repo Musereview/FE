@@ -3,7 +3,7 @@ import type { ChordCell } from './ChordProgressionGrid';
 
 const MEASURE_COUNT = 8;
 
-function getChordsPerMeasure(timeSignature: string) {
+export function getChordsPerMeasure(timeSignature: string) {
   return Number(timeSignature.split('/')[0]) || 4;
 }
 
