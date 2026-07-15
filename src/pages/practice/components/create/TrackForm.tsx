@@ -95,8 +95,8 @@ function TrackForm({ heading, submitLabel, initialValues }: TrackFormProps) {
   };
 
   const handleApplyChord = (chordLabel: string) => {
-    if (!selectedChordCell) return;
-    const { measureIndex, cellIndex } = selectedChordCell;
+    if (!owningChordCell) return;
+    const { measureIndex, cellIndex } = owningChordCell;
     setMeasures((prev) =>
       prev.map((measure, i) =>
         i === measureIndex ? measure.map((cell, j) => (j === cellIndex ? chordLabel : cell)) : measure,
