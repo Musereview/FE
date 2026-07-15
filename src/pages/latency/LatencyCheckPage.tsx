@@ -19,7 +19,7 @@ function LatencyCheckPage() {
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [beatInBar, setBeatInBar] = useState(-1);
-  const [countdown, setCountdown] = useState(4); // 4→3→2→1
+  const [countdown, setCountdown] = useState<number | null>(null);
   const countdownDoneRef = useRef(false);
 
   // 화면 진입 → intro 3초 후 카운트다운 시작
@@ -87,7 +87,7 @@ function LatencyCheckPage() {
 
         {/* 가운데 콘텐츠 — 단계별 */}
         <div className="flex flex-1 flex-col items-center justify-center">
-          {phase === 'countdown' && (
+          {phase === 'countdown' && countdown !== null && (
             <span className="display-large absolute top-[266px] left-1/2 -translate-x-1/2 text-center text-gray-700">
               {countdown}
             </span>
