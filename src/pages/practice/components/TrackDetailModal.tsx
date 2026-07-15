@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import * as Tone from 'tone';
 import type { Track } from '@/types/track';
+import { useMetronome } from '@/hooks/useMetronome';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import StopIcon from '@/assets/practice/stop.svg?react';
 import ReplayIcon from '@/assets/practice/replay.svg?react';
@@ -11,6 +13,7 @@ import {
   MODE_LABEL,
   buildFallbackProgression,
 } from '../trackDisplay';
+import { getChordsPerMeasure } from './create/chordGrid';
 
 const MEASURES_PER_ROW = 2;
 
@@ -23,7 +26,7 @@ interface TrackDetailModalProps {
 
 function TrackDetailModal({ track, onClose, onStartPractice, onEditTrack }: TrackDetailModalProps) {
   const { id, title, key, mode, timeSignature, genre, bpm, difficulty, creator, chords } = track;
-  const numerator = Number(timeSignature.split('/')[0]) || 4;
+  const numerator = getChordsPerMeasure(timeSignature);
   const isOwnTrack = creator === CURRENT_USER;
 
   const measures = useMemo(
@@ -32,42 +35,61 @@ function TrackDetailModal({ track, onClose, onStartPractice, onEditTrack }: Trac
   );
   const totalBeats = measures.length * numerator;
 
+  const { start, stop } = useMetronome();
+  const beatCountRef = useRef(0);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasFinished, setHasFinished] = useState(false);
   const [beatCursor, setBeatCursor] = useState(0);
 
   useEffect(() => {
+    stop();
+    Tone.getDraw().cancel();
+    beatCountRef.current = 0;
     setIsPlaying(false);
     setHasFinished(false);
     setBeatCursor(0);
-  }, [id]);
+  }, [id, stop]);
 
   useEffect(() => {
-    if (!isPlaying || totalBeats === 0) return;
-    const intervalMs = 60000 / bpm;
-    const timer = setInterval(() => {
-      setBeatCursor((prev) => {
-        const next = prev + 1;
-        if (next >= totalBeats) {
-          setIsPlaying(false);
-          setHasFinished(true);
-          return 0;
-        }
-        return next;
-      });
-    }, intervalMs);
-    return () => clearInterval(timer);
-  }, [isPlaying, bpm, totalBeats]);
+    return () => {
+      stop();
+      Tone.getDraw().cancel();
+    };
+  }, [stop]);
 
   const handleTogglePlay = () => {
     if (isPlaying) {
+      stop();
+      Tone.getDraw().cancel();
       setIsPlaying(false);
       setBeatCursor(0);
       return;
     }
+    if (totalBeats === 0) return;
+
     setHasFinished(false);
+    beatCountRef.current = 0;
     setBeatCursor(0);
     setIsPlaying(true);
+
+    start(bpm, numerator, (time) => {
+      Tone.getDraw().schedule(() => {
+        const current = beatCountRef.current;
+        setBeatCursor(current);
+
+        const next = current + 1;
+        if (next >= totalBeats) {
+          stop();
+          setIsPlaying(false);
+          setHasFinished(true);
+          setBeatCursor(0);
+          beatCountRef.current = 0;
+          return;
+        }
+        beatCountRef.current = next;
+      }, time);
+    });
   };
 
   useEffect(() => {
