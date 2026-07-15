@@ -63,9 +63,10 @@ interface TrackFormProps {
   heading: string;
   submitLabel: string;
   initialValues?: TrackFormInitialValues;
+  backTrackId?: string;
 }
 
-function TrackForm({ heading, submitLabel, initialValues }: TrackFormProps) {
+function TrackForm({ heading, submitLabel, initialValues, backTrackId }: TrackFormProps) {
   const navigate = useNavigate();
 
   const [title, setTitle] = useState(initialValues?.title ?? '');
@@ -105,12 +106,17 @@ function TrackForm({ heading, submitLabel, initialValues }: TrackFormProps) {
     navigate('/practice');
   };
 
+  const handleBack = () => {
+    if (backTrackId) navigate('/practice', { state: { reopenTrackId: backTrackId } });
+    else navigate('/practice');
+  };
+
   return (
     <div className="flex w-full flex-col gap-6 px-6 py-8">
       <div className="relative flex w-full items-start">
         <button
           type="button"
-          onClick={() => navigate('/practice')}
+          onClick={handleBack}
           className="button-small absolute top-0 left-0 flex items-center gap-2 text-gray-400">
           <ChevronLeftIcon className="size-5" />
           목록으로

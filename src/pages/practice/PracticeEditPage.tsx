@@ -30,6 +30,7 @@ function PracticeEditPage() {
       key={track.id}
       heading="백킹 트랙 수정하기"
       submitLabel="수정 완료"
+      backTrackId={track.id}
       initialValues={{
         title: track.title,
         genre: track.genre,

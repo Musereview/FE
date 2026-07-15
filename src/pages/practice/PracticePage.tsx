@@ -1,6 +1,6 @@
 // 연습 목록 페이지
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { Track, KeyMode } from '@/types/track';
 import { RECOMMENDED_TRACKS, ALL_TRACKS, GENRES } from './mockTracks';
 import TrackCard from './components/TrackCard';
@@ -31,6 +31,7 @@ const PAGE_SIZE = 9;
 
 function PracticePage() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [sortBy, setSortBy] = useState<SortBy>('popularity');
   const [genre, setGenre] = useState(GENRE_OPTIONS[0].value);
@@ -42,6 +43,15 @@ function PracticePage() {
   const filterRowRef = useRef<HTMLDivElement>(null);
 
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+
+  useEffect(() => {
+    const reopenTrackId = (location.state as { reopenTrackId?: string } | null)?.reopenTrackId;
+    if (!reopenTrackId) return;
+
+    const track = [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((candidate) => candidate.id === reopenTrackId);
+    if (track) setSelectedTrack(track);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location, navigate]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
