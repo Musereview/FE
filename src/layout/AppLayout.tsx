@@ -1,10 +1,11 @@
 // src/layout/AppLayout.tsx
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import NotificationDrawer from './NotificationDrawer';
 
-interface NotiItem {
+// 다른 파일(MainPage 등)에서 타입을 재사용할 수 있도록 export 해줍니다.
+export interface NotiItem {
   notiId: number;
   title: string;
   timeLabel: string;
@@ -29,14 +30,24 @@ export default function AppLayout() {
     setNotiList((prev) => prev.map((item) => (item.notiId === id ? { ...item, isRead: true } : item)));
   };
 
+  // 불필요한 하위 렌더링을 막기 위해 context 객체를 useMemo로 감싸 전달합니다.
+  const contextValue = useMemo(
+    () => ({
+      onOpenNotification: () => setIsNotiOpen(true),
+      notiList,
+      onReadItem: handleReadItem,
+    }),
+    [notiList],
+  );
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-950 text-gray-300">
       {/* 2. Navbar에게는 알림창을 여는 함수와 안읽은 알림 여부를 전달해 줍니다. */}
       <Navbar onOpenNotification={() => setIsNotiOpen(true)} notiList={notiList} />
 
       <main className="min-w-0 flex-1 overflow-y-auto">
-        {/* 3. React Router의 context 기능을 사용해 하위 페이지(MainPage)에 알림창 열기 함수를 안전하게 배달합니다. */}
-        <Outlet context={{ onOpenNotification: () => setIsNotiOpen(true) }} />
+        {/* 3. contextValue를 전달하여 MainPage가 notiList를 읽을 수 있게 합니다. */}
+        <Outlet context={contextValue} />
       </main>
 
       {/* 4. 알림 드로어는 레이아웃 최상단에서 상태에 맞춰 열리고 닫힙니다. */}

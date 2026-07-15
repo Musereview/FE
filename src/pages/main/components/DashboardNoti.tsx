@@ -11,9 +11,10 @@ interface NotiItem {
 
 interface DashboardNotiProps {
   data: NotiItem[];
+  onReadItem: (id: number) => void;
 }
 
-export default function DashboardNoti({ data }: DashboardNotiProps) {
+export default function DashboardNoti({ data, onReadItem }: DashboardNotiProps) {
   const navigate = useNavigate();
 
   return (
@@ -23,6 +24,7 @@ export default function DashboardNoti({ data }: DashboardNotiProps) {
           <div
             key={item.notiId}
             onClick={() => {
+              onReadItem(item.notiId);
               if (item.historyId) {
                 navigate(`/history/${item.historyId}`);
               } else {

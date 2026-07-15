@@ -6,13 +6,21 @@ import RecommendedLearnings from './components/RecommandLearn';
 import RecentPractices from './components/RecentPractices';
 import DashboardNoti from './components/DashboardNoti';
 
-// AppLayout으로부터 받아올 데이터 타입 정의
+export interface NotiItem {
+  notiId: number;
+  title: string;
+  timeLabel: string;
+  isRead: boolean;
+}
+
 interface LayoutContextType {
   onOpenNotification: () => void;
+  notiList: NotiItem[];
+  onReadItem: (id: number) => void;
 }
 
 export default function MainPage() {
-  const { onOpenNotification } = useOutletContext<LayoutContextType>();
+  const { onOpenNotification, notiList, onReadItem } = useOutletContext<LayoutContextType>();
 
   const mockDashboardData = {
     user: { nickname: '김뮤즈' },
@@ -85,12 +93,6 @@ export default function MainPage() {
         timeLabel: '4월 29일 · 8분',
       },
     ],
-    notifications: [
-      { notiId: 1, title: 'Jazz Standard Practice', timeLabel: '방금 전', isRead: false },
-      { notiId: 2, title: 'Modal Interchange Practice', timeLabel: '어제 · 확인', isRead: true },
-      { notiId: 3, title: 'Voice Leading Exercise', timeLabel: '4월 30일 · 확인', isRead: true },
-      { notiId: 4, title: 'Blues Scale Improvisation', timeLabel: '4월 29일 · 확인', isRead: true },
-    ],
   };
 
   return (
@@ -129,14 +131,16 @@ export default function MainPage() {
             <h3 className="flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
               알림
             </h3>
-            {/* 전체 보기 버튼을 누르면 알림창 열림 함수 작동 */}
-            <span
+
+            <button
+              type="button"
               onClick={onOpenNotification}
-              className="cursor-pointer font-sans text-xs text-gray-500 transition-colors hover:text-gray-400">
+              className="cursor-pointer border-none bg-transparent p-0 font-sans text-xs text-gray-500 transition-colors outline-none hover:text-gray-400">
               전체 보기
-            </span>
+            </button>
           </div>
-          <DashboardNoti data={mockDashboardData.notifications} />
+
+          <DashboardNoti data={notiList} onReadItem={onReadItem} />
         </div>
       </div>
     </div>
