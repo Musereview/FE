@@ -6,7 +6,7 @@ interface MetronomeProps {
   current: number; // 현재 박 (0-based)
 }
 
-function Metronome({ total, current }: MetronomeProps) {
+function MetronomeDots({ total, current }: MetronomeProps) {
   return (
     <div className="inline-flex items-center gap-6">
       {Array.from({ length: total }, (_, i) =>
@@ -16,4 +16,4 @@ function Metronome({ total, current }: MetronomeProps) {
   );
 }
 
-export default Metronome;
+export default MetronomeDots;

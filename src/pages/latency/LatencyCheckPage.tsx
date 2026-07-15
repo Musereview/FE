@@ -7,6 +7,7 @@ import { useActiveNotes } from '@/hooks/useActiveNotes';
 import { useMetronome } from '@/hooks/useMetronome';
 import { useSettingStore } from '@/stores/settingsStore';
 import RefreshIcon from '@/assets/restart.svg?react';
+import * as Tone from 'tone';
 
 type Phase = 'intro' | 'countdown' | 'measuring';
 
@@ -25,24 +26,27 @@ function LatencyCheckPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setPhase('countdown');
-      start(bpm, 4, (_time, bib) => {
-        setBeatInBar(bib);
-        setCountdown(4 - bib);
-        // 마지막 박(1) 다음 박에서 측정으로 → "1"이 한 박 보인 뒤 전환
-        if (bib === 0 && countdownDoneRef.current) {
-          setPhase('measuring');
-          stop();
-        }
+      start(bpm, 4, (time, bib) => {
+        Tone.getDraw().schedule(() => {
+          setBeatInBar(bib);
+          setCountdown(4 - bib);
+          if (bib === 0 && countdownDoneRef.current) {
+            setPhase('measuring');
+            stop();
+            Tone.getDraw().cancel();
+          }
+        }, time);
+
         if (bib === 3) countdownDoneRef.current = true;
-      });
-    }, 2000);
+      }); // ← start 콜백 닫기
+    }, 2000); // ← setTimeout 닫기
 
     return () => {
       clearTimeout(timer);
       stop();
+      Tone.getDraw().cancel();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 마운트 시 1회만
+  }, []);
 
   // TODO: 실제 측정 로직 — 지금은 임시 저장
   const handleComplete = () => {
