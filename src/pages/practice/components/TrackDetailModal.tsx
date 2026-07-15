@@ -74,21 +74,21 @@ function TrackDetailModal({ track, onClose, onStartPractice, onEditTrack }: Trac
     setIsPlaying(true);
 
     start(bpm, numerator, (time) => {
-      Tone.getDraw().schedule(() => {
-        const current = beatCountRef.current;
-        setBeatCursor(current);
+      const current = beatCountRef.current;
+      const next = current + 1;
 
-        const next = current + 1;
-        if (next >= totalBeats) {
-          stop();
-          setIsPlaying(false);
-          setHasFinished(true);
-          setBeatCursor(0);
-          beatCountRef.current = 0;
-          return;
-        }
-        beatCountRef.current = next;
-      }, time);
+      if (next >= totalBeats) {
+        stop();
+        Tone.getDraw().cancel();
+        beatCountRef.current = 0;
+        setIsPlaying(false);
+        setHasFinished(true);
+        setBeatCursor(0);
+        return;
+      }
+
+      beatCountRef.current = next;
+      Tone.getDraw().schedule(() => setBeatCursor(current), time);
     });
   };
 
