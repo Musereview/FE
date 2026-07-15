@@ -1,11 +1,19 @@
 // src/pages/main/MainPage.tsx
+import { useOutletContext } from 'react-router-dom';
 import AttendanceSection from './components/AttendanceSection';
 import LearningBanner from './components/LearningBanner';
 import RecommendedLearnings from './components/RecommandLearn';
 import RecentPractices from './components/RecentPractices';
 import DashboardNoti from './components/DashboardNoti';
 
+// AppLayout으로부터 받아올 데이터 타입 정의
+interface LayoutContextType {
+  onOpenNotification: () => void;
+}
+
 export default function MainPage() {
+  const { onOpenNotification } = useOutletContext<LayoutContextType>();
+
   const mockDashboardData = {
     user: { nickname: '김뮤즈' },
     streak: {
@@ -29,7 +37,6 @@ export default function MainPage() {
       level: 'ADVANCED',
       progressRate: 10,
     },
-    // currentLearning: null, //이건 진행중인 학습이 없을때
     recommendedLearnings: [
       {
         learningId: 1,
@@ -91,8 +98,7 @@ export default function MainPage() {
       {/* 1. 상단 출석 현황판 섹션 */}
       <AttendanceSection data={mockDashboardData} />
 
-      {/*  2. 중간 블록: 진행 중인 학습 / 추천 학습 */}
-
+      {/* 2. 중간 블록: 진행 중인 학습 / 추천 학습 */}
       <div className="mx-auto mt-[54px] grid w-full max-w-[1400px] grid-cols-2 gap-6 px-10">
         <div className="flex w-full flex-col">
           <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
@@ -109,8 +115,7 @@ export default function MainPage() {
         </div>
       </div>
 
-      {/*  3. 하단 블록: 최근 연습 / 알림 */}
-
+      {/* 3. 하단 블록: 최근 연습 / 알림 */}
       <div className="mx-auto mt-[98px] grid w-full max-w-[1400px] grid-cols-2 gap-6 px-10">
         <div className="flex w-full flex-col">
           <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
@@ -124,7 +129,10 @@ export default function MainPage() {
             <h3 className="flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
               알림
             </h3>
-            <span className="cursor-pointer font-sans text-xs text-gray-500 transition-colors hover:text-gray-400">
+            {/* 전체 보기 버튼을 누르면 알림창 열림 함수 작동 */}
+            <span
+              onClick={onOpenNotification}
+              className="cursor-pointer font-sans text-xs text-gray-500 transition-colors hover:text-gray-400">
               전체 보기
             </span>
           </div>
