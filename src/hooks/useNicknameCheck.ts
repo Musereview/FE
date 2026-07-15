@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useCheckNickname } from './useCheckNickname';
 import { validateNicknameFormat } from '@/utils/validateNickname';
 
@@ -16,6 +16,8 @@ export const NICKNAME_MESSAGE: Record<Exclude<NicknameStatus, 'idle'>, { text: s
 export function useNicknameCheck(initialNickname = '') {
   const [nickname, setNickname] = useState(initialNickname);
   const [status, setStatus] = useState<NicknameStatus>('idle');
+  const latestNicknameRef = useRef(nickname);
+  latestNicknameRef.current = nickname;
 
   const { mutate: checkNickname, isPending } = useCheckNickname();
 
@@ -38,8 +40,12 @@ export function useNicknameCheck(initialNickname = '') {
   // 중복확인
   const checkDuplicate = () => {
     if (!validateFormat()) return;
-    checkNickname(nickname, {
-      onSuccess: (data) => setStatus(data.available ? 'available' : 'duplicate'),
+    const requested = nickname;
+    checkNickname(requested, {
+      onSuccess: (data) => {
+        if (requested !== latestNicknameRef.current) return;
+        setStatus(data.available ? 'available' : 'duplicate');
+      },
     });
   };
 
