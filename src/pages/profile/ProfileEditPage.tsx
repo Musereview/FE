@@ -11,10 +11,24 @@ import { INSTRUMENT_LABEL, SKILL_LEVEL_LABEL, SKILL_LEVEL_OPTIONS } from '@/type
 import type { Profile, SkillLevel } from '@/types/profile';
 
 function ProfileEditPage() {
-  const { data: profile, isLoading } = useProfile();
+  const { data: profile, isLoading, isError, refetch } = useProfile();
 
-  if (isLoading || !profile) {
+  if (isLoading) {
     return <div className="body-medium flex min-h-screen items-center justify-center text-gray-500">불러오는 중…</div>;
+  }
+
+  if (isError || !profile) {
+    return (
+      <div className="body-medium flex min-h-screen flex-col items-center justify-center gap-4 text-gray-500">
+        <p>프로필을 불러오지 못했어요.</p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="button-small bg-primary-400 rounded-[6px] px-4 py-2 text-gray-950">
+          다시 시도
+        </button>
+      </div>
+    );
   }
 
   return <ProfileEditForm profile={profile} />;
