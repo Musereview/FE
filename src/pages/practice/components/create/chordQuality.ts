@@ -93,8 +93,8 @@ export function parseChordLabel(text: string): ParsedChordLabel {
   if (!rootMatch) return empty;
 
   const root = rootMatch[0];
-  // M7 → maj7 정규화 (텐션 매칭용)
-  let rest = main.slice(root.length).replace(/^M7/, 'maj7');
+  // M7 → maj7, ♭ → b 정규화 (텐션 매칭용)
+  let rest = main.slice(root.length).replace(/^M7/, 'maj7').replace(/♭/g, 'b');
 
   let quality: ChordQuality = 'Maj';
   if (rest.startsWith('sus2')) {
