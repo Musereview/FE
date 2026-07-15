@@ -29,6 +29,7 @@ export default function MainPage() {
       level: 'ADVANCED',
       progressRate: 10,
     },
+    // currentLearning: null, //이건 진행중인 학습이 없을때
     recommendedLearnings: [
       {
         learningId: 1,
@@ -86,12 +87,13 @@ export default function MainPage() {
   };
 
   return (
-    <div className="flex w-full flex-col bg-[#090A0F] pb-[44px]">
+    <div className="flex w-full min-w-[1280px] flex-col overflow-x-auto bg-[#090A0F] pb-[44px]">
       {/* 1. 상단 출석 현황판 섹션 */}
       <AttendanceSection data={mockDashboardData} />
 
-      {/*  2. 중간 블록: 진행 중인 학습 / 추천 학습*/}
-      <div className="mt-[54px] grid w-full grid-cols-2 gap-4 px-[160px]">
+      {/*  2. 중간 블록: 진행 중인 학습 / 추천 학습 */}
+
+      <div className="mx-auto mt-[54px] grid w-full max-w-[1400px] grid-cols-2 gap-6 px-10">
         <div className="flex w-full flex-col">
           <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
             진행 중인 학습
@@ -108,7 +110,8 @@ export default function MainPage() {
       </div>
 
       {/*  3. 하단 블록: 최근 연습 / 알림 */}
-      <div className="mt-[98px] grid w-full grid-cols-2 gap-4 px-[160px]">
+
+      <div className="mx-auto mt-[98px] grid w-full max-w-[1400px] grid-cols-2 gap-6 px-10">
         <div className="flex w-full flex-col">
           <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
             최근 연습
