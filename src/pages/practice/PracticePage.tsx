@@ -1,6 +1,6 @@
 // 연습 목록 페이지
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { Track, KeyMode } from '@/types/track';
 import { RECOMMENDED_TRACKS, ALL_TRACKS, GENRES } from './mockTracks';
 import TrackCard from './components/TrackCard';
@@ -8,6 +8,7 @@ import RecommendedTrackCarousel from './components/RecommendedTrackCarousel';
 import SelectDropdown from './components/SelectDropdown';
 import KeyFilterDropdown from './components/KeyFilterDropdown';
 import BpmDropdown from './components/BpmDropdown';
+import TrackDetailModal from './components/TrackDetailModal';
 import PlusIcon from '@/assets/practice/plus.svg?react';
 
 type SortBy = 'popularity' | 'latest';
@@ -17,7 +18,7 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: 'latest', label: '최신순' },
 ];
 
-// '장르 전체'가 GENRES의 첫 항목 — 필터 기본값이자 "필터링 안 함" 의미로 쓰인다.
+// GENRES[0] = 장르 전체 (필터 없음)
 const GENRE_ALL = GENRES[0];
 const GENRE_OPTIONS = GENRES.map((genre) => ({ value: genre, label: genre }));
 
@@ -30,6 +31,7 @@ const PAGE_SIZE = 9;
 
 function PracticePage() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [sortBy, setSortBy] = useState<SortBy>('popularity');
   const [genre, setGenre] = useState(GENRE_OPTIONS[0].value);
@@ -38,6 +40,29 @@ function PracticePage() {
   const [keyMode, setKeyMode] = useState<KeyMode | null>(null);
 
   const [openFilter, setOpenFilter] = useState<FilterKey | null>(null);
+  const filterRowRef = useRef<HTMLDivElement>(null);
+
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+
+  useEffect(() => {
+    const reopenTrackId = (location.state as { reopenTrackId?: string } | null)?.reopenTrackId;
+    if (!reopenTrackId) return;
+
+    const track = [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((candidate) => candidate.id === reopenTrackId);
+    if (track) setSelectedTrack(track);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location, navigate]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (filterRowRef.current && !filterRowRef.current.contains(event.target as Node)) {
+        setOpenFilter(null);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const filteredTracks = useMemo(() => {
     const filtered = ALL_TRACKS.filter((track) => {
@@ -82,7 +107,15 @@ function PracticePage() {
 
   const visibleTracks = filteredTracks.slice(0, visibleCount);
 
-  const handleSelectTrack = (track: Track) => navigate(`/practice/${track.id}`);
+  const handleSelectTrack = (track: Track) => setSelectedTrack(track);
+  const handleStartPractice = (track: Track) => {
+    setSelectedTrack(null);
+    navigate(`/practice/${track.id}/settings`);
+  };
+  const handleEditTrack = (track: Track) => {
+    setSelectedTrack(null);
+    navigate(`/practice/${track.id}/edit`);
+  };
 
   return (
     <div className="mx-auto flex w-full max-w-[1128px] flex-col px-6">
@@ -96,7 +129,7 @@ function PracticePage() {
           <h2 className="heading-medium-b text-gray-200">전체</h2>
 
           <div className="flex flex-wrap items-center gap-6">
-            <div className="flex flex-wrap items-start gap-3">
+            <div ref={filterRowRef} className="flex flex-wrap items-start gap-3">
               <SelectDropdown
                 label="인기순"
                 options={SORT_OPTIONS}
@@ -149,6 +182,15 @@ function PracticePage() {
 
         {hasMoreTracks && <div ref={loadMoreRef} className="h-px w-full" />}
       </section>
+
+      {selectedTrack && (
+        <TrackDetailModal
+          track={selectedTrack}
+          onClose={() => setSelectedTrack(null)}
+          onStartPractice={() => handleStartPractice(selectedTrack)}
+          onEditTrack={() => handleEditTrack(selectedTrack)}
+        />
+      )}
     </div>
   );
 }

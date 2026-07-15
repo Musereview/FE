@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react';
 import { MEASURE_WIDTH_CLASS } from './layout';
 
 export interface ChordCell {
@@ -9,33 +8,17 @@ export interface ChordCell {
 interface ChordProgressionGridProps {
   measures: string[][];
   selectedCell: ChordCell | null;
-  onSelectCell: (cell: ChordCell | null) => void;
+  onSelectCell: (cell: ChordCell) => void;
   className?: string;
 }
 
 function ChordProgressionGrid({ measures, selectedCell, onSelectCell, className = '' }: ChordProgressionGridProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!selectedCell) return;
-
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        onSelectCell(null);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [selectedCell, onSelectCell]);
-
   const rows: [string[], string[]][] = [];
   for (let i = 0; i < measures.length; i += 2) {
     rows.push([measures[i], measures[i + 1] ?? []]);
   }
 
-  // #8 트랙 상세 모달과 동일한 방식: 마디 폭은 고정, 3박자는 좌우 마디를 각각 바깥쪽으로
-  // 정렬해서 1번째/마지막 칸 위치가 4박자와 항상 같게 유지되도록 한다.
+  // 마디 폭 고정, 3박자는 좌우 바깥 정렬 (4박자와 칸 위치 맞춤)
   const renderMeasure = (measure: string[], measureIndex: number, isSecondHalf: boolean) => {
     const isFourBeats = measure.length === 4;
     const alignmentClassName = isFourBeats ? 'justify-between' : `gap-11 ${isSecondHalf ? 'justify-end' : ''}`;
@@ -66,7 +49,7 @@ function ChordProgressionGrid({ measures, selectedCell, onSelectCell, className 
   };
 
   return (
-    <div ref={containerRef} className={`flex w-full flex-col items-start gap-3 ${className}`}>
+    <div className={`flex w-full flex-col items-start gap-3 ${className}`}>
       <p className="body-regular2 w-full text-gray-300">코드 진행</p>
 
       <div className="flex w-fit flex-col items-center gap-5 rounded-[10px] bg-gray-900 p-5">

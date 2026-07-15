@@ -1,23 +1,7 @@
-import type { Track, TrackDifficulty } from '@/types/track';
+import type { Track } from '@/types/track';
 import ClockIcon from '@/assets/practice/clock.svg?react';
 import ChordDividerIcon from '@/assets/practice/chord-divider.svg?react';
-
-const DIFFICULTY_LABEL: Record<TrackDifficulty, string> = {
-  beginner: '초급',
-  intermediate: '중급',
-  advanced: '고급',
-};
-
-const DIFFICULTY_COLOR: Record<TrackDifficulty, string> = {
-  beginner: 'border-level-bgn text-level-bgn',
-  intermediate: 'border-level-int text-level-int',
-  advanced: 'border-level-mjr text-level-mjr',
-};
-
-const MODE_LABEL = {
-  major: 'Major',
-  minor: 'Minor',
-};
+import { DIFFICULTY_LABEL, DIFFICULTY_COLOR, MODE_LABEL } from '../trackDisplay';
 
 interface TrackCardProps {
   track: Track;
