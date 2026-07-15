@@ -2,9 +2,9 @@
 import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ALL_TRACKS, RECOMMENDED_TRACKS } from './mockTracks';
-import { buildFallbackProgression } from './trackDisplay';
+import { buildFallbackProgression, CURRENT_USER } from './trackDisplay';
 import TrackForm, { type TimeSignature } from './components/create/TrackForm';
-import { toEditableMeasures } from './components/create/chordGrid';
+import { toEditableMeasures, getChordsPerMeasure } from './components/create/chordGrid';
 
 function PracticeEditPage() {
   const navigate = useNavigate();
@@ -14,14 +14,15 @@ function PracticeEditPage() {
     () => [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((candidate) => candidate.id === practiceId),
     [practiceId],
   );
+  const isOwnTrack = track?.creator === CURRENT_USER;
 
   useEffect(() => {
-    if (!track) navigate('/practice');
-  }, [track, navigate]);
+    if (!track || !isOwnTrack) navigate('/practice');
+  }, [track, isOwnTrack, navigate]);
 
-  if (!track) return null;
+  if (!track || !isOwnTrack) return null;
 
-  const numerator = Number(track.timeSignature.split('/')[0]) || 4;
+  const numerator = getChordsPerMeasure(track.timeSignature);
   const progression = track.chordProgression ?? buildFallbackProgression(track.chords, numerator);
 
   return (
