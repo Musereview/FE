@@ -36,6 +36,8 @@ function LatencyCheckPage() {
   const beatTimesRef = useRef<number[]>([]); // 측정 구간 정박 시각 (performance.now 기준)
   const samplesRef = useRef<number[]>([]); // 유효 offset 샘플
   const finishedRef = useRef(false);
+  // intro부터 시작 (마운트 + 재시작 공용)
+  const introTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 측정용 MIDI 입력 (건반 하이라이트와 같은 useMidi 인스턴스를 공유 — measuring일 때만 기록)
   const { activeNotes } = useActiveNotes((_note, _velocity, time) => {
@@ -77,46 +79,66 @@ function LatencyCheckPage() {
     setTimeout(() => navigate(-1), 1000);
   };
 
-  // 화면 진입 → intro 3초 후 카운트다운 + 측정 (하나의 메트로놈 흐름)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPhase('countdown');
+  // 측정 흐름 (카운트다운 + 측정)
+  const runMeasureFlow = () => {
+    let totalBeat = 0;
+    beatTimesRef.current = [];
+    samplesRef.current = [];
+    finishedRef.current = false;
 
-      let totalBeat = 0;
-      beatTimesRef.current = [];
-      samplesRef.current = [];
-      finishedRef.current = false;
+    start(bpm, 4, (time, bib) => {
+      const currentBeat = totalBeat;
+      const isMeasure = currentBeat >= COUNTDOWN_BEATS;
+      const isLastBeat = currentBeat === TOTAL_BEATS - 1;
 
-      start(bpm, 4, (time, bib) => {
-        const currentBeat = totalBeat;
-        const isMeasure = currentBeat >= COUNTDOWN_BEATS;
-        const isLastBeat = currentBeat === TOTAL_BEATS - 1;
+      if (isMeasure) {
+        beatTimesRef.current.push(toPerfMs(time));
+      }
 
-        // 측정 구간 정박 시각은 schedule 밖에서 (정확한 time)
-        if (isMeasure) {
-          beatTimesRef.current.push(toPerfMs(time));
+      Tone.getDraw().schedule(() => {
+        setBeatInBar(bib);
+        if (!isMeasure) {
+          setCountdown(COUNTDOWN_BEATS - currentBeat);
+        } else if (phaseRef.current !== 'measuring') {
+          setPhase('measuring');
+          setCountdown(null);
         }
+        if (isLastBeat) {
+          finishMeasuring();
+        }
+      }, time);
 
-        // 화면 갱신 + 종료 판정 모두 Draw로 동기화 (룩어헤드로 인한 조기 실행 방지)
-        Tone.getDraw().schedule(() => {
-          setBeatInBar(bib);
-          if (!isMeasure) {
-            setCountdown(COUNTDOWN_BEATS - currentBeat); // 4,3,2,1
-          } else if (phaseRef.current !== 'measuring') {
-            setPhase('measuring');
-            setCountdown(null); // 카운트다운 숫자 숨김
-          }
-          if (isLastBeat) {
-            finishMeasuring();
-          }
-        }, time);
+      totalBeat += 1;
+    });
+  };
 
-        totalBeat += 1;
-      });
+  const startFromIntro = () => {
+    // 초기화
+    setPhase('intro');
+    setBeatInBar(-1);
+    setCountdown(null);
+    finishedRef.current = false;
+
+    introTimerRef.current = setTimeout(() => {
+      setPhase('countdown');
+      runMeasureFlow();
     }, 2000);
+  };
+
+  // 재시작 버튼
+  const handleRestart = () => {
+    if (introTimerRef.current) clearTimeout(introTimerRef.current);
+    stop();
+    Tone.getDraw().cancel();
+    startFromIntro(); // intro부터 다시
+  };
+
+  // 마운트 시 시작
+  useEffect(() => {
+    startFromIntro();
 
     return () => {
-      clearTimeout(timer);
+      if (introTimerRef.current) clearTimeout(introTimerRef.current);
       stop();
       Tone.getDraw().cancel();
     };
@@ -128,7 +150,9 @@ function LatencyCheckPage() {
       {/* 헤더 */}
       <header className="flex w-full items-center justify-between bg-gray-900 px-[160px] py-[28px]">
         <div className="heading-medium-b text-gray-200">레이턴시 체크</div>
-        <button className="button-large2 flex h-[60px] w-[175px] items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
+        <button
+          onClick={handleRestart}
+          className="button-large2 flex h-[60px] w-[175px] items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
           재시작
           <RefreshIcon className="h-5 w-5" />
         </button>
