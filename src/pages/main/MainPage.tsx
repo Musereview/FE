@@ -5,13 +5,7 @@ import LearningBanner from './components/LearningBanner';
 import RecommendedLearnings from './components/RecommandLearn';
 import RecentPractices from './components/RecentPractices';
 import DashboardNoti from './components/DashboardNoti';
-
-export interface NotiItem {
-  notiId: number;
-  title: string;
-  timeLabel: string;
-  isRead: boolean;
-}
+import type { NotiItem } from '@/types/notification';
 
 interface LayoutContextType {
   onOpenNotification: () => void;
