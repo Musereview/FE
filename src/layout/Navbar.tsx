@@ -1,17 +1,25 @@
-// 사이드바
+//사이드바
+// src/layout/Navbar.tsx
 import { NavLink } from 'react-router-dom';
 import PracticeIcon from '@/assets/layout/practice.svg?react';
 import LearnIcon from '@/assets/layout/learn.svg?react';
 import HistoryIcon from '@/assets/layout/history.svg?react';
+
 import LogoIcon from '@/assets/layout/logo.svg?react';
 import NotificationIcon from '@/assets/layout/notification.svg?react';
 import ProfileIcon from '@/assets/layout/profile.svg?react';
 import MoreIcon from '@/assets/layout/more.svg?react';
+import type { NotiItem } from '@/types/notification';
 
 interface NavItem {
   Icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
   label: string;
   to: string;
+}
+
+interface NavbarProps {
+  onOpenNotification: () => void;
+  notiList: NotiItem[];
 }
 
 const STUDENT_MENU: NavItem[] = [
@@ -20,7 +28,9 @@ const STUDENT_MENU: NavItem[] = [
   { Icon: HistoryIcon, label: '히스토리', to: '/history' },
 ];
 
-function Navbar() {
+function Navbar({ onOpenNotification, notiList }: NavbarProps) {
+  const hasUnread = notiList.some((item) => !item.isRead);
+
   return (
     <div className="flex h-screen w-[90px] shrink-0 flex-col items-center justify-between border-r border-gray-700 bg-gray-950 px-[18px] py-6">
       {/* 상단: 로고 / 메뉴 */}
@@ -59,8 +69,15 @@ function Navbar() {
       <div className="flex flex-col items-center gap-6 text-gray-400">
         {/* 알림 */}
         <div className="relative flex h-[54px] items-center justify-center">
-          <button type="button" aria-label="알림">
+          <button
+            type="button"
+            aria-label="알림"
+            onClick={onOpenNotification}
+            className="relative flex items-center justify-center transition-opacity hover:opacity-80">
             <NotificationIcon className="size-7" />
+            {hasUnread && (
+              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#10B981] ring-2 ring-gray-950" />
+            )}
           </button>
         </div>
 
