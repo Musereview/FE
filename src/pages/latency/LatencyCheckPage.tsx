@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Piano from '@/components/piano/Piano';
+import NoteBars, { type NoteBar } from '@/components/piano/NoteBars';
 import Metronome from '@/components/metronome/MetronomeDots';
 import { useActiveNotes } from '@/hooks/useActiveNotes';
 import { useMetronome } from '@/hooks/useMetronome';
@@ -14,7 +15,7 @@ type Phase = 'intro' | 'countdown' | 'measuring';
 
 // 측정 설정
 const COUNTDOWN_BEATS = 4; // 카운트다운 4박 (4,3,2,1)
-const MEASURE_BEATS = 4; // 측정 4박
+const MEASURE_BEATS = 8; // 측정 8박
 const TOTAL_BEATS = COUNTDOWN_BEATS + MEASURE_BEATS; // 총 8박
 const VALID_WINDOW_MS = 250; // 정박 ±250ms 안이어야 유효 입력
 const REQUIRED_SAMPLES = 3; // 유효 입력 3회 이상 → 성공
@@ -27,6 +28,10 @@ function LatencyCheckPage() {
   const [phase, setPhase] = useState<Phase>('intro');
   const [beatInBar, setBeatInBar] = useState(-1);
   const [countdown, setCountdown] = useState<number | null>(null);
+
+  // 친 음에서 솟아오르는 노트바 (measuring 중 입력마다 1개 생성)
+  const [noteBars, setNoteBars] = useState<NoteBar[]>([]);
+  const barIdRef = useRef(0);
 
   // 콜백 안에서 최신 phase 참조
   const phaseRef = useRef<Phase>('intro');
@@ -42,8 +47,13 @@ function LatencyCheckPage() {
   const returnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 측정용 MIDI 입력 (건반 하이라이트와 같은 useMidi 인스턴스를 공유 — measuring일 때만 기록)
-  const { activeNotes } = useActiveNotes((_note, _velocity, time) => {
+  const { activeNotes } = useActiveNotes((note, _velocity, time) => {
     if (phaseRef.current !== 'measuring') return;
+
+    // 친 음 위치에서 노트바 생성 (박자 유효 여부와 무관하게 시각 피드백)
+    const id = barIdRef.current++;
+    setNoteBars((prev) => [...prev, { id, midi: note }]);
+
     const beats = beatTimesRef.current;
     if (beats.length === 0) return;
 
@@ -54,6 +64,9 @@ function LatencyCheckPage() {
       samplesRef.current.push(offset);
     }
   });
+
+  // 애니메이션 종료된 노트바 제거
+  const handleBarDone = (id: number) => setNoteBars((prev) => prev.filter((b) => b.id !== id));
 
   // Tone time → performance.now 기준 ms
   const toPerfMs = (toneTime: number) => performance.now() + (toneTime - Tone.now()) * 1000;
@@ -118,6 +131,7 @@ function LatencyCheckPage() {
     setPhase('intro');
     setBeatInBar(-1);
     setCountdown(null);
+    setNoteBars([]);
     finishedRef.current = false;
 
     introTimerRef.current = setTimeout(() => {
@@ -172,8 +186,8 @@ function LatencyCheckPage() {
         </div>
       )}
 
-      {/* 본문 */}
-      <div className="relative flex flex-1 flex-col px-[135px]">
+      {/* 본문 (노트바가 헤더 라인에서 잘려 사라지도록 overflow-hidden) */}
+      <div className="relative flex flex-1 flex-col overflow-hidden px-[135px]">
         {/* 진행 점 — 카운트다운/측정 단계에만 */}
         {phase !== 'intro' && (
           <div className="mt-[151px] flex justify-center">
@@ -191,20 +205,23 @@ function LatencyCheckPage() {
           {/* phase === 'measuring' → 노트바 (나중에) */}
         </div>
 
-        {/* 건반 영역 */}
-        <Piano
-          keyCount={keyCount}
-          activeNotes={activeNotes}
-          rightSlot={
-            <button
-              onClick={() => navigate(-1)}
-              className="flex cursor-pointer flex-col items-center gap-1"
-              aria-label="설정">
-              <SettingsIcon className="h-10 w-10" />
-              <span className="button-small text-gray-600">설정</span>
-            </button>
-          }
-        />
+        {/* 건반 영역 (+ 친 음에서 솟아오르는 노트바) */}
+        <div className="relative mx-auto w-full max-w-[1560px]">
+          {phase === 'measuring' && <NoteBars bars={noteBars} keyCount={keyCount} onBarDone={handleBarDone} />}
+          <Piano
+            keyCount={keyCount}
+            activeNotes={activeNotes}
+            rightSlot={
+              <button
+                onClick={() => navigate(-1)}
+                className="flex cursor-pointer flex-col items-center gap-1"
+                aria-label="설정">
+                <SettingsIcon className="h-10 w-10" />
+                <span className="button-small text-gray-600">설정</span>
+              </button>
+            }
+          />
+        </div>
       </div>
     </div>
   );
