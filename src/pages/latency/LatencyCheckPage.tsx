@@ -38,6 +38,8 @@ function LatencyCheckPage() {
   const finishedRef = useRef(false);
   // intro부터 시작 (마운트 + 재시작 공용)
   const introTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 측정 완료 후 자동 복귀 타이머 (재시작/언마운트 시 취소 필요)
+  const returnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 측정용 MIDI 입력 (건반 하이라이트와 같은 useMidi 인스턴스를 공유 — measuring일 때만 기록)
   const { activeNotes } = useActiveNotes((_note, _velocity, time) => {
@@ -75,7 +77,7 @@ function LatencyCheckPage() {
     }
 
     // 1초 후 설정 모달로 복귀
-    setTimeout(() => navigate(-1), 1000);
+    returnTimerRef.current = setTimeout(() => navigate(-1), 1000);
   };
 
   // 측정 흐름 (카운트다운 + 측정)
@@ -127,6 +129,7 @@ function LatencyCheckPage() {
   // 재시작 버튼
   const handleRestart = () => {
     if (introTimerRef.current) clearTimeout(introTimerRef.current);
+    if (returnTimerRef.current) clearTimeout(returnTimerRef.current);
     stop();
     Tone.getDraw().cancel();
     startFromIntro(); // intro부터 다시
@@ -138,6 +141,7 @@ function LatencyCheckPage() {
 
     return () => {
       if (introTimerRef.current) clearTimeout(introTimerRef.current);
+      if (returnTimerRef.current) clearTimeout(returnTimerRef.current);
       stop();
       Tone.getDraw().cancel();
     };
