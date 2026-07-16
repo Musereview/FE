@@ -8,6 +8,7 @@ import { useMetronome } from '@/hooks/useMetronome';
 import { useSettingStore } from '@/stores/settingsStore';
 import RefreshIcon from '@/assets/restart.svg?react';
 import * as Tone from 'tone';
+import SettingsIcon from '@/assets/setting.svg?react';
 
 type Phase = 'intro' | 'countdown' | 'measuring';
 
@@ -104,7 +105,17 @@ function LatencyCheckPage() {
           </button>
         )}
 
-        <Piano keyCount={keyCount} activeNotes={activeNotes} />
+        {/* 건반 영역 */}
+        <Piano
+          keyCount={keyCount}
+          activeNotes={activeNotes}
+          rightSlot={
+            <button className="flex cursor-pointer flex-col items-center gap-1" aria-label="설정">
+              <SettingsIcon className="h-10 w-10" />
+              <span className="button-small text-gray-600">설정</span>
+            </button>
+          }
+        />
       </div>
     </div>
   );
