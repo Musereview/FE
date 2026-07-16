@@ -1,13 +1,7 @@
+// src/pages/main/components/DashboardNoti.tsx
 import { useNavigate } from 'react-router-dom';
 
-interface NotiItem {
-  notiId: number;
-  title: string;
-  timeLabel: string;
-  isRead: boolean;
-
-  historyId?: number;
-}
+import type { NotiItem } from '@/types/notification';
 
 interface DashboardNotiProps {
   data: NotiItem[];
@@ -31,20 +25,8 @@ export default function DashboardNoti({ data, onReadItem }: DashboardNotiProps) 
                 navigate(`/history`);
               }
             }}
-            className="flex w-full cursor-pointer items-center justify-between transition-colors select-none hover:opacity-90"
-            style={{
-              display: 'flex',
-              height: '86px',
-              padding: '12px 24px',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              alignSelf: 'stretch',
-              borderRadius: '4px',
-              background: '#1B1E27',
-            }}>
-            {/* 좌측 영역: 아이콘 + 메시지 */}
+            className="flex h-[86px] w-full cursor-pointer items-center justify-between rounded bg-[#1B1E27] px-6 py-3 transition-colors select-none hover:opacity-90">
             <div className="flex min-w-0 flex-1 items-center gap-4">
-              {/* 알림 상태 아이콘 (읽음/안읽음 분기) */}
               <div
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
                 style={{ background: item.isRead ? '#31353F' : '#A855F7' }}>
@@ -63,16 +45,7 @@ export default function DashboardNoti({ data, onReadItem }: DashboardNotiProps) 
               </div>
 
               <div className="flex min-w-0 flex-col items-start gap-1">
-                <p
-                  style={{
-                    color: '#FFFFFF',
-                    fontFamily: 'Pretendard',
-                    fontSize: '15px',
-                    fontWeight: 500,
-                    letterSpacing: '-0.3px',
-                    lineHeight: '22px',
-                  }}
-                  className="w-full truncate text-left">
+                <p className="w-full truncate text-left font-sans text-[15px] leading-[22px] font-medium tracking-[-0.3px] text-white">
                   <span className="font-semibold">{item.title}</span>에 코멘트가 작성되었습니다.
                 </p>
                 <span className="font-sans text-xs text-gray-400">{item.timeLabel}</span>

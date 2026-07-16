@@ -1,16 +1,7 @@
+// src/layout/NotificationDrawer.tsx
 import { useNavigate } from 'react-router-dom';
 
-// 알림 아이템 타입 정의
-interface NotiItem {
-  notiId: number;
-  title: string;
-  timeLabel: string;
-  isRead: boolean;
-  historyId?: number;
-
-  content?: string;
-  type?: 'comment' | 'analysis' | 'achievement' | 'complete';
-}
+import type { NotiItem } from '@/types/notification';
 
 interface NotificationDrawerProps {
   isOpen: boolean;
@@ -31,23 +22,18 @@ export default function NotificationDrawer({
 
   if (!isOpen) return null;
 
-  // 안 읽은 알림이 단 하나라도 있는지 여부 확인
   const hasUnread = notiList.some((item) => !item.isRead);
 
   return (
     <>
-      {/* 1. 어두운 배경 오버레이 */}
       <div
         onClick={onClose}
         className="fixed inset-0 left-[90px] z-40 bg-black/60 backdrop-blur-[2px] transition-opacity"
       />
 
-      {/* 2. 알림 드로어 본체 */}
       <div className="fixed top-0 bottom-0 left-[90px] z-45 flex h-full w-[400px] flex-col bg-[#0B0D14] shadow-2xl transition-all duration-300 ease-in-out">
-        {/* 헤더 영역 */}
         <div className="flex items-center justify-between px-6 pt-7 pb-4">
           <h2 className="text-xl font-bold text-white">알림</h2>
-          {/* 우측 상단 닫기 버튼 */}
           <button onClick={onClose} className="text-gray-400 transition-colors hover:text-white">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -65,7 +51,6 @@ export default function NotificationDrawer({
           </button>
         </div>
 
-        {/* "모두 읽음 처리" 버튼 영역  */}
         {hasUnread && (
           <div className="flex justify-end px-6 pb-4">
             <button
@@ -76,7 +61,6 @@ export default function NotificationDrawer({
           </div>
         )}
 
-        {/* 알림 목록 리스트 영역 */}
         <div className="flex-1 space-y-4 overflow-y-auto px-6 pb-6">
           {notiList.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center py-20 text-sm text-gray-500">
@@ -98,14 +82,11 @@ export default function NotificationDrawer({
                 className={`relative flex w-full cursor-pointer flex-col items-start gap-3 rounded-lg p-5 transition-all duration-200 select-none ${
                   item.isRead ? 'bg-[#151720] opacity-55 hover:bg-[#1C1E2A]' : 'bg-[#151720] hover:bg-[#1C1E2A]'
                 }`}>
-                {/* 안 읽은 알림일 때만 우측 상단에 민트색 원형 점 표시 */}
                 {!item.isRead && <span className="absolute top-6 right-6 h-2 w-2 rounded-full bg-[#10B981]" />}
 
-                {/* 알림 텍스트 영역 */}
                 <div className="flex w-full flex-col items-start gap-2 pr-6">
                   <p className="text-left text-[15px] leading-relaxed text-[#E5E7EB]">
                     <span className="font-semibold text-[#10B981]">{item.title}</span>
-
                     {item.type === 'analysis' ? (
                       <span> 연주 분석이 완료되었습니다.</span>
                     ) : item.type === 'achievement' ? (
@@ -125,7 +106,6 @@ export default function NotificationDrawer({
                   )}
                 </div>
 
-                {/* 하단 경과 시간 */}
                 <span className="text-xs text-gray-500">{item.timeLabel}</span>
               </div>
             ))

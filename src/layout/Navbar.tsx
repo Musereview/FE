@@ -1,13 +1,15 @@
-//사이드 바
+//사이드바
 // src/layout/Navbar.tsx
 import { NavLink } from 'react-router-dom';
 import PracticeIcon from '@/assets/layout/practice.svg?react';
 import LearnIcon from '@/assets/layout/learn.svg?react';
 import HistoryIcon from '@/assets/layout/history.svg?react';
+
 import LogoIcon from '@/assets/layout/logo.svg?react';
 import NotificationIcon from '@/assets/layout/notification.svg?react';
 import ProfileIcon from '@/assets/layout/profile.svg?react';
 import MoreIcon from '@/assets/layout/more.svg?react';
+import type { NotiItem } from '@/types/notification';
 
 interface NavItem {
   Icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
@@ -15,15 +17,6 @@ interface NavItem {
   to: string;
 }
 
-interface NotiItem {
-  notiId: number;
-  title: string;
-  timeLabel: string;
-  isRead: boolean;
-  historyId?: number;
-}
-
-// 1. 부모(AppLayout)에게 받아올 프로퍼티 타입을 정의해 줍니다.
 interface NavbarProps {
   onOpenNotification: () => void;
   notiList: NotiItem[];
@@ -35,7 +28,6 @@ const STUDENT_MENU: NavItem[] = [
   { Icon: HistoryIcon, label: '히스토리', to: '/history' },
 ];
 
-// 2. 컴포넌트 매개변수에서 받아온 props를 구조 분해 할당해 줍니다.
 function Navbar({ onOpenNotification, notiList }: NavbarProps) {
   const hasUnread = notiList.some((item) => !item.isRead);
 
@@ -80,10 +72,9 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
           <button
             type="button"
             aria-label="알림"
-            onClick={onOpenNotification} // 부모가 준 오픈 함수 실행!
+            onClick={onOpenNotification}
             className="relative flex items-center justify-center transition-opacity hover:opacity-80">
             <NotificationIcon className="size-7" />
-
             {hasUnread && (
               <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#10B981] ring-2 ring-gray-950" />
             )}
