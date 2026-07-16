@@ -68,7 +68,7 @@ function LatencyCheckPage() {
 
       {/* intro 블러 오버레이 — 화면 전체 덮음 */}
       {phase === 'intro' && (
-        <div className="absolute inset-0 z-20 bg-[#0B0F19]/90">
+        <div className="absolute inset-0 z-30 bg-[#0B0F19]/90">
           <p className="heading-medium-b absolute top-[428px] left-1/2 -translate-x-1/2 text-center text-gray-200">
             박자에 맞춰 건반을 눌러주세요.
             <br />
@@ -110,7 +110,10 @@ function LatencyCheckPage() {
           keyCount={keyCount}
           activeNotes={activeNotes}
           rightSlot={
-            <button className="flex cursor-pointer flex-col items-center gap-1" aria-label="설정">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex cursor-pointer flex-col items-center gap-1"
+              aria-label="설정">
               <SettingsIcon className="h-10 w-10" />
               <span className="button-small text-gray-600">설정</span>
             </button>
