@@ -12,48 +12,116 @@ import SettingsIcon from '@/assets/setting.svg?react';
 
 type Phase = 'intro' | 'countdown' | 'measuring';
 
+// 측정 설정
+const COUNTDOWN_BEATS = 4; // 카운트다운 4박 (4,3,2,1)
+const MEASURE_BEATS = 4; // 측정 4박
+const TOTAL_BEATS = COUNTDOWN_BEATS + MEASURE_BEATS; // 총 8박
+const VALID_WINDOW_MS = 250; // 정박 ±250ms 안이어야 유효 입력
+const REQUIRED_SAMPLES = 3; // 유효 입력 3회 이상 → 성공
+
 function LatencyCheckPage() {
   const navigate = useNavigate();
-  const { activeNotes } = useActiveNotes();
   const { keyCount, inputId, bpm, setLatency } = useSettingStore();
   const { start, stop } = useMetronome();
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [beatInBar, setBeatInBar] = useState(-1);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const countdownDoneRef = useRef(false);
 
-  // 화면 진입 → intro 3초 후 카운트다운 시작
+  // 콜백 안에서 최신 phase 참조
+  const phaseRef = useRef<Phase>('intro');
+  phaseRef.current = phase;
+
+  // 측정 데이터
+  const beatTimesRef = useRef<number[]>([]); // 측정 구간 정박 시각 (performance.now 기준)
+  const samplesRef = useRef<number[]>([]); // 유효 offset 샘플
+  const finishedRef = useRef(false);
+
+  // 측정용 MIDI 입력 (건반 하이라이트와 같은 useMidi 인스턴스를 공유 — measuring일 때만 기록)
+  const { activeNotes } = useActiveNotes((_note, _velocity, time) => {
+    if (phaseRef.current !== 'measuring') return;
+    const beats = beatTimesRef.current;
+    if (beats.length === 0) return;
+
+    const inputMs = time; // e.timeStamp — performance.now 기준
+    const nearest = beats.reduce((a, b) => (Math.abs(b - inputMs) < Math.abs(a - inputMs) ? b : a));
+    const offset = inputMs - nearest; // +면 늦게 침
+    if (Math.abs(offset) <= VALID_WINDOW_MS) {
+      samplesRef.current.push(offset);
+    }
+  });
+
+  // Tone time → performance.now 기준 ms
+  const toPerfMs = (toneTime: number) => performance.now() + (toneTime - Tone.now()) * 1000;
+
+  // 측정 종료 및 판정
+  const finishMeasuring = () => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    stop();
+    Tone.getDraw().cancel();
+
+    const samples = samplesRef.current;
+    console.log('레이턴시 측정 samples:', samples, '개수:', samples.length); // 확인용
+    if (samples.length >= REQUIRED_SAMPLES) {
+      // offset(+) = 입력이 정박보다 늦음. 평균이 그 기기의 레이턴시(ms)
+      const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
+      console.log('평균 레이턴시:', Math.round(avg), 'ms'); // 확인용
+      if (inputId) setLatency(inputId, Math.round(avg));
+    } else {
+      console.log('측정 실패 (3회 미만)'); // 확인용
+      if (inputId) setLatency(inputId, 'failed');
+    }
+
+    // 1초 후 설정 모달로 복귀
+    setTimeout(() => navigate(-1), 1000);
+  };
+
+  // 화면 진입 → intro 3초 후 카운트다운 + 측정 (하나의 메트로놈 흐름)
   useEffect(() => {
     const timer = setTimeout(() => {
       setPhase('countdown');
+
+      let totalBeat = 0;
+      beatTimesRef.current = [];
+      samplesRef.current = [];
+      finishedRef.current = false;
+
       start(bpm, 4, (time, bib) => {
+        const currentBeat = totalBeat;
+        const isMeasure = currentBeat >= COUNTDOWN_BEATS;
+        const isLastBeat = currentBeat === TOTAL_BEATS - 1;
+
+        // 측정 구간 정박 시각은 schedule 밖에서 (정확한 time)
+        if (isMeasure) {
+          beatTimesRef.current.push(toPerfMs(time));
+        }
+
+        // 화면 갱신 + 종료 판정 모두 Draw로 동기화 (룩어헤드로 인한 조기 실행 방지)
         Tone.getDraw().schedule(() => {
           setBeatInBar(bib);
-          setCountdown(4 - bib);
-          if (bib === 0 && countdownDoneRef.current) {
+          if (!isMeasure) {
+            setCountdown(COUNTDOWN_BEATS - currentBeat); // 4,3,2,1
+          } else if (phaseRef.current !== 'measuring') {
             setPhase('measuring');
-            stop();
-            Tone.getDraw().cancel();
+            setCountdown(null); // 카운트다운 숫자 숨김
+          }
+          if (isLastBeat) {
+            finishMeasuring();
           }
         }, time);
 
-        if (bib === 3) countdownDoneRef.current = true;
-      }); // ← start 콜백 닫기
-    }, 2000); // ← setTimeout 닫기
+        totalBeat += 1;
+      });
+    }, 2000);
 
     return () => {
       clearTimeout(timer);
       stop();
       Tone.getDraw().cancel();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // TODO: 실제 측정 로직 — 지금은 임시 저장
-  const handleComplete = () => {
-    if (inputId) setLatency(inputId, 20);
-    navigate(-1);
-  };
 
   return (
     <div className="relative flex h-full flex-col">
@@ -66,7 +134,7 @@ function LatencyCheckPage() {
         </button>
       </header>
 
-      {/* intro 블러 오버레이 — 화면 전체 덮음 */}
+      {/* intro 블러 오버레이 */}
       {phase === 'intro' && (
         <div className="absolute inset-0 z-30 bg-[#0B0F19]/90">
           <p className="heading-medium-b absolute top-[428px] left-1/2 -translate-x-1/2 text-center text-gray-200">
@@ -95,15 +163,6 @@ function LatencyCheckPage() {
           )}
           {/* phase === 'measuring' → 노트바 (나중에) */}
         </div>
-
-        {/* TODO: 측정 로직 완성 시 제거 */}
-        {phase === 'measuring' && (
-          <button
-            onClick={handleComplete}
-            className="bg-primary-400 mx-auto mb-4 w-fit rounded-[6px] px-4 py-2 text-gray-950">
-            측정 완료 (임시)
-          </button>
-        )}
 
         {/* 건반 영역 */}
         <Piano
