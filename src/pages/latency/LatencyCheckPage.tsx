@@ -64,14 +64,13 @@ function LatencyCheckPage() {
     Tone.getDraw().cancel();
 
     const samples = samplesRef.current;
-    console.log('레이턴시 측정 samples:', samples, '개수:', samples.length); // 확인용
+
     if (samples.length >= REQUIRED_SAMPLES) {
       // offset(+) = 입력이 정박보다 늦음. 평균이 그 기기의 레이턴시(ms)
       const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
-      console.log('평균 레이턴시:', Math.round(avg), 'ms'); // 확인용
+
       if (inputId) setLatency(inputId, Math.round(avg));
     } else {
-      console.log('측정 실패 (3회 미만)'); // 확인용
       if (inputId) setLatency(inputId, 'failed');
     }
 
