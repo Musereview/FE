@@ -10,6 +10,7 @@ import TeacherProfileSetupPage from '@/pages/onboarding/teacher/TeacherProfileSe
 import MainPage from '@/pages/main/MainPage';
 import PracticePage from '@/pages/practice/PracticePage';
 import PracticeCreatePage from '@/pages/practice/PracticeCreatePage';
+import PracticeEditPage from '@/pages/practice/PracticeEditPage';
 import PracticeDetailPage from '@/pages/practice/PracticeDetailPage';
 import PracticePlayPage from '@/pages/practice/PracticePlayPage';
 import PracticeSettingsPage from '@/pages/practice/PracticeSettingsPage';
@@ -112,6 +113,10 @@ export const router = createBrowserRouter([
           {
             path: ':practiceId',
             element: <PracticeDetailPage />,
+          },
+          {
+            path: ':practiceId/edit',
+            element: <PracticeEditPage />,
           },
           {
             path: ':practiceId/play',

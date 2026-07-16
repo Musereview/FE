@@ -1,70 +1,63 @@
 // 학생 프로필 초기 설정 페이지
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import LogoTypo from '@/assets/landing/logo.svg?react';
 import BeginnerIcon from '@/assets/onboarding/beginner.svg?react';
 import IntermediateIcon from '@/assets/onboarding/intermediate.svg?react';
 import MajorIcon from '@/assets/onboarding/major.svg?react';
-import { useCheckNickname } from '@/hooks/useCheckNickname';
-import { validateNicknameFormat } from '@/utils/validateNickname';
-
-type Level = 'beginner' | 'intermediate' | 'major';
-
-type NicknameStatus = 'idle' | 'length' | 'format' | 'duplicate' | 'available';
-
-const NICKNAME_MESSAGE: Record<Exclude<NicknameStatus, 'idle'>, { text: string; tone: 'error' | 'success' }> = {
-  length: { text: '2~10자의 닉네임을 입력해 주세요.', tone: 'error' },
-  format: { text: '공백 및 특수문자는 사용할 수 없습니다.', tone: 'error' },
-  duplicate: { text: '사용 중인 닉네임입니다.', tone: 'error' },
-  available: { text: '사용 가능한 닉네임입니다.', tone: 'success' },
-};
+import { useNicknameCheck } from '@/hooks/useNicknameCheck';
+import { useRegisterProfile } from '@/hooks/useProfile';
+import type { SkillLevel } from '@/types/profile';
 
 const LEVELS: {
-  key: Level;
+  key: SkillLevel;
   Icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
   title: string;
   subtitle: string;
   desc: string;
 }[] = [
-  { key: 'beginner', Icon: BeginnerIcon, title: '입문', subtitle: '도레미부터', desc: '화성학을 처음 시작합니다.' },
+  { key: 'BEGINNER', Icon: BeginnerIcon, title: '입문', subtitle: '도레미부터', desc: '화성학을 처음 시작합니다.' },
   {
-    key: 'intermediate',
+    key: 'INTERMEDIATE',
     Icon: IntermediateIcon,
     title: '중급',
     subtitle: '코드 반주 가능',
     desc: '기본 코드 진행을 이해합니다.',
   },
-  { key: 'major', Icon: MajorIcon, title: '전공', subtitle: '텐션/모드 정복', desc: '고급 화성학 이론을 활용합니다.' },
+  { key: 'ADVANCED', Icon: MajorIcon, title: '전공', subtitle: '텐션/모드 정복', desc: '고급 화성학 이론을 활용합니다.' },
 ];
+
+const NEXT_PATH = '/onboarding/student/plan';
 
 function StudentProfileSetupPage() {
   const navigate = useNavigate();
-  const [nickname, setNickname] = useState('');
-  const [level, setLevel] = useState<Level | null>(null);
-  const [nicknameStatus, setNicknameStatus] = useState<NicknameStatus>('idle');
+  const [level, setLevel] = useState<SkillLevel | null>(null);
 
-  const { mutate: checkNickname, isPending } = useCheckNickname();
+  const { nickname, message, isPending, isConfirmed, handleNicknameChange, checkDuplicate, markDuplicate } =
+    useNicknameCheck();
+  const { mutate: registerProfile, isPending: isSubmitting } = useRegisterProfile();
 
-  // 닉네임 수정 시 이전 검증 결과 초기화
-  const handleNicknameChange = (value: string) => {
-    setNickname(value);
-    setNicknameStatus('idle');
+  const canSubmit = isConfirmed && level !== null;
+
+  const handleSubmit = () => {
+    if (level === null) return;
+    registerProfile(
+      { nickname, skillLevel: level },
+      {
+        onSuccess: () => navigate(NEXT_PATH),
+        onError: (error) => {
+          if (!isAxiosError<{ code?: string }>(error) || error.response?.status !== 409) return;
+          // 이미 등록된 사용자(PROFILE_409_02)는 다음 단계로, 닉네임 중복(PROFILE_409_01)은 재입력 유도
+          if (error.response.data?.code === 'PROFILE_409_02') {
+            navigate(NEXT_PATH);
+          } else {
+            markDuplicate();
+          }
+        },
+      },
+    );
   };
-
-  // 중복확인\
-  const handleCheckNickname = () => {
-    const formatError = validateNicknameFormat(nickname);
-    if (formatError) {
-      setNicknameStatus(formatError);
-      return;
-    }
-    checkNickname(nickname, {
-      onSuccess: (data) => setNicknameStatus(data.available ? 'available' : 'duplicate'),
-    });
-  };
-
-  const isNicknameConfirmed = nicknameStatus === 'available';
-  const canSubmit = isNicknameConfirmed && level !== null;
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-950 px-[202px]">
@@ -88,12 +81,10 @@ function StudentProfileSetupPage() {
               <label htmlFor="nickname" className="body-large-b text-gray-300">
                 닉네임*
               </label>
-              {nicknameStatus !== 'idle' && (
+              {message && (
                 <p
-                  className={`body-large-m text-right ${
-                    NICKNAME_MESSAGE[nicknameStatus].tone === 'error' ? 'text-error' : 'text-primary-400'
-                  }`}>
-                  {NICKNAME_MESSAGE[nicknameStatus].text}
+                  className={`body-large-m text-right ${message.tone === 'error' ? 'text-error' : 'text-primary-400'}`}>
+                  {message.text}
                 </p>
               )}
             </div>
@@ -108,7 +99,7 @@ function StudentProfileSetupPage() {
               />
               <button
                 type="button"
-                onClick={handleCheckNickname}
+                onClick={checkDuplicate}
                 disabled={!nickname || isPending}
                 className={`button-medium shrink-0 rounded px-4 py-2 ${
                   nickname ? 'bg-primary-400 text-gray-950' : 'border-[0.5px] border-gray-300 text-gray-300'
@@ -159,8 +150,9 @@ function StudentProfileSetupPage() {
           {canSubmit && (
             <button
               type="button"
-              onClick={() => navigate('/onboarding/student/plan')}
-              className="button-large1 bg-primary-400 flex h-[76px] w-[388px] items-center justify-center rounded-md text-gray-950">
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="button-large1 bg-primary-400 flex h-[76px] w-[388px] items-center justify-center rounded-md text-gray-950 disabled:opacity-50">
               다음
             </button>
           )}
