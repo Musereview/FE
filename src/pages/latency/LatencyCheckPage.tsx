@@ -78,8 +78,10 @@ function LatencyCheckPage() {
   // 애니메이션 종료된 노트바 제거
   const handleBarDone = (id: number) => setNoteBars((prev) => prev.filter((b) => b.id !== id));
 
-  // Tone time → performance.now 기준 ms
-  const toPerfMs = (toneTime: number) => performance.now() + (toneTime - Tone.now()) * 1000;
+  // Tone.now()는 lookAhead(기본 0.1s)만큼 미래를 반환해 순수 클럭 환산에 쓰면 정박 시각이
+  // lookAhead만큼 이르게 계산된다. 여기선 예약이 아니라 환산이 목적이므로 lookAhead가
+  // 없는 실제 AudioContext 시각인 Tone.immediate()를 기준으로 삼는다.
+  const toPerfMs = (toneTime: number) => performance.now() + (toneTime - Tone.immediate()) * 1000;
 
   // 측정 종료 및 판정
   const finishMeasuring = () => {
