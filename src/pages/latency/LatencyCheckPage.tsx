@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Piano from '@/components/piano/Piano';
 import NoteBars, { type NoteBar } from '@/components/piano/NoteBars';
+import { noteCenterFraction } from '@/constants/piano';
 import Metronome from '@/components/metronome/MetronomeDots';
 import { useActiveNotes } from '@/hooks/useActiveNotes';
 import { useMetronome } from '@/hooks/useMetronome';
@@ -53,8 +54,11 @@ function LatencyCheckPage() {
     if (phaseRef.current !== 'measuring') return;
 
     // 친 음 위치에서 노트바 생성 (박자 유효 여부와 무관하게 시각 피드백)
-    const id = barIdRef.current++;
-    setNoteBars((prev) => [...prev, { id, midi: note }]);
+    // 선택된 keyCount 범위 밖 노트는 NoteBars가 렌더링하지 않아 onAnimationEnd가 발동하지 않으므로 애초에 쌓지 않는다
+    if (noteCenterFraction(note, keyCount) >= 0) {
+      const id = barIdRef.current++;
+      setNoteBars((prev) => [...prev, { id, midi: note }]);
+    }
 
     const beats = beatTimesRef.current;
     if (beats.length === 0) return;
