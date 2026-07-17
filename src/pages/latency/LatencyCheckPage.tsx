@@ -53,15 +53,17 @@ function LatencyCheckPage() {
 
   // 측정용 MIDI 입력 (건반 하이라이트와 같은 useMidi 인스턴스를 공유 — measuring일 때만 기록)
   const { activeNotes } = useActiveNotes((note, _velocity, time) => {
-    if (phaseRef.current !== 'measuring') return;
-
-    // 친 음 위치에서 노트바 생성 (박자 유효 여부와 무관하게 시각 피드백)
+    // 친 음 위치에서 노트바 생성 (박자 유효 여부와 무관하게 시각 피드백) — measuring 단계에서만
     // 선택된 keyCount 범위 밖 노트는 NoteBars가 렌더링하지 않아 onAnimationEnd가 발동하지 않으므로 애초에 쌓지 않는다
-    if (noteCenterFraction(note, keyCount) >= 0) {
+    if (phaseRef.current === 'measuring' && noteCenterFraction(note, keyCount) >= 0) {
       const id = barIdRef.current++;
       setNoteBars((prev) => [...prev, { id, midi: note }]);
     }
 
+    // 샘플 판정은 phase가 아니라 측정용 정박(beatTimesRef) 유무로만 판단한다.
+    // phase는 첫 측정 박의 실제 시각에야 'measuring'으로 바뀌지만, beatTimesRef는
+    // Transport 룩어헤드 때문에 그보다 먼저 채워지므로 phase로 걸러내면 첫 박의
+    // 이른(-250ms~0ms) 입력이 판정 전에 버려진다.
     const beats = beatTimesRef.current;
     if (beats.length === 0) return;
 
