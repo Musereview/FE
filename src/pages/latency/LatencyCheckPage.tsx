@@ -34,9 +34,11 @@ function LatencyCheckPage() {
   const [noteBars, setNoteBars] = useState<NoteBar[]>([]);
   const barIdRef = useRef(0);
 
-  // 콜백 안에서 최신 phase 참조
+  // 콜백 안에서 최신 phase 참조 (커밋된 렌더에서만 갱신되도록 effect에서 동기화)
   const phaseRef = useRef<Phase>('intro');
-  phaseRef.current = phase;
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   // 측정 데이터
   const beatTimesRef = useRef<number[]>([]); // 측정 구간 정박 시각 (performance.now 기준)
