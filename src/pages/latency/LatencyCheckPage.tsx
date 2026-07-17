@@ -162,6 +162,16 @@ function LatencyCheckPage() {
     startFromIntro(); // intro부터 다시
   };
 
+  // 측정 중 입력 장치가 바뀌면 이전 장치와 새 장치의 샘플이 섞여 저장될 수 있으므로,
+  // 시작 시점 장치 id를 기준으로 변경을 감지해 처음부터 다시 측정한다
+  const startInputIdRef = useRef(inputId);
+  useEffect(() => {
+    if (startInputIdRef.current === inputId) return;
+    startInputIdRef.current = inputId;
+    if (phase !== 'intro') handleRestart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputId]);
+
   // 마운트 시 시작
   useEffect(() => {
     startFromIntro();
