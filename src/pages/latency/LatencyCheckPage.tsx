@@ -16,7 +16,7 @@ type Phase = 'intro' | 'countdown' | 'measuring';
 // 측정 설정
 const COUNTDOWN_BEATS = 4; // 카운트다운 4박 (4,3,2,1)
 const MEASURE_BEATS = 8; // 측정 8박
-const TOTAL_BEATS = COUNTDOWN_BEATS + MEASURE_BEATS; // 총 8박
+const TOTAL_BEATS = COUNTDOWN_BEATS + MEASURE_BEATS; // 총 12박
 const VALID_WINDOW_MS = 250; // 정박 ±250ms 안이어야 유효 입력
 const REQUIRED_SAMPLES = 3; // 유효 입력 3회 이상 → 성공
 
@@ -45,6 +45,8 @@ function LatencyCheckPage() {
   const introTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 측정 완료 후 자동 복귀 타이머 (재시작/언마운트 시 취소 필요)
   const returnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 마지막 박 판정 유예 타이머 (마지막 박도 ±VALID_WINDOW_MS 늦은 입력까지 인정, 재시작/언마운트 시 취소 필요)
+  const finishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 측정용 MIDI 입력 (건반 하이라이트와 같은 useMidi 인스턴스를 공유 — measuring일 때만 기록)
   const { activeNotes } = useActiveNotes((note, _velocity, time) => {
@@ -118,7 +120,9 @@ function LatencyCheckPage() {
           setCountdown(null);
         }
         if (isLastBeat) {
-          finishMeasuring();
+          // 마지막 박도 다른 박과 동일하게 ±VALID_WINDOW_MS까지 늦은 입력을 인정하기 위해
+          // 박 시각 직후가 아니라 유효 윈도우가 끝난 뒤 판정
+          finishTimerRef.current = setTimeout(finishMeasuring, VALID_WINDOW_MS);
         }
       }, time);
 
@@ -144,6 +148,7 @@ function LatencyCheckPage() {
   const handleRestart = () => {
     if (introTimerRef.current) clearTimeout(introTimerRef.current);
     if (returnTimerRef.current) clearTimeout(returnTimerRef.current);
+    if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
     stop();
     Tone.getDraw().cancel();
     startFromIntro(); // intro부터 다시
@@ -156,6 +161,7 @@ function LatencyCheckPage() {
     return () => {
       if (introTimerRef.current) clearTimeout(introTimerRef.current);
       if (returnTimerRef.current) clearTimeout(returnTimerRef.current);
+      if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
       stop();
       Tone.getDraw().cancel();
     };
