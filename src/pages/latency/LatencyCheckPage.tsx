@@ -43,6 +43,7 @@ function LatencyCheckPage() {
   // 측정 데이터
   const beatTimesRef = useRef<number[]>([]); // 측정 구간 정박 시각 (performance.now 기준)
   const samplesRef = useRef<number[]>([]); // 유효 offset 샘플
+  const usedBeatsRef = useRef<Set<number>>(new Set()); // 이미 샘플로 채택된 정박 (코드 입력 시 note-on 중복 집계 방지)
   const finishedRef = useRef(false);
   // intro부터 시작 (마운트 + 재시작 공용)
   const introTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -69,8 +70,11 @@ function LatencyCheckPage() {
 
     const inputMs = time; // e.timeStamp — performance.now 기준
     const nearest = beats.reduce((a, b) => (Math.abs(b - inputMs) < Math.abs(a - inputMs) ? b : a));
+    // 코드(화음) 입력 시 note-on이 여러 개 들어와도 같은 정박은 1개 샘플로만 집계한다
+    if (usedBeatsRef.current.has(nearest)) return;
     const offset = inputMs - nearest; // +면 늦게 침
     if (Math.abs(offset) <= VALID_WINDOW_MS) {
+      usedBeatsRef.current.add(nearest);
       samplesRef.current.push(offset);
     }
   });
@@ -110,6 +114,7 @@ function LatencyCheckPage() {
     let totalBeat = 0;
     beatTimesRef.current = [];
     samplesRef.current = [];
+    usedBeatsRef.current = new Set();
     finishedRef.current = false;
 
     start(bpm, 4, (time, bib) => {
