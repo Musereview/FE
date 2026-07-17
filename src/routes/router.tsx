@@ -18,6 +18,7 @@ import AnalysisSelectPage from '@/pages/practice/analysis/AnalysisSelectPage';
 import AnalysisResultPage from '@/pages/practice/analysis/AnalysisResultPage';
 import LearnPage from '@/pages/learn/LearnPage';
 import TopicListPage from '@/pages/learn/TopicListPage';
+import TopicDetailPage from '@/pages/learn/TopicDetailPage';
 import CurriculumPage from '@/pages/learn/CurriculumPage';
 import StepLearningPage from '@/pages/learn/StepLearningPage';
 import StepLearningSettingsPage from '@/pages/learn/StepLearningSettingsPage';
@@ -150,6 +151,10 @@ export const router = createBrowserRouter([
               {
                 index: true,
                 element: <TopicListPage />,
+              },
+              {
+                path: ':topicId',
+                element: <TopicDetailPage />,
               },
             ],
           },
