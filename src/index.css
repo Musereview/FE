@@ -2,7 +2,7 @@
 
 /* ===== Pretendard ===== */
 @font-face {
-  font-family: 'Pretendard';
+  font-family: Pretendard;
   src: url('/fonts/Pretendard-Thin.woff2') format('woff2');
   font-weight: 100;
   font-style: normal;
@@ -10,7 +10,7 @@
 }
 
 @font-face {
-  font-family: 'Pretendard';
+  font-family: Pretendard;
   src: url('/fonts/Pretendard-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
@@ -18,7 +18,7 @@
 }
 
 @font-face {
-  font-family: 'Pretendard';
+  font-family: Pretendard;
   src: url('/fonts/Pretendard-Medium.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
@@ -26,7 +26,7 @@
 }
 
 @font-face {
-  font-family: 'Pretendard';
+  font-family: Pretendard;
   src: url('/fonts/Pretendard-SemiBold.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
@@ -34,7 +34,7 @@
 }
 
 @font-face {
-  font-family: 'Pretendard';
+  font-family: Pretendard;
   src: url('/fonts/Pretendard-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
@@ -48,7 +48,7 @@
   --font-sans: 'Pretendard', system-ui, sans-serif;
 
   /* Gray Scale */
-  --color-gray-100: #ffffff;
+  --color-gray-100: #fff;
   --color-gray-200: #f0f1f1;
   --color-gray-300: #e7e7e8; /* Text */
   --color-gray-400: #cecfd1; /* Icon */
@@ -93,11 +93,11 @@
 
 @layer base {
   html {
-    font-family: 'Pretendard', system-ui, sans-serif;
+    color: var(--color-gray-300);
     font-size: 16px;
     font-weight: 400;
     line-height: normal;
-    color: var(--color-gray-300);
+    font-family: Pretendard, system-ui, sans-serif;
     background-color: var(--color-gray-950);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -115,6 +115,7 @@
     line-height: 300px;
     letter-spacing: -1px;
   }
+
   .display-small {
     font-size: 150px;
     font-weight: 500;
@@ -129,24 +130,28 @@
     line-height: 74px;
     letter-spacing: -1px;
   }
+
   .heading-medium-b {
     font-size: 32px;
     font-weight: 600;
     line-height: 44px;
     letter-spacing: -1px;
   }
+
   .heading-medium-m {
     font-size: 32px;
     font-weight: 400;
     line-height: 42px;
     letter-spacing: -1px;
   }
+
   .heading-small-b {
     font-size: 24px;
     font-weight: 600;
     line-height: 36px;
     letter-spacing: -1px;
   }
+
   .heading-small-m {
     font-size: 24px;
     font-weight: 500;
@@ -161,30 +166,35 @@
     line-height: 32px;
     letter-spacing: -1px;
   }
+
   .body-large-m {
     font-size: 22px;
     font-weight: 500;
     line-height: 32px;
     letter-spacing: -1px;
   }
+
   .body-medium {
     font-size: 20px;
     font-weight: 400;
     line-height: 30px;
     letter-spacing: -1px;
   }
+
   .body-regular1 {
     font-size: 18px;
     font-weight: 500;
     line-height: 30px;
     letter-spacing: 0;
   }
+
   .body-regular2 {
     font-size: 18px;
     font-weight: 400;
     line-height: 30px;
     letter-spacing: 0;
   }
+
   .body-small {
     font-size: 16px;
     font-weight: 500;
@@ -199,30 +209,35 @@
     line-height: 28px;
     letter-spacing: 0;
   }
+
   .button-large2 {
     font-size: 20px;
     font-weight: 500;
     line-height: 30px;
     letter-spacing: 0;
   }
+
   .button-medium {
     font-size: 18px;
     font-weight: 500;
     line-height: 30px;
     letter-spacing: 0;
   }
+
   .button-small {
     font-size: 16px;
     font-weight: 500;
     line-height: 28px;
     letter-spacing: 0;
   }
+
   .button-label1 {
     font-size: 14px;
     font-weight: 500;
     line-height: 22px;
     letter-spacing: -1px;
   }
+
   .button-label2 {
     font-size: 14px;
     font-weight: 400;
@@ -237,10 +252,34 @@
     line-height: 22px;
     letter-spacing: 0;
   }
+
   .caption-regular {
     font-size: 12px;
     font-weight: 400;
     line-height: 18px;
     letter-spacing: 0;
   }
+}
+
+/* ===== 노트바: 친 음에서 솟아오르는 애니메이션 ===== */
+
+/* 건반에서 솟아올라 헤더 라인(본문 overflow-hidden)에서 잘려 사라진다 */
+@keyframes note-rise {
+  0% {
+    transform: translateX(-50%) translateY(0);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(-50%) translateY(-100vh);
+    opacity: 1;
+  }
+}
+
+.animate-note-rise {
+  animation: note-rise 1.6s linear forwards;
 }

@@ -1,6 +1,6 @@
 //사이드바
 // src/layout/Navbar.tsx
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import PracticeIcon from '@/assets/layout/practice.svg?react';
 import LearnIcon from '@/assets/layout/learn.svg?react';
 import HistoryIcon from '@/assets/layout/history.svg?react';
@@ -15,6 +15,7 @@ interface NavItem {
   Icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
   label: string;
   to: string;
+  matchFrom?: string;
 }
 
 interface NavbarProps {
@@ -23,13 +24,16 @@ interface NavbarProps {
 }
 
 const STUDENT_MENU: NavItem[] = [
-  { Icon: PracticeIcon, label: '연습', to: '/practice' },
-  { Icon: LearnIcon, label: '학습', to: '/learn' },
+  { Icon: PracticeIcon, label: '연습', to: '/practice', matchFrom: 'practice' },
+  { Icon: LearnIcon, label: '학습', to: '/learn', matchFrom: 'learn' },
   { Icon: HistoryIcon, label: '히스토리', to: '/history' },
 ];
 
 function Navbar({ onOpenNotification, notiList }: NavbarProps) {
   const hasUnread = notiList.some((item) => !item.isRead);
+  const location = useLocation();
+  const latencyCheckFrom =
+    location.pathname === '/latency-check' ? new URLSearchParams(location.search).get('from') : null;
 
   return (
     <div className="flex h-screen w-[90px] shrink-0 flex-col items-center justify-between border-r border-gray-700 bg-gray-950 px-[18px] py-6">
@@ -49,13 +53,13 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
 
         {/* 메뉴 */}
         <nav className="flex flex-col gap-[38px]">
-          {STUDENT_MENU.map(({ Icon, label, to }) => (
+          {STUDENT_MENU.map(({ Icon, label, to, matchFrom }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
                 `button-label2 flex flex-col items-center gap-1 transition-colors ${
-                  isActive ? 'text-primary-400' : 'text-gray-300'
+                  isActive || (matchFrom && latencyCheckFrom === matchFrom) ? 'text-primary-400' : 'text-gray-300'
                 }`
               }>
               <Icon className="size-7" />
