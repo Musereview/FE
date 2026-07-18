@@ -21,6 +21,7 @@ import TopicListPage from '@/pages/learn/TopicListPage';
 import TopicDetailPage from '@/pages/learn/TopicDetailPage';
 import CurriculumPage from '@/pages/learn/CurriculumPage';
 import StepLearningPage from '@/pages/learn/StepLearningPage';
+import StepTheoryPage from '@/pages/learn/StepTheoryPage';
 import StepLearningSettingsPage from '@/pages/learn/StepLearningSettingsPage';
 import StepLearningPlayPage from '@/pages/learn/StepLearningPlayPage';
 import ScorePage from '@/pages/learn/ScorePage';
@@ -168,6 +169,10 @@ export const router = createBrowserRouter([
               {
                 path: ':curriculumId',
                 element: <StepLearningPage />,
+              },
+              {
+                path: ':curriculumId/theory',
+                element: <StepTheoryPage />,
               },
               {
                 path: ':curriculumId/settings',

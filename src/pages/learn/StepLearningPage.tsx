@@ -65,7 +65,7 @@ function StepLearningPage() {
               <ChapterCard
                 key={step.id}
                 chapter={step}
-                onActionClick={() => navigate(`/learn/curriculum/${curriculumId}/settings`)}
+                onActionClick={() => navigate(`/learn/curriculum/${curriculumId}/theory`)}
               />
             ))}
           </div>
