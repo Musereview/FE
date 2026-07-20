@@ -4,12 +4,15 @@ import { useState } from 'react';
 import { useMidi } from '@/hooks/useMidi';
 import { useSettingStore } from '@/stores/settingsStore';
 
-export function useActiveNotes() {
+export function useActiveNotes(onNoteOn?: (note: number, velocity: number, time: number) => void) {
   const [activeNotes, setActiveNotes] = useState<Set<number>>(new Set());
   const { inputId } = useSettingStore();
 
   const { inputs, error } = useMidi(
-    (note) => setActiveNotes((prev) => new Set(prev).add(note)),
+    (note, velocity, time) => {
+      setActiveNotes((prev) => new Set(prev).add(note));
+      onNoteOn?.(note, velocity, time);
+    },
     (note) =>
       setActiveNotes((prev) => {
         const next = new Set(prev);
