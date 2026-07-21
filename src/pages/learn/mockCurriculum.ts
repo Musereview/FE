@@ -24,6 +24,8 @@ const CURRICULUM_INFO: Omit<Curriculum, 'steps'> = {
   title: 'Tension Notes',
   difficulty: 'advanced',
   description: '코드에 9th, 11th, 13th를 더해 더 풍부한 화성을 만드는 방법을 배웁니다.',
+  bpm: 120,
+  timeSignature: '4/4',
   stepDescription: '-11th 텐션 노트 활용하기',
   example: {
     title: '11th Tension Notes Practice - 11th 텐션 활용 예제',
