@@ -186,36 +186,41 @@ npm run format         # 포맷팅
 ┃ ┣ 📂 ISSUE_TEMPLATE
 ┃ ┗ 📜 PULL_REQUEST_TEMPLATE.md
 ┣ 📂 public
-┃ ┗ 📂 fonts                # Pretendard 폰트
+┃ ┗ 📂 fonts                    # Pretendard 폰트
 ┣ 📂 src
-┃ ┣ 📂 apis                 # axios 인스턴스, API 함수
-┃ ┃ ┗ 📜 axiosInstance.ts
-┃ ┣ 📂 assets               # 이미지 등 정적 에셋
-┃ ┣ 📂 components
-┃ ┃ ┗ 📂 common             # 공용 컴포넌트
-┃ ┣ 📂 constants            # 상수 정의
-┃ ┣ 📂 hooks                # 전역 커스텀 훅
-┃ ┣ 📂 layout               # 공통 레이아웃 컴포넌트 (추가 예정)
-┃ ┣ 📂 pages                # 도메인별 라우팅 페이지
-┃ ┃ ┣ 📂 admin              # 관리자 (대시보드 / 수강생 / 강사 / 트랙)
-┃ ┃ ┣ 📂 auth               # 로그인
-┃ ┃ ┣ 📂 common             # 로딩 등 공통 페이지
-┃ ┃ ┣ 📂 history            # 기록
-┃ ┃ ┣ 📂 landing            # 랜딩
-┃ ┃ ┣ 📂 learn              # 학습 (커리큘럼 / 단계학습 / 점수)
-┃ ┃ ┣ 📂 main               # 메인
-┃ ┃ ┣ 📂 onboarding         # 온보딩 (역할 / 플랜 / 프로필)
-┃ ┃ ┣ 📂 practice           # 연습 (생성 / 플레이 / 분석)
-┃ ┃ ┗ 📂 profile            # 프로필
-┃ ┣ 📂 routes               # router.tsx (라우팅 정의)
-┃ ┣ 📂 stores               # Zustand 전역 상태
-┃ ┣ 📂 types                # TypeScript 타입 정의
-┃ ┣ 📂 utils                # 전역 유틸 함수
+┃ ┣ 📂 apis                     # axios 인스턴스, API 함수
+┃ ┃ ┣ 📜 axiosInstance.ts
+┃ ┃ ┗ 📜 profile.ts
+┃ ┣ 📂 assets                   # 정적 에셋 (도메인별 폴더: auth / landing / layout / learn / main / metronome / onboarding / practice / profile ...)
+┃ ┣ 📂 components               # 재사용 컴포넌트
+┃ ┃ ┣ 📂 common                 # 공용 컴포넌트 (WithdrawModal)
+┃ ┃ ┣ 📂 metronome              # 메트로놈 (MetronomeDots)
+┃ ┃ ┣ 📂 piano                  # 피아노 / 노트바 (Piano, NoteBars)
+┃ ┃ ┗ 📂 settings               # 설정 모달 (SettingsModal)
+┃ ┣ 📂 constants                # 상수 (difficulty, piano)
+┃ ┣ 📂 hooks                    # 전역 커스텀 훅 (useMidi / useMetronome / useActiveNotes / useProfile / useNicknameCheck ...)
+┃ ┣ 📂 layout                   # 공통 레이아웃 (AppLayout, Navbar, NotificationDrawer)
+┃ ┣ 📂 pages                    # 도메인별 라우팅 페이지
+┃ ┃ ┣ 📂 admin                  # 관리자 (대시보드 / 마이페이지 / 수강생 / 강사 / 트랙)
+┃ ┃ ┣ 📂 auth                   # 로그인 (LoginPage)
+┃ ┃ ┣ 📂 common                 # 공통 페이지 (LoadingPage)
+┃ ┃ ┣ 📂 history                # 기록 (HistoryPage, HistoryDetailPage)
+┃ ┃ ┣ 📂 landing                # 랜딩 (LandingPage, IntroPage, LandingGate, GLSL 셰이더)
+┃ ┃ ┣ 📂 latency                # 레이턴시 측정 (LatencyCheckPage)
+┃ ┃ ┣ 📂 learn                  # 학습 (커리큘럼 / 단계학습 / 주제 / 점수 + components)
+┃ ┃ ┣ 📂 main                   # 메인 대시보드 (MainPage + components)
+┃ ┃ ┣ 📂 onboarding             # 온보딩 (약관 / 역할 / 플랜 / 프로필)
+┃ ┃ ┣ 📂 practice               # 연습 (생성 / 상세 / 편집 / 플레이 / 분석 + components)
+┃ ┃ ┗ 📂 profile                # 프로필 (ProfilePage, ProfileEditPage)
+┃ ┣ 📂 routes                   # router.tsx (라우팅 정의)
+┃ ┣ 📂 stores                   # Zustand 전역 상태 (settingsStore)
+┃ ┣ 📂 types                    # TypeScript 타입 (api / notification / profile / topic / track)
+┃ ┣ 📂 utils                    # 전역 유틸 (metronome, validateNickname)
 ┃ ┣ 📜 App.tsx
 ┃ ┣ 📜 main.tsx
-┃ ┣ 📜 index.css            # 디자인 토큰 · 타이포그래피
+┃ ┣ 📜 index.css                # 디자인 토큰 · 타이포그래피 · 애니메이션
 ┃ ┗ 📜 App.css
-┣ 📜 .coderabbit.yaml       # CodeRabbit 리뷰 설정
+┣ 📜 .coderabbit.yaml           # CodeRabbit 리뷰 설정
 ┣ 📜 .gitignore
 ┣ 📜 .prettierrc
 ┣ 📜 .stylelintrc
