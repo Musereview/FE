@@ -34,7 +34,7 @@ export default function BackingTrack({ measures, currentBeat, beatsPerBar, class
                 <div
                   key={cellIndex}
                   className={`button-label1 flex h-[30px] w-[80px] items-center justify-center rounded-[4px] ${
-                    isCurrent ? 'bg-secondary-500 text-gray-950' : 'bg-gray-600 text-gray-950'
+                    isCurrent ? 'bg-secondary-400 text-gray-900' : 'bg-gray-600 text-gray-950'
                   }`}>
                   <span className={chord ? '' : 'invisible'}>{chord ?? '-'}</span>
                 </div>

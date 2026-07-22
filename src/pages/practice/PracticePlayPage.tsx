@@ -31,6 +31,7 @@ function PracticePlayPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [beatInBar, setBeatInBar] = useState(-1); // 진행점 (마디 내 0-based)
   const [currentBeat, setCurrentBeat] = useState(-1); // 백킹트랙 전체 진행 박
+  const [showStart, setShowStart] = useState(true); // 진입 시 START 안내 (1초)
   const totalBeatRef = useRef(0);
 
   const stopPlayback = () => {
@@ -68,6 +69,16 @@ function PracticePlayPage() {
       Tone.getDraw().cancel();
     };
   }, [stop]);
+
+  // 진입 시 START 1초 표시 후 자동 재생
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowStart(false);
+      startPlayback();
+    }, 1000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex h-full flex-col bg-gray-950">
@@ -120,7 +131,7 @@ function PracticePlayPage() {
       </header>
 
       {/* 본문 */}
-      <div className="relative flex flex-1 flex-col px-[135px] pt-8">
+      <div className="relative flex flex-1 flex-col px-[160px] pt-8">
         {/* 백킹트랙 + 진행점 */}
         <div className="flex flex-col gap-4">
           <BackingTrack measures={measures} currentBeat={currentBeat} beatsPerBar={beatsPerBar} />
@@ -129,8 +140,10 @@ function PracticePlayPage() {
           </div>
         </div>
 
-        {/* 노트바 / 코드명 영역 (다음 단계) */}
-        <div className="flex-1" />
+        {/* 중앙 영역: 진입 시 START, 이후 노트바/코드명 (다음 단계) */}
+        <div className="flex flex-1 items-center justify-center">
+          {showStart && <span className="display-large absolute top-[158px] text-center text-gray-700">START</span>}
+        </div>
 
         <Piano keyCount={keyCount} activeNotes={activeNotes} />
       </div>
