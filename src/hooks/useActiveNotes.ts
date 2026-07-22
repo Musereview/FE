@@ -4,7 +4,10 @@ import { useState } from 'react';
 import { useMidi } from '@/hooks/useMidi';
 import { useSettingStore } from '@/stores/settingsStore';
 
-export function useActiveNotes(onNoteOn?: (note: number, velocity: number, time: number) => void) {
+export function useActiveNotes(
+  onNoteOn?: (note: number, velocity: number, time: number) => void,
+  onNoteOff?: (note: number) => void, // 뗀 순간 (지속시간 측정 등)
+) {
   const [activeNotes, setActiveNotes] = useState<Set<number>>(new Set());
   const { inputId } = useSettingStore();
 
@@ -13,12 +16,14 @@ export function useActiveNotes(onNoteOn?: (note: number, velocity: number, time:
       setActiveNotes((prev) => new Set(prev).add(note));
       onNoteOn?.(note, velocity, time);
     },
-    (note) =>
+    (note) => {
       setActiveNotes((prev) => {
         const next = new Set(prev);
         next.delete(note);
         return next;
-      }),
+      });
+      onNoteOff?.(note);
+    },
     inputId, // ← 선택된 기기만 입력받도록 전달
   );
 

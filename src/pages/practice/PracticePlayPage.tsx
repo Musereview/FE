@@ -1,8 +1,10 @@
 // 연습 플레이 페이지 - 61건반/88건반
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as Tone from 'tone';
 import Piano from '@/components/piano/Piano';
+import PracticeNoteBars, { type LiveNoteBar } from '@/components/piano/PracticeNoteBars';
+import { noteCenterFraction } from '@/constants/piano';
 import MetronomeDots from '@/components/metronome/MetronomeDots';
 import BackingTrack from '@/pages/practice/components/BackingTrack';
 import { useActiveNotes } from '@/hooks/useActiveNotes';
@@ -16,23 +18,45 @@ import RefreshIcon from '@/assets/restart.svg?react';
 import CheckIcon from '@/assets/check.svg?react';
 import ChangeIcon from '@/assets/change.svg?react';
 
+const PX_PER_BEAT = 120; // 노트바 길이 환산: 1박 = 120px
+
 function PracticePlayPage() {
   const navigate = useNavigate();
   const { practiceId } = useParams();
   const { keyCount } = useSettingStore();
-  const { activeNotes } = useActiveNotes();
   const { start, stop } = useMetronome();
 
   const track = [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((t) => t.id === practiceId) ?? RECOMMENDED_TRACKS[0];
   const beatsPerBar = Number(track.timeSignature.split('/')[0]); // '4/4' → 4
   const measures = track.chordProgression ?? buildFallbackProgression(track.chords, beatsPerBar);
   const totalCells = measures.length * beatsPerBar;
+  const pxPerMs = (PX_PER_BEAT * track.bpm) / 60000; // 노트바 길이: 1박 = PX_PER_BEAT px
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [beatInBar, setBeatInBar] = useState(-1); // 진행점 (마디 내 0-based)
   const [currentBeat, setCurrentBeat] = useState(-1); // 백킹트랙 전체 진행 박
   const [showStart, setShowStart] = useState(true); // 진입 시 START 안내 (1초)
+  const [noteBars, setNoteBars] = useState<LiveNoteBar[]>([]); // 연습 노트바 (가변 길이)
   const totalBeatRef = useRef(0);
+  const barIdRef = useRef(0);
+  const heldRef = useRef<Map<number, number>>(new Map()); // midi → 진행 중 노트바 id
+
+  // 친 음: 노트바 생성(성장 시작) → 뗄 때 길이 확정 후 위로 사라짐
+  const handleNoteOn = (note: number) => {
+    if (noteCenterFraction(note, keyCount) < 0) return; // 범위 밖 음은 무시
+    const id = barIdRef.current++;
+    heldRef.current.set(note, id);
+    setNoteBars((prev) => [...prev, { id, midi: note, startTime: performance.now(), endTime: null }]);
+  };
+  const handleNoteOff = (note: number) => {
+    const id = heldRef.current.get(note);
+    if (id === undefined) return;
+    heldRef.current.delete(note);
+    setNoteBars((prev) => prev.map((b) => (b.id === id ? { ...b, endTime: performance.now() } : b)));
+  };
+  const handleBarDone = useCallback((id: number) => setNoteBars((prev) => prev.filter((b) => b.id !== id)), []);
+
+  const { activeNotes } = useActiveNotes(handleNoteOn, handleNoteOff);
 
   const stopPlayback = () => {
     stop();
@@ -135,7 +159,7 @@ function PracticePlayPage() {
         {/* 백킹트랙 + 진행점 */}
         <div className="flex flex-col gap-4">
           <BackingTrack measures={measures} currentBeat={currentBeat} beatsPerBar={beatsPerBar} />
-          <div className="flex justify-end">
+          <div className="absolute top-[113px] right-[160px] flex">
             <MetronomeDots total={beatsPerBar} current={beatInBar} />
           </div>
         </div>
@@ -145,7 +169,11 @@ function PracticePlayPage() {
           {showStart && <span className="display-large absolute top-[158px] text-center text-gray-700">START</span>}
         </div>
 
-        <Piano keyCount={keyCount} activeNotes={activeNotes} />
+        {/* 건반 + 노트바 (누른 시간만큼 길이가 그려짐) */}
+        <div className="relative mx-auto w-full max-w-[1560px]">
+          <PracticeNoteBars bars={noteBars} keyCount={keyCount} pxPerMs={pxPerMs} onBarDone={handleBarDone} />
+          <Piano keyCount={keyCount} activeNotes={activeNotes} />
+        </div>
       </div>
     </div>
   );
