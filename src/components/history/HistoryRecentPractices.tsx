@@ -21,11 +21,11 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
 
   return (
     <div className="flex w-full flex-col gap-[12px]">
-      {data.map((item) => {
+      {data?.map((item) => {
         return (
           <div
             key={item.practiceId}
-            onClick={() => navigate(`/practice/${item.practiceId}`)}
+            onClick={() => navigate(`/history/${item.practiceId}`)}
             className="cursor-pointer text-white transition-colors select-none hover:border-[#3A3F4A]"
             style={{
               display: 'flex',
@@ -124,9 +124,9 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
               </p>
             </div>
 
-            {/* 우측 구역 (소요시간과 꺾쇠 위치를 고정하고, 날짜 영역만 폭을 주어 글자 수 차이 흡수) */}
+            {/* 우측 구역 */}
             <div className="flex shrink-0 items-center">
-              {/* 소요 시간 (위치 고정) */}
+              {/* 소요 시간 */}
               <div
                 className="flex items-center gap-[6px]"
                 style={{
@@ -150,7 +150,7 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
                 <span>{item.timeLabel}</span>
               </div>
 
-              {/* 날짜 (고정 폭 영역 안에서 우측 정렬되어 글자 길이에 따른 간격 차이 흡수) */}
+              {/* 날짜 */}
               <div
                 className="text-right"
                 style={{
@@ -165,7 +165,7 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
                 {item.date}
               </div>
 
-              {/* > 아이콘 (위치 고정) */}
+              {/* > 아이콘 */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"

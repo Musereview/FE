@@ -48,7 +48,7 @@ export default function HistoryPage() {
 
   return (
     <div className="flex min-h-screen w-full justify-center bg-[#090A0F] pt-[76px] pb-[100px] text-white">
-      {/* 컨텐츠 묶음 (너비 1196px 고정) */}
+      {/* 컨텐츠 묶음  */}
       <div className="flex w-[1196px] shrink-0 flex-col">
         {/* 1. 상단 타이틀 및 설명 섹션 */}
         <div className="mb-[80px] flex flex-col items-start gap-[8px] self-stretch">
@@ -152,7 +152,7 @@ export default function HistoryPage() {
           <WeeklyTrendChart />
         </div>
 
-        {/* 5. 최근 연주 리스트 (타이틀 포함) */}
+        {/* 5. 최근 연주 리스트  */}
         <div className="flex w-[1196px] flex-col">
           <h2
             className="mb-[24px] text-[#E7E7E8]"

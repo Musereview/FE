@@ -1,7 +1,6 @@
 // src/components/history/WeeklyTrendChart.tsx
 
 export default function WeeklyTrendChart() {
-  // 스크린샷의 완벽한 밸런스에 맞춘 포인트 좌표 설정
   const points = [
     { label: '3주 전', score: 60, x: 40, y: 110 },
     { label: '2주 전', score: 78, x: 330, y: 65 },
@@ -30,7 +29,7 @@ export default function WeeklyTrendChart() {
         전 주 대비 <span style={{ color: '#69FFC0' }}>+9점</span> 향상
       </div>
 
-      {/* 차트 메인 박스 (상하좌우 패딩 40px) */}
+      {/* 차트 메인 박스  */}
       <div
         className="flex w-[1196px] flex-col rounded-[6px] border border-[#2E3142] bg-[#161B22]"
         style={{
@@ -61,7 +60,7 @@ export default function WeeklyTrendChart() {
 
           {/* 2. 그래프 및 그리드 영역 */}
           <div className="relative mr-[20px] ml-[64px] h-full flex-1">
-            {/* 52px 간격의 점선 4개 */}
+            {/* 점선 4개 */}
             <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[156px] flex-col justify-between">
               <div className="w-full border-b-[0.5px] border-dashed border-[#3A3F4A]" />
               <div className="w-full border-b-[0.5px] border-dashed border-[#3A3F4A]" />
@@ -175,7 +174,7 @@ export default function WeeklyTrendChart() {
               })}
             </div>
 
-            {/* 3. 하단 X축 레이블 (스크린샷과 동일한 간격 및 위치) */}
+            {/* 3. 하단 X축 레이블*/}
             <div className="pointer-events-none absolute inset-x-0" style={{ top: '208px' }}>
               {points.map((pt, idx) => {
                 const leftPercent = (pt.x / 950) * 100;
