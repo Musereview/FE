@@ -62,6 +62,16 @@ function PracticePlayPage() {
 
   const { activeNotes } = useActiveNotes(handleNoteOn, handleNoteOff);
 
+  // 백킹트랙에서 지금 차례인 코드 (null은 직전 코드 유지)
+  const flatChords = measures.flat();
+  const currentChord =
+    currentBeat < 0
+      ? null
+      : (flatChords
+          .slice(0, currentBeat + 1)
+          .filter(Boolean)
+          .pop() ?? null);
+
   const stopPlayback = () => {
     stop();
     Tone.getDraw().cancel();
@@ -172,6 +182,13 @@ function PracticePlayPage() {
         {showStart && (
           <span className="display-large absolute top-[158px] left-1/2 -translate-x-1/2 text-center text-gray-700">
             START
+          </span>
+        )}
+
+        {/* 백킹트랙 현재 코드명 (배경) */}
+        {!showStart && currentChord && (
+          <span className="display-large absolute top-[158px] left-1/2 -translate-x-1/2 text-center text-gray-700">
+            {currentChord}
           </span>
         )}
 
