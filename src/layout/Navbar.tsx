@@ -82,7 +82,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
   };
 
   return (
-    <div className="relative flex h-screen w-[90px] shrink-0 flex-col items-center justify-between border-r border-gray-700 bg-gray-950 px-[18px] py-6">
+    <div className="flex h-screen w-[90px] shrink-0 flex-col items-center justify-between border-r border-gray-700 bg-gray-950 px-[18px] py-6">
       {/* 상단: 로고 / 메뉴 */}
       <div className="flex flex-col items-center gap-[42px]">
         {/* 로고 */}
@@ -142,7 +142,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
         </NavLink>
 
         {/* 더보기 */}
-        <div ref={moreRef} className="flex h-[54px] items-center justify-center">
+        <div ref={moreRef} className="relative flex h-[54px] items-center justify-center">
           <button
             type="button"
             aria-label="더보기"
@@ -157,7 +157,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
           {isMoreOpen && (
             <div
               role="menu"
-              className="absolute bottom-[43px] left-full z-50 ml-2 flex w-max flex-col gap-3 rounded-[4px] bg-gray-900 py-4">
+              className="absolute bottom-[19px] left-full z-50 ml-[35px] flex w-max flex-col gap-3 rounded-[4px] bg-gray-900 py-4">
               <button
                 type="button"
                 role="menuitem"
