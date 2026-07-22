@@ -18,6 +18,7 @@ import StopIcon from '@/assets/practice/stop.svg?react';
 import RefreshIcon from '@/assets/restart.svg?react';
 import CheckIcon from '@/assets/check.svg?react';
 import ChangeIcon from '@/assets/change.svg?react';
+import SettingsIcon from '@/assets/setting.svg?react';
 
 const PX_PER_BEAT = 120; // 노트바 길이 환산: 1박 = 120px
 
@@ -192,12 +193,24 @@ function PracticePlayPage() {
           </span>
         )}
 
-        {/* 노트바 클리핑 영역: 백킹트랙 아래 ~ 건반. 노트바가 상단(백킹트랙 밑)에서 잘려 사라진다 */}
-        <div className="relative flex flex-1 flex-col justify-end overflow-hidden">
+        {/* 노트바 클리핑 영역: 위(백킹트랙 밑)에서만 자르고 좌우는 열어둠(설정 버튼이 안 잘리도록) */}
+        <div className="relative flex flex-1 flex-col justify-end [clip-path:inset(0_-100vw_-100vw_-100vw)]">
           {/* 건반 + 노트바 (누른 시간만큼 길이가 그려짐) */}
           <div className="relative mx-auto w-full max-w-[1560px]">
             <PracticeNoteBars bars={noteBars} keyCount={keyCount} pxPerMs={pxPerMs} onBarDone={handleBarDone} />
-            <Piano keyCount={keyCount} activeNotes={activeNotes} />
+            <Piano
+              keyCount={keyCount}
+              activeNotes={activeNotes}
+              rightSlot={
+                <button
+                  onClick={() => navigate(`/practice/${practiceId}/settings`)}
+                  className="flex cursor-pointer flex-col items-center gap-1"
+                  aria-label="설정">
+                  <SettingsIcon className="h-10 w-10" />
+                  <span className="button-small text-gray-600">설정</span>
+                </button>
+              }
+            />
           </div>
         </div>
       </div>
