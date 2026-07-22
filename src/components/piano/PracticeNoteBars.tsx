@@ -21,8 +21,7 @@ interface PracticeNoteBarsProps {
 // NoteBars와 동일한 디자인
 const BAR_GRADIENT =
   'linear-gradient(180deg, var(--color-primary-400) 0%, var(--color-primary-400) 50%, var(--color-gray-950) 100%)';
-const RISE_SPEED = 0.35; // px/ms — 손을 뗀 뒤 위로 스크롤되는 속도
-const RISE_FADE = 900; // ms — 뗀 뒤 사라지기까지
+const RISE_FADE = 900; // ms — 뗀 뒤 사라지기까지 (상승 속도는 pxPerMs = 템포에 연동)
 
 export default function PracticeNoteBars({ bars, keyCount, pxPerMs, onBarDone }: PracticeNoteBarsProps) {
   const [, setTick] = useState(0);
@@ -59,7 +58,7 @@ export default function PracticeNoteBars({ bars, keyCount, pxPerMs, onBarDone }:
         const height = Math.max(4, heldMs * pxPerMs); // 길이 = 누른 시간 × 환산
         const released = endTime !== null;
         const riseMs = released ? now - endTime : 0;
-        const translateY = -riseMs * RISE_SPEED; // 뗀 뒤 위로 올라감
+        const translateY = -riseMs * pxPerMs; // 뗀 뒤 위로 올라감 (템포에 맞춘 속도)
         const opacity = released ? Math.max(0, 1 - riseMs / RISE_FADE) : 1;
 
         return (
