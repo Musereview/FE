@@ -33,6 +33,12 @@ export function createMetronome() {
       transport.stop();
       transport.cancel();
     },
+    pause() {
+      transport.pause(); // 현재 위치 유지하고 멈춤
+    },
+    resume() {
+      transport.start(); // 일시정지 지점부터 이어서 재생
+    },
     dispose() {
       hiBuffer.dispose();
       loBuffer.dispose();

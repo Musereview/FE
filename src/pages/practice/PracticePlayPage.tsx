@@ -26,7 +26,7 @@ function PracticePlayPage() {
   const navigate = useNavigate();
   const { practiceId } = useParams();
   const { keyCount } = useSettingStore();
-  const { start, stop } = useMetronome();
+  const { start, stop, pause, resume } = useMetronome();
   const { noteOn: playNote, noteOff: stopNote } = usePianoSound();
 
   const track = [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((t) => t.id === practiceId) ?? RECOMMENDED_TRACKS[0];
@@ -62,7 +62,7 @@ function PracticePlayPage() {
   };
   const handleBarDone = useCallback((id: number) => setNoteBars((prev) => prev.filter((b) => b.id !== id)), []);
 
-  const { activeNotes } = useActiveNotes(handleNoteOn, handleNoteOff);
+  const { activeNotes } = useActiveNotes(handleNoteOn, handleNoteOff, isPlaying); // 정지 중엔 입력 무시
 
   // 백킹트랙에서 지금 차례인 코드 (null은 직전 코드 유지)
   const flatChords = measures.flat();
@@ -96,7 +96,21 @@ function PracticePlayPage() {
     });
   };
 
-  const handlePlayToggle = () => (isPlaying ? stopPlayback() : startPlayback());
+  // 정지: 화면 그대로 멈춤(진행 상태 유지) / 재생: 이어서
+  const pausePlayback = () => {
+    pause();
+    setIsPlaying(false);
+  };
+  const resumePlayback = () => {
+    resume();
+    setIsPlaying(true);
+  };
+  const handlePlayToggle = () => {
+    if (isPlaying) pausePlayback();
+    else if (Tone.getTransport().state === 'paused')
+      resumePlayback(); // 일시정지 상태면 이어서
+    else startPlayback(); // 처음부터
+  };
   const handleRestart = () => {
     stopPlayback();
     setNoteBars([]); // 노트바 초기화
