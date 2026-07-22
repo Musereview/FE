@@ -9,6 +9,7 @@ import MetronomeDots from '@/components/metronome/MetronomeDots';
 import BackingTrack from '@/pages/practice/components/BackingTrack';
 import { useActiveNotes } from '@/hooks/useActiveNotes';
 import { useMetronome } from '@/hooks/useMetronome';
+import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
 import { ALL_TRACKS, RECOMMENDED_TRACKS } from '@/pages/practice/mockTracks';
 import { buildFallbackProgression, MODE_LABEL } from '@/pages/practice/trackDisplay';
@@ -25,6 +26,7 @@ function PracticePlayPage() {
   const { practiceId } = useParams();
   const { keyCount } = useSettingStore();
   const { start, stop } = useMetronome();
+  const { noteOn: playNote, noteOff: stopNote } = usePianoSound();
 
   const track = [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((t) => t.id === practiceId) ?? RECOMMENDED_TRACKS[0];
   const beatsPerBar = Number(track.timeSignature.split('/')[0]); // '4/4' → 4
@@ -41,14 +43,16 @@ function PracticePlayPage() {
   const barIdRef = useRef(0);
   const heldRef = useRef<Map<number, number>>(new Map()); // midi → 진행 중 노트바 id
 
-  // 친 음: 노트바 생성(성장 시작) → 뗄 때 길이 확정 후 위로 사라짐
-  const handleNoteOn = (note: number) => {
-    if (noteCenterFraction(note, keyCount) < 0) return; // 범위 밖 음은 무시
+  // 친 음: 소리 재생 + 노트바 생성(성장 시작) → 뗄 때 소리·길이 확정 후 위로 사라짐
+  const handleNoteOn = (note: number, velocity = 100) => {
+    playNote(note, velocity); // 즉시 소리 (범위와 무관하게 실제 친 음)
+    if (noteCenterFraction(note, keyCount) < 0) return; // 노트바는 건반 범위 안만
     const id = barIdRef.current++;
     heldRef.current.set(note, id);
     setNoteBars((prev) => [...prev, { id, midi: note, startTime: performance.now(), endTime: null }]);
   };
   const handleNoteOff = (note: number) => {
+    stopNote(note); // 즉시 소리 끝
     const id = heldRef.current.get(note);
     if (id === undefined) return;
     heldRef.current.delete(note);
