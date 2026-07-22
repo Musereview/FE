@@ -21,7 +21,6 @@ interface PracticeNoteBarsProps {
 // NoteBars와 동일한 디자인
 const BAR_GRADIENT =
   'linear-gradient(180deg, var(--color-primary-400) 0%, var(--color-primary-400) 50%, var(--color-gray-950) 100%)';
-const RISE_FADE = 900; // ms — 뗀 뒤 사라지기까지 (상승 속도는 pxPerMs = 템포에 연동)
 
 export default function PracticeNoteBars({ bars, keyCount, pxPerMs, onBarDone }: PracticeNoteBarsProps) {
   const [, setTick] = useState(0);
@@ -33,9 +32,9 @@ export default function PracticeNoteBars({ bars, keyCount, pxPerMs, onBarDone }:
     const loop = () => {
       setTick((t) => (t + 1) % 1_000_000);
       const now = performance.now();
-      // 뗀 뒤 RISE_FADE 지난 노트바 제거
+      // 뗀 뒤 헤더 위로 완전히 올라가(한 화면 높이 이상 상승) 화면 밖으로 나간 노트바 제거
       for (const b of bars) {
-        if (b.endTime !== null && now - b.endTime > RISE_FADE) onBarDone(b.id);
+        if (b.endTime !== null && (now - b.endTime) * pxPerMs > window.innerHeight) onBarDone(b.id);
       }
       rafRef.current = requestAnimationFrame(loop);
     };
@@ -43,7 +42,7 @@ export default function PracticeNoteBars({ bars, keyCount, pxPerMs, onBarDone }:
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [bars, onBarDone]);
+  }, [bars, onBarDone, pxPerMs]);
 
   const now = performance.now();
 
@@ -59,7 +58,6 @@ export default function PracticeNoteBars({ bars, keyCount, pxPerMs, onBarDone }:
         const released = endTime !== null;
         const riseMs = released ? now - endTime : 0;
         const translateY = -riseMs * pxPerMs; // 뗀 뒤 위로 올라감 (템포에 맞춘 속도)
-        const opacity = released ? Math.max(0, 1 - riseMs / RISE_FADE) : 1;
 
         return (
           <span
@@ -70,7 +68,6 @@ export default function PracticeNoteBars({ bars, keyCount, pxPerMs, onBarDone }:
               width: `${widthPct}%`,
               height: `${height}px`,
               transform: `translateX(-50%) translateY(${translateY}px)`,
-              opacity,
               background: BAR_GRADIENT,
             }}
           />

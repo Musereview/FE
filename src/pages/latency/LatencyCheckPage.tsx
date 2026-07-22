@@ -233,7 +233,6 @@ function LatencyCheckPage() {
               {countdown}
             </span>
           )}
-          {/* phase === 'measuring' → 노트바 (나중에) */}
         </div>
 
         {/* 건반 영역 (+ 친 음에서 솟아오르는 노트바) */}

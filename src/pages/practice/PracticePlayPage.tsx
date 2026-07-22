@@ -164,15 +164,20 @@ function PracticePlayPage() {
           </div>
         </div>
 
-        {/* 중앙 영역: 진입 시 START, 이후 노트바/코드명 (다음 단계) */}
-        <div className="flex flex-1 items-center justify-center">
-          {showStart && <span className="display-large absolute top-[158px] text-center text-gray-700">START</span>}
-        </div>
+        {/* 진입 시 START (본문 기준 고정) */}
+        {showStart && (
+          <span className="display-large absolute top-[158px] left-1/2 -translate-x-1/2 text-center text-gray-700">
+            START
+          </span>
+        )}
 
-        {/* 건반 + 노트바 (누른 시간만큼 길이가 그려짐) */}
-        <div className="relative mx-auto w-full max-w-[1560px]">
-          <PracticeNoteBars bars={noteBars} keyCount={keyCount} pxPerMs={pxPerMs} onBarDone={handleBarDone} />
-          <Piano keyCount={keyCount} activeNotes={activeNotes} />
+        {/* 노트바 클리핑 영역: 백킹트랙 아래 ~ 건반. 노트바가 상단(백킹트랙 밑)에서 잘려 사라진다 */}
+        <div className="relative flex flex-1 flex-col justify-end overflow-hidden">
+          {/* 건반 + 노트바 (누른 시간만큼 길이가 그려짐) */}
+          <div className="relative mx-auto w-full max-w-[1560px]">
+            <PracticeNoteBars bars={noteBars} keyCount={keyCount} pxPerMs={pxPerMs} onBarDone={handleBarDone} />
+            <Piano keyCount={keyCount} activeNotes={activeNotes} />
+          </div>
         </div>
       </div>
     </div>
