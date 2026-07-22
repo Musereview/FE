@@ -43,6 +43,7 @@ function PracticePlayPage() {
   const totalBeatRef = useRef(0);
   const barIdRef = useRef(0);
   const heldRef = useRef<Map<number, number>>(new Map()); // midi → 진행 중 노트바 id
+  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 친 음: 소리 재생 + 노트바 생성(성장 시작) → 뗄 때 소리·길이 확정 후 위로 사라짐
   const handleNoteOn = (note: number, velocity = 100) => {
@@ -98,7 +99,11 @@ function PracticePlayPage() {
   const handlePlayToggle = () => (isPlaying ? stopPlayback() : startPlayback());
   const handleRestart = () => {
     stopPlayback();
-    startPlayback();
+    setNoteBars([]); // 노트바 초기화
+    heldRef.current.clear();
+    // transport 정지가 반영된 뒤 재시작 (연속 stop→start 글리치 방지)
+    if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+    restartTimerRef.current = setTimeout(() => startPlayback(), 80);
   };
 
   // 언마운트 시 정리
@@ -106,6 +111,7 @@ function PracticePlayPage() {
     return () => {
       stop();
       Tone.getDraw().cancel();
+      if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
     };
   }, [stop]);
 
