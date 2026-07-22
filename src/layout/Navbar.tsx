@@ -10,6 +10,7 @@ import NotificationIcon from '@/assets/layout/notification.svg?react';
 import ProfileIcon from '@/assets/layout/profile.svg?react';
 import MoreIcon from '@/assets/layout/more.svg?react';
 import type { NotiItem } from '@/types/notification';
+import WithdrawModal from '@/components/common/WithdrawModal';
 
 interface NavItem {
   Icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
@@ -37,6 +38,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
     location.pathname === '/latency-check' ? new URLSearchParams(location.search).get('from') : null;
 
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
   // 팝업이 열려 있을 때 외부 클릭 / ESC 로 닫기
@@ -68,7 +70,15 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
 
   const handleWithdraw = () => {
     setIsMoreOpen(false);
-    // 회원탈퇴 API 연동
+    setIsWithdrawOpen(true);
+  };
+
+  const handleConfirmWithdraw = () => {
+    setIsWithdrawOpen(false);
+    // 회원탈퇴 API
+    // 탈퇴 완료 후: 토큰 제거 + 로그인 페이지 이동
+    localStorage.removeItem('accessToken');
+    navigate('/login');
   };
 
   return (
@@ -166,6 +176,9 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
           )}
         </div>
       </div>
+
+      {/* 회원탈퇴 확인 모달 */}
+      {isWithdrawOpen && <WithdrawModal onCancel={() => setIsWithdrawOpen(false)} onConfirm={handleConfirmWithdraw} />}
     </div>
   );
 }
