@@ -1,5 +1,5 @@
 // 회원탈퇴 확인 모달
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface WithdrawModalProps {
   onCancel: () => void;
@@ -7,6 +7,12 @@ interface WithdrawModalProps {
 }
 
 export function WithdrawModal({ onCancel, onConfirm }: WithdrawModalProps) {
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    cancelButtonRef.current?.focus();
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel();
@@ -39,6 +45,7 @@ export function WithdrawModal({ onCancel, onConfirm }: WithdrawModalProps) {
 
         <div className="flex items-center gap-4">
           <button
+            ref={cancelButtonRef}
             type="button"
             onClick={onCancel}
             className="button-large1 h-[60px] w-[210px] cursor-pointer rounded-[6px] border-[0.5px] border-gray-600 text-gray-300 transition-colors hover:bg-gray-800">
