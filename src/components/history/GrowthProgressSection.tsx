@@ -1,5 +1,3 @@
-// //1. 이번주 연주 요약 카드(3개)
-
 // src/components/history/GrowthProgressSection.tsx
 
 export default function GrowthProgressSection() {
