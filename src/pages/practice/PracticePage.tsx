@@ -23,7 +23,7 @@ const GENRE_ALL = GENRES[0];
 const GENRE_OPTIONS = GENRES.map((genre) => ({ value: genre, label: genre }));
 
 const DEFAULT_BPM = 60;
-const BPM_FILTER_RANGE = 20;
+const BPM_FILTER_RANGE = 2;
 
 type FilterKey = 'sort' | 'genre' | 'key' | 'bpm';
 

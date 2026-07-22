@@ -25,9 +25,9 @@ function PracticeSettingsPage() {
       <div className="flex-1" />
       <Piano keyCount={keyCount} />
       <SettingsModal
-        onClose={() => navigate(`/practice/${practiceId}`)}
+        onClose={() => navigate(-1)}
         onStart={() => navigate(`/practice/${practiceId}/play`)}
-        onLatencyCheck={() => navigate(`/latency-check`)}
+        onLatencyCheck={() => navigate(`/latency-check?from=practice`)}
       />
     </div>
   );

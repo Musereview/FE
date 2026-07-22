@@ -1,6 +1,7 @@
-// 사이드바
+//사이드바
+// src/layout/Navbar.tsx
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import PracticeIcon from '@/assets/layout/practice.svg?react';
 import LearnIcon from '@/assets/layout/learn.svg?react';
 import HistoryIcon from '@/assets/layout/history.svg?react';
@@ -8,21 +9,33 @@ import LogoIcon from '@/assets/layout/logo.svg?react';
 import NotificationIcon from '@/assets/layout/notification.svg?react';
 import ProfileIcon from '@/assets/layout/profile.svg?react';
 import MoreIcon from '@/assets/layout/more.svg?react';
+import type { NotiItem } from '@/types/notification';
 
 interface NavItem {
   Icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
   label: string;
   to: string;
+  matchFrom?: string;
+}
+
+interface NavbarProps {
+  onOpenNotification: () => void;
+  notiList: NotiItem[];
 }
 
 const STUDENT_MENU: NavItem[] = [
-  { Icon: PracticeIcon, label: '연습', to: '/practice' },
-  { Icon: LearnIcon, label: '학습', to: '/learn' },
+  { Icon: PracticeIcon, label: '연습', to: '/practice', matchFrom: 'practice' },
+  { Icon: LearnIcon, label: '학습', to: '/learn', matchFrom: 'learn' },
   { Icon: HistoryIcon, label: '히스토리', to: '/history' },
 ];
 
-function Navbar() {
+function Navbar({ onOpenNotification, notiList }: NavbarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const hasUnread = notiList.some((item) => !item.isRead);
+  const latencyCheckFrom =
+    location.pathname === '/latency-check' ? new URLSearchParams(location.search).get('from') : null;
+
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
@@ -76,13 +89,13 @@ function Navbar() {
 
         {/* 메뉴 */}
         <nav className="flex flex-col gap-[38px]">
-          {STUDENT_MENU.map(({ Icon, label, to }) => (
+          {STUDENT_MENU.map(({ Icon, label, to, matchFrom }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
                 `button-label2 flex flex-col items-center gap-1 transition-colors ${
-                  isActive ? 'text-primary-400' : 'text-gray-300'
+                  isActive || (matchFrom && latencyCheckFrom === matchFrom) ? 'text-primary-400' : 'text-gray-300'
                 }`
               }>
               <Icon className="size-7" />
@@ -96,8 +109,15 @@ function Navbar() {
       <div className="flex flex-col items-center gap-6 text-gray-400">
         {/* 알림 */}
         <div className="relative flex h-[54px] items-center justify-center">
-          <button type="button" aria-label="알림">
+          <button
+            type="button"
+            aria-label="알림"
+            onClick={onOpenNotification}
+            className="relative flex items-center justify-center transition-opacity hover:opacity-80">
             <NotificationIcon className="size-7" />
+            {hasUnread && (
+              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#10B981] ring-2 ring-gray-950" />
+            )}
           </button>
         </div>
 
