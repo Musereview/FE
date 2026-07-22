@@ -1,5 +1,5 @@
 import type { TopicDifficulty } from '@/types/topic';
-import { DIFFICULTY_LABEL, DIFFICULTY_COLOR } from '../topicDisplay';
+import DifficultyBadge from './DifficultyBadge';
 
 interface CurriculumBannerProps {
   title: string;
@@ -14,10 +14,7 @@ function CurriculumBanner({ title, difficulty, description }: CurriculumBannerPr
 
       <div className="relative flex items-center gap-3">
         <h1 className="heading-medium-b text-gray-200">{title}</h1>
-        <span
-          className={`caption-medium flex w-10 items-center justify-center rounded-full border-[0.5px] bg-gray-900 py-1 ${DIFFICULTY_COLOR[difficulty]}`}>
-          {DIFFICULTY_LABEL[difficulty]}
-        </span>
+        <DifficultyBadge difficulty={difficulty} />
       </div>
       <p className="body-medium relative text-gray-300">{description}</p>
     </div>
