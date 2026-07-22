@@ -44,6 +44,7 @@ function PracticePlayPage() {
   const barIdRef = useRef(0);
   const heldRef = useRef<Map<number, number>>(new Map()); // midi → 진행 중 노트바 id
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pauseStartRef = useRef(performance.now()); // 정지 시각 (노트바 얼림 기준 + 재개 시 보정)
 
   // 친 음: 소리 재생 + 노트바 생성(성장 시작) → 뗄 때 소리·길이 확정 후 위로 사라짐
   const handleNoteOn = (note: number, velocity = 100) => {
@@ -99,9 +100,19 @@ function PracticePlayPage() {
   // 정지: 화면 그대로 멈춤(진행 상태 유지) / 재생: 이어서
   const pausePlayback = () => {
     pause();
+    pauseStartRef.current = performance.now();
     setIsPlaying(false);
   };
   const resumePlayback = () => {
+    // 정지한 시간만큼 노트바 시각을 밀어 이어서 그려지게 (튐 방지)
+    const pausedMs = performance.now() - pauseStartRef.current;
+    setNoteBars((prev) =>
+      prev.map((b) => ({
+        ...b,
+        startTime: b.startTime + pausedMs,
+        endTime: b.endTime !== null ? b.endTime + pausedMs : null,
+      })),
+    );
     resume();
     setIsPlaying(true);
   };
@@ -217,7 +228,14 @@ function PracticePlayPage() {
         <div className="relative flex flex-1 flex-col justify-end [clip-path:inset(0_-100vw_-100vw_-100vw)]">
           {/* 건반 + 노트바 (누른 시간만큼 길이가 그려짐) */}
           <div className="relative mx-auto w-full max-w-[1560px]">
-            <PracticeNoteBars bars={noteBars} keyCount={keyCount} pxPerMs={pxPerMs} onBarDone={handleBarDone} />
+            <PracticeNoteBars
+              bars={noteBars}
+              keyCount={keyCount}
+              pxPerMs={pxPerMs}
+              onBarDone={handleBarDone}
+              paused={!isPlaying}
+              frozenAt={pauseStartRef.current}
+            />
             <Piano
               keyCount={keyCount}
               activeNotes={activeNotes}

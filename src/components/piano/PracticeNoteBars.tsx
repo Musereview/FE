@@ -16,19 +16,28 @@ interface PracticeNoteBarsProps {
   keyCount: KeyCount;
   pxPerMs: number; // 시간 → 길이(px) 환산 (BPM 기준)
   onBarDone: (id: number) => void; // 다 올라간 노트바 제거
+  paused?: boolean; // 정지 중이면 그 자리에 얼림
+  frozenAt?: number; // 정지 시점 시각 (performance.now 기준) — 얼린 프레임 렌더 기준
 }
 
 // NoteBars와 동일한 디자인
 const BAR_GRADIENT =
   'linear-gradient(180deg, var(--color-primary-400) 0%, var(--color-primary-400) 50%, var(--color-gray-950) 100%)';
 
-export default function PracticeNoteBars({ bars, keyCount, pxPerMs, onBarDone }: PracticeNoteBarsProps) {
+export default function PracticeNoteBars({
+  bars,
+  keyCount,
+  pxPerMs,
+  onBarDone,
+  paused = false,
+  frozenAt = 0,
+}: PracticeNoteBarsProps) {
   const [, setTick] = useState(0);
   const rafRef = useRef<number | undefined>(undefined);
 
-  // 활성 노트바가 있는 동안 매 프레임 리렌더 (길이 성장 / 상승 애니메이션)
+  // 활성 노트바가 있고 재생 중일 때만 매 프레임 리렌더 (정지 중엔 루프 정지 = 얼림)
   useEffect(() => {
-    if (bars.length === 0) return;
+    if (bars.length === 0 || paused) return;
     const loop = () => {
       setTick((t) => (t + 1) % 1_000_000);
       const now = performance.now();
@@ -42,9 +51,10 @@ export default function PracticeNoteBars({ bars, keyCount, pxPerMs, onBarDone }:
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [bars, onBarDone, pxPerMs]);
+  }, [bars, onBarDone, pxPerMs, paused]);
 
-  const now = performance.now();
+  // 정지 중엔 정지 시점(frozenAt)으로 고정 렌더 → 그 자리에 얼림
+  const now = paused ? frozenAt : performance.now();
 
   return (
     <div className="pointer-events-none absolute bottom-full left-0 w-full">
