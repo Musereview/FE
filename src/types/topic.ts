@@ -48,3 +48,17 @@ export interface Curriculum {
   tipHighlight: string;
   steps: TopicChapter[];
 }
+
+export interface CurrentLearningInfo {
+  curriculumId: string;
+  title: string;
+  difficulty: TopicDifficulty;
+  stepLabel: string;
+  progress: number;
+}
+
+export interface ChapterProgress {
+  chapter: TopicChapter;
+  curriculum: Curriculum;
+  progress: number;
+}
