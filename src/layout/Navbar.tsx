@@ -1,5 +1,6 @@
 // 사이드바
-import { NavLink } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import PracticeIcon from '@/assets/layout/practice.svg?react';
 import LearnIcon from '@/assets/layout/learn.svg?react';
 import HistoryIcon from '@/assets/layout/history.svg?react';
@@ -21,8 +22,44 @@ const STUDENT_MENU: NavItem[] = [
 ];
 
 function Navbar() {
+  const navigate = useNavigate();
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+
+  // 팝업이 열려 있을 때 외부 클릭 / ESC 로 닫기
+  useEffect(() => {
+    if (!isMoreOpen) return;
+
+    const handlePointerDown = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setIsMoreOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMoreOpen(false);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMoreOpen]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('accessToken');
+    setIsMoreOpen(false);
+    navigate('/login');
+  };
+
+  const handleWithdraw = () => {
+    setIsMoreOpen(false);
+    // 회원탈퇴 API 연동
+  };
+
   return (
-    <div className="flex h-screen w-[90px] shrink-0 flex-col items-center justify-between border-r border-gray-700 bg-gray-950 px-[18px] py-6">
+    <div className="relative flex h-screen w-[90px] shrink-0 flex-col items-center justify-between border-r border-gray-700 bg-gray-950 px-[18px] py-6">
       {/* 상단: 로고 / 메뉴 */}
       <div className="flex flex-col items-center gap-[42px]">
         {/* 로고 */}
@@ -75,10 +112,38 @@ function Navbar() {
         </NavLink>
 
         {/* 더보기 */}
-        <div className="relative flex h-[54px] items-center justify-center">
-          <button type="button" aria-label="더보기">
+        <div ref={moreRef} className="flex h-[54px] items-center justify-center">
+          <button
+            type="button"
+            aria-label="더보기"
+            aria-haspopup="menu"
+            aria-expanded={isMoreOpen}
+            onClick={() => setIsMoreOpen((v) => !v)}
+            className="transition-opacity hover:opacity-80">
             <MoreIcon className="size-9" />
           </button>
+
+          {/* 더보기 팝업 (로그아웃/회원탈퇴) */}
+          {isMoreOpen && (
+            <div
+              role="menu"
+              className="absolute bottom-[43px] left-full z-50 ml-2 flex w-max flex-col gap-3 rounded-[4px] bg-gray-900 py-4">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleLogout}
+                className="body-medium flex w-full items-center justify-center px-6 py-1 whitespace-nowrap text-gray-300 transition-opacity hover:opacity-80">
+                로그아웃
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleWithdraw}
+                className="body-medium text-error flex w-full items-center justify-center px-6 py-1 whitespace-nowrap transition-opacity hover:opacity-80">
+                회원탈퇴
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
