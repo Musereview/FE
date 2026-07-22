@@ -1,39 +1,18 @@
-// 악보 그릴 공간만 만들어주는 컴포넌트
-import { useEffect, useRef } from 'react';
-import { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
 import { useOSMD } from '@/hooks/music/useOSMD';
-import type { WindowScore } from '@/utils/musicXmlWindow';
+import type { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
 
-interface ScoreRendererProps {
-  windows: WindowScore[];
-  onReady?: (osmd: OpenSheetMusicDisplay) => void;
-
-  translateX?: number;
+interface Props {
+  xmlContent?: string;
+  xmlPath?: string;
+  translateX: number;
+  viewportWidth: number;
+  onReady?: (osmd: OpenSheetMusicDisplay, measureXPositions: number[]) => void;
 }
 
-export default function ScoreRenderer({ windows, onReady, translateX = 0 }: ScoreRendererProps) {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const xmlContent = windows.length > 0 ? windows[0].xml : '';
-  console.log('=== ScoreRenderer ===');
+const VIEWPORT_PADDING = 80; // p-[40px] 좌우 합
 
-  console.log('length=', xmlContent.length);
-  console.log(JSON.stringify(xmlContent.substring(0, 100)));
-  //   const { containerRef, isLoading } = useOSMD({
-
-  //     xmlContent,
-  //     onReady,
-  //   });
-  const { containerRef, isLoading } = useOSMD({
-    xmlPath: '/sample.xml',
-    onReady,
-  });
-
-  useEffect(() => {
-    if (!contentRef.current) return;
-
-    contentRef.current.style.transform = `translateX(-${translateX}px)`;
-    contentRef.current.style.transition = 'transform .3s ease';
-  }, [translateX]);
+export default function ScoreRenderer({ xmlContent, xmlPath, translateX, viewportWidth, onReady }: Props) {
+  const { containerRef, isLoading } = useOSMD({ xmlContent, xmlPath, onReady });
 
   return (
     <div className="relative rounded-[12px] border border-[#2E3142]/20 bg-[#090A0F]">
@@ -44,16 +23,20 @@ export default function ScoreRenderer({ windows, onReady, translateX = 0 }: Scor
         </div>
       )}
 
-      {/* Viewport */}
-      <div className="min-h-[500px] w-full overflow-hidden p-[40px]">
-        {/* 움직일 영역 */}
+      {/* 뷰포트: 항상 4마디 폭만 보여준다. 여기서 절대 OSMD를 다시 그리지 않는다 */}
+      <div
+        className="min-h-[500px] overflow-hidden p-[40px]"
+        style={{
+          width: viewportWidth > 0 ? `${viewportWidth + VIEWPORT_PADDING}px` : '100%',
+          transition: 'width 0.6s ease',
+        }}>
+        {/* 실제 전체 악보(변하지 않음). transform으로만 이동시킨다 */}
         <div
-          ref={contentRef}
-          // style={{
-
-          //   width: "max-content",
-          // }}
-        >
+          style={{
+            transform: `translateX(-${translateX}px)`,
+            transition: 'transform 0.6s ease',
+            willChange: 'transform',
+          }}>
           <div ref={containerRef} />
         </div>
       </div>

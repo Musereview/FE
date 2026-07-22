@@ -315,194 +315,108 @@
 //     </div>
 //   );
 // }
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
+import type { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
+
 import ScoreRenderer from '@/components/music/ScoreRenderer';
-import { createSlidingWindows, type WindowScore } from '@/utils/musicXmlWindow';
+import { useScoreCursorSync } from '@/hooks/music/useScoreCursorSync';
+import { useSlidingWindow } from '@/hooks/music/useSlidingWindow';
+import { computeMeasureTimings } from '@/utils/musicXmlTiming';
+import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 
 export default function AnalysisSelectPage() {
   const navigate = useNavigate();
   const { practiceId } = useParams<{ practiceId: string }>();
 
-  // --- [상태 관리] ---
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-
-  //const [currentMeasure, setCurrentMeasure] = useState(1);
-  //const [visibleStartMeasure, setVisibleStartMeasure] = useState(1);
-  //const [translateX, setTranslateX] = useState(0);
-
-  const [startMeasure, setStartMeasure] = useState<string>('1마디');
-  const [endMeasure, setEndMeasure] = useState<string>('30마디');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [startMeasure, setStartMeasure] = useState('1마디');
+  const [endMeasure, setEndMeasure] = useState('30마디');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const [xmlContent, setXmlContent] = useState('');
+  const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
+  const [measureXPositions, setMeasureXPositions] = useState<number[]>([]);
+
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
-  const measurePositionsRef = useRef<number[]>([]);
-
-  const handleOSMDReady = useCallback((osmd: OpenSheetMusicDisplay) => {
-    osmdRef.current = osmd;
-
-    const graphicalMusicSheet = (
-      osmd as unknown as {
-        graphic: {
-          measureList: Array<
-            Array<{
-              PositionAndShape: {
-                absolutePosition: {
-                  x: number;
-                  y: number;
-                };
-              };
-              parentMusicSystem?: unknown;
-            }>
-          >;
-        };
-      }
-    ).graphic;
-
-    console.log('graphic =', graphicalMusicSheet);
-
-    const measureList = graphicalMusicSheet.measureList;
-
-    const positions: number[] = [];
-
-    measureList.forEach((measure) => {
-      positions.push(measure[0].PositionAndShape.absolutePosition.x);
-    });
-
-    measurePositionsRef.current = positions;
-    console.log(positions);
-  }, []);
-
-  const [windows, setWindows] = useState<WindowScore[]>([]);
-
-  useEffect(() => {
-    async function init() {
-      const xmlText = await fetch('/sample.xml').then((r) => r.text());
-
-      const result = await createSlidingWindows(xmlText);
-      console.log(result[0].xml);
-      console.log('window 개수=', result.length);
-
-      setWindows(result);
-    }
-
-    init();
-  }, []);
-
-  // 오디오 및 싱크 타이머 레프
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const syncIntervalRef = useRef<number | null>(null);
 
-  // 악보 음표와 소리 시간을 매칭해주는 테이블 (초 단위)
-  const noteTimestampsRef = useRef<number[]>([0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5]);
-  const currentNoteIndexRef = useRef<number>(0);
-
-  // 처음으로 버튼 핸들러
-  const handleRewind = useCallback(() => {
-    setIsPlaying(false);
-    if (syncIntervalRef.current !== null) {
-      clearInterval(syncIntervalRef.current);
-      syncIntervalRef.current = null;
-    }
-    currentNoteIndexRef.current = 0;
-    if (audioRef.current) audioRef.current.currentTime = 0;
-    if (osmdRef.current) osmdRef.current.cursor.reset();
-
-    setToastMessage('첫 마디로 되돌아갔습니다.');
-    const timer = setTimeout(() => setToastMessage(null), 3000);
-    return () => clearTimeout(timer);
+  // 1) 전체 MusicXML은 최초 1회만 fetch (더 이상 마디별로 자르지 않는다)
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/sample.xml')
+      .then((r) => r.text())
+      .then((text) => {
+        if (cancelled) return;
+        setXmlContent(text);
+        setMeasureStartTimes(computeMeasureTimings(text).measureStartTimes);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // --- [1. 오디오 소리 바인딩] ---
+  // 2) 오디오 엘리먼트 (기존과 동일한 자리)
   useEffect(() => {
-    audioRef.current = new Audio('https://actions.google.com/sounds/v1/science_fiction/ambient_space_machine.ogg');
-
-    audioRef.current.onended = () => {
-      handleRewind();
-    };
-
+    const audio = new Audio('https://actions.google.com/sounds/v1/science_fiction/ambient_space_machine.ogg');
+    audioRef.current = audio;
+    audio.onended = () => handleRewind();
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      if (syncIntervalRef.current !== null) {
-        clearInterval(syncIntervalRef.current);
-      }
+      audio.pause();
+      audioRef.current = null;
     };
-  }, [handleRewind]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // --- [3. 오디오 재생 및 커서 진짜 동기화 엔진] ---
   useEffect(() => {
-    if (!audioRef.current || !osmdRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.play().catch(() => {});
-
-      syncIntervalRef.current = window.setInterval(() => {
-        const currentTime = audioRef.current?.currentTime || 0;
-        const osmd = osmdRef.current;
-
-        if (osmd && osmd.cursor) {
-          const nextTimestamp = noteTimestampsRef.current[currentNoteIndexRef.current + 1];
-
-          if (nextTimestamp !== undefined && currentTime >= nextTimestamp) {
-            osmd.cursor.next();
-            currentNoteIndexRef.current += 1;
-          }
-        }
-      }, 100);
-    } else {
-      audioRef.current.pause();
-      if (syncIntervalRef.current !== null) {
-        clearInterval(syncIntervalRef.current);
-        syncIntervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (syncIntervalRef.current !== null) {
-        clearInterval(syncIntervalRef.current);
-        syncIntervalRef.current = null;
-      }
-    };
+    if (!audioRef.current) return;
+    if (isPlaying) audioRef.current.play().catch(() => {});
+    else audioRef.current.pause();
   }, [isPlaying]);
 
-  // --- [4. 마디 입력값 자동 포맷팅 핸들러] ---
+  const handleOSMDReady = useCallback((osmd: OpenSheetMusicDisplay, positions: number[]) => {
+    osmdRef.current = osmd;
+    setMeasureXPositions(positions);
+  }, []);
+
+  // 3) 오디오 진행 시간 -> 현재 마디 인덱스 계산 + OSMD 커서 자동 이동
+  const { currentMeasureIndex } = useScoreCursorSync({
+    osmdRef,
+    audioRef,
+    measureStartTimes,
+    isPlaying,
+  });
+
+  // 4) 현재 마디 -> Sliding Window (1~4 -> 4~7 -> 7~10 ...)
+  const { translateX, viewportWidth } = useSlidingWindow(measureXPositions, currentMeasureIndex);
+
+  const handleRewind = useCallback(() => {
+    setIsPlaying(false);
+    if (audioRef.current) audioRef.current.currentTime = 0;
+    osmdRef.current?.cursor.reset();
+    setToastMessage('첫 마디로 되돌아갔습니다.');
+    setTimeout(() => setToastMessage(null), 3000);
+  }, []);
+
   const extractNumber = (val: string) => {
     const num = parseInt(val.replace(/[^0-9]/g, ''), 10);
     return isNaN(num) ? '' : num.toString();
   };
-
-  const handleFocus = (val: string, setter: (v: string) => void) => {
-    const onlyNum = extractNumber(val);
-    setter(onlyNum);
-  };
-
+  const handleFocus = (val: string, setter: (v: string) => void) => setter(extractNumber(val));
   const handleBlur = (val: string, setter: (v: string) => void, defaultVal: string) => {
     const onlyNum = extractNumber(val);
-    if (!onlyNum || onlyNum === '0') {
-      setter(defaultVal);
-    } else {
-      setter(`${onlyNum}마디`);
-    }
+    setter(!onlyNum || onlyNum === '0' ? defaultVal : `${onlyNum}마디`);
   };
-
-  const handleChange = (val: string, setter: (v: string) => void) => {
-    const onlyNum = val.replace(/[^0-9]/g, '');
-    setter(onlyNum);
-  };
-
-  // --- [5. 예외 처리 및 분석 시작 핸들러] ---
-  const triggerToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
+  const handleChange = (val: string, setter: (v: string) => void) => setter(val.replace(/[^0-9]/g, ''));
 
   const getMeasureNumber = (val: string) => {
     const num = parseInt(val.replace(/[^0-9]/g, ''), 10);
     return isNaN(num) ? 0 : num;
+  };
+
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const handleStartAnalysis = () => {
@@ -519,8 +433,12 @@ export default function AnalysisSelectPage() {
       return;
     }
 
-    if (audioRef.current) audioRef.current.pause();
-    navigate(`/practice/${practiceId}/analysis/result?start=${startNum}&end=${endNum}`);
+    audioRef.current?.pause();
+
+    // "분석하기"를 누르는 순간에만 1회 잘라서 다음 페이지로 넘긴다.
+    // (표시/슬라이딩 경로와는 완전히 분리되어 있으므로 성능에 영향 없음)
+    const rangeXml = extractMeasureRange(xmlContent, startNum, endNum);
+    navigate(`/practice/${practiceId}/analysis/result?start=${startNum}&end=${endNum}`, { state: { rangeXml } });
   };
 
   return (
@@ -531,7 +449,6 @@ export default function AnalysisSelectPage() {
         </div>
       )}
 
-      {/* 뒤로가기 버튼 */}
       <div className="flex flex-col">
         <button
           onClick={() => navigate(-1)}
@@ -543,9 +460,8 @@ export default function AnalysisSelectPage() {
 
         <div className="mt-[35px] flex w-full items-end justify-between">
           <div className="flex h-[52px] items-center gap-[19px]">
-            {/* 재생 / 일시정지 버튼  */}
             <button
-              onClick={() => setIsPlaying(!isPlaying)}
+              onClick={() => setIsPlaying((p) => !p)}
               className="flex cursor-pointer items-center justify-center bg-transparent transition-all outline-none hover:scale-105 active:scale-95"
               style={{ width: '33px', height: '26px' }}>
               {isPlaying ? (
@@ -563,7 +479,6 @@ export default function AnalysisSelectPage() {
               )}
             </button>
 
-            {/* 처음으로 (되돌리기) 버튼 */}
             <button
               onClick={handleRewind}
               className="flex cursor-pointer items-center justify-center rounded-[6px] transition-all outline-none hover:scale-105 active:scale-95"
@@ -578,7 +493,6 @@ export default function AnalysisSelectPage() {
             </button>
           </div>
 
-          {/* 우측 마디 선택 및 분석 버튼 입력 폼  */}
           <div className="flex items-end gap-[16px]">
             <div className="flex flex-col gap-[8px]">
               <label className="text-[13px] font-medium text-[#86899C]">분석 시작 마디</label>
@@ -624,12 +538,15 @@ export default function AnalysisSelectPage() {
         </div>
       </div>
 
-      {/* 하단 악보 보드 (배경색 통일 및 투명화 적용) */}
       <div className="mt-[40px]">
-        <ScoreRenderer
-          windows={windows} //xmlPath={`/scores/${practiceId}.xml`}
-          onReady={handleOSMDReady}
-        />
+        {xmlContent && (
+          <ScoreRenderer
+            xmlContent={xmlContent}
+            translateX={translateX}
+            viewportWidth={viewportWidth}
+            onReady={handleOSMDReady}
+          />
+        )}
       </div>
     </div>
   );
