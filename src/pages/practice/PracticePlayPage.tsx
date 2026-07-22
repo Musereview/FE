@@ -11,6 +11,7 @@ import { useActiveNotes } from '@/hooks/useActiveNotes';
 import { useMetronome } from '@/hooks/useMetronome';
 import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
+import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
 import { ALL_TRACKS, RECOMMENDED_TRACKS } from '@/pages/practice/mockTracks';
 import { buildFallbackProgression, MODE_LABEL } from '@/pages/practice/trackDisplay';
 import PlayIcon from '@/assets/practice/play.svg?react';
@@ -25,9 +26,10 @@ const PX_PER_BEAT = 120; // 노트바 길이 환산: 1박 = 120px
 function PracticePlayPage() {
   const navigate = useNavigate();
   const { practiceId } = useParams();
-  const { keyCount } = useSettingStore();
+  const { keyCount, inputId, latencyByDevice } = useSettingStore();
   const { start, stop, pause, resume } = useMetronome();
   const { noteOn: playNote, noteOff: stopNote } = usePianoSound();
+  const setResult = usePracticeResultStore((s) => s.setResult);
 
   const track = [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((t) => t.id === practiceId) ?? RECOMMENDED_TRACKS[0];
   const beatsPerBar = Number(track.timeSignature.split('/')[0]); // '4/4' → 4
@@ -43,12 +45,15 @@ function PracticePlayPage() {
   const totalBeatRef = useRef(0);
   const barIdRef = useRef(0);
   const heldRef = useRef<Map<number, number>>(new Map()); // midi → 진행 중 노트바 id
+  const recordingRef = useRef<PlayedNote[]>([]); // 연주 녹음 (Transport 시각 기준)
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pauseStartRef = useRef(performance.now()); // 정지 시각 (노트바 얼림 기준 + 재개 시 보정)
 
   // 친 음: 소리 재생 + 노트바 생성(성장 시작) → 뗄 때 소리·길이 확정 후 위로 사라짐
   const handleNoteOn = (note: number, velocity = 100) => {
     playNote(note, velocity); // 즉시 소리 (범위와 무관하게 실제 친 음)
+    // 녹음: 실제 친 음 전부 기록 (Transport 시각 = 곡 박자 기준)
+    recordingRef.current.push({ midi: note, velocity, onSec: Tone.getTransport().seconds, offSec: null });
     if (noteCenterFraction(note, keyCount) < 0) return; // 노트바는 건반 범위 안만
     const id = barIdRef.current++;
     heldRef.current.set(note, id);
@@ -56,6 +61,14 @@ function PracticePlayPage() {
   };
   const handleNoteOff = (note: number) => {
     stopNote(note); // 즉시 소리 끝
+    // 녹음: 같은 음의 마지막 열린 노트에 뗀 시각 기록
+    for (let i = recordingRef.current.length - 1; i >= 0; i--) {
+      const rec = recordingRef.current[i];
+      if (rec.midi === note && rec.offSec === null) {
+        rec.offSec = Tone.getTransport().seconds;
+        break;
+      }
+    }
     const id = heldRef.current.get(note);
     if (id === undefined) return;
     heldRef.current.delete(note);
@@ -86,6 +99,7 @@ function PracticePlayPage() {
   const startPlayback = async () => {
     await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능)
     totalBeatRef.current = 0;
+    recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
     setIsPlaying(true);
     start(track.bpm, beatsPerBar, (time, bib) => {
       const beat = totalBeatRef.current % totalCells;
@@ -129,6 +143,15 @@ function PracticePlayPage() {
     // transport 정지가 반영된 뒤 재시작 (연속 stop→start 글리치 방지)
     if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
     restartTimerRef.current = setTimeout(() => startPlayback(), 80);
+  };
+
+  // 분석: 녹음 + 레이턴시 보정값을 스토어에 저장하고 분석 화면으로 이동
+  const handleAnalyze = () => {
+    stopPlayback();
+    const raw = inputId ? latencyByDevice[inputId] : undefined;
+    const latencyMs = typeof raw === 'number' ? raw : 0; // 미측정/실패면 0
+    setResult({ trackId: practiceId, recording: recordingRef.current, latencyMs });
+    navigate(`/practice/${practiceId}/analysis`);
   };
 
   // 언마운트 시 정리
@@ -192,7 +215,7 @@ function PracticePlayPage() {
           </button>
           <button
             type="button"
-            onClick={() => navigate(`/practice/${practiceId}/analysis`)}
+            onClick={handleAnalyze}
             className="button-large2 bg-primary-400 flex h-[60px] w-[175px] items-center justify-center gap-2 rounded-[6px] px-3 py-[6px] text-gray-950">
             분석하기
             <CheckIcon className="h-6 w-6" />
