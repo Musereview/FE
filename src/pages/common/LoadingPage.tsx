@@ -46,7 +46,7 @@ function LoadingPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-950 text-gray-300">
-      <Navbar />
+      <Navbar onOpenNotification={() => {}} notiList={[]} />
 
       <main
         role="status"
