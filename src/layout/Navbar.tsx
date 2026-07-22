@@ -149,7 +149,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
             aria-haspopup="menu"
             aria-expanded={isMoreOpen}
             onClick={() => setIsMoreOpen((v) => !v)}
-            className="transition-opacity hover:opacity-80">
+            className={`transition-colors hover:opacity-80 ${isMoreOpen ? 'text-primary-400' : ''}`}>
             <MoreIcon className="size-9" />
           </button>
 
