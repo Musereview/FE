@@ -28,7 +28,7 @@ function PracticePlayPage() {
   const { practiceId } = useParams();
   const { keyCount, inputId, latencyByDevice } = useSettingStore();
   const { start, stop, pause, resume } = useMetronome();
-  const { noteOn: playNote, noteOff: stopNote } = usePianoSound();
+  const { noteOn: playNote, noteOff: stopNote, releaseAll } = usePianoSound();
   const setResult = usePracticeResultStore((s) => s.setResult);
 
   const track = [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((t) => t.id === practiceId) ?? RECOMMENDED_TRACKS[0];
@@ -76,7 +76,7 @@ function PracticePlayPage() {
   };
   const handleBarDone = useCallback((id: number) => setNoteBars((prev) => prev.filter((b) => b.id !== id)), []);
 
-  const { activeNotes } = useActiveNotes(handleNoteOn, handleNoteOff, isPlaying); // 정지 중엔 입력 무시
+  const { activeNotes, reset: resetInput } = useActiveNotes(handleNoteOn, handleNoteOff, isPlaying); // 정지 중엔 입력 무시
 
   // 백킹트랙에서 지금 차례인 코드 (null은 직전 코드 유지)
   const flatChords = measures.flat();
@@ -88,7 +88,21 @@ function PracticePlayPage() {
           .filter(Boolean)
           .pop() ?? null);
 
+  // 정지/일시정지 시점에 아직 눌린(열린) 노트를 그 순간으로 확정·해제
+  // → 이후 비활성 중 들어오는 note-off는 이미 닫힌 노트라 이벤트에 영향 없음(하이라이트 해제만)
+  const finalizeOpenNotes = (atWall: number) => {
+    const atSec = Tone.getTransport().seconds; // 정지 지점 (transport 시각, 정지 중 멈춰 있음)
+    for (const rec of recordingRef.current) {
+      if (rec.offSec === null) rec.offSec = atSec; // 녹음: 열린 노트 종료
+    }
+    setNoteBars((prev) => prev.map((b) => (b.endTime === null ? { ...b, endTime: atWall } : b))); // 노트바 종료
+    heldRef.current.clear();
+    releaseAll(); // 홀드된 소리 즉시 끊기
+    resetInput(); // 눌린 건반 표시 초기화 (stuck 방지)
+  };
+
   const stopPlayback = () => {
+    finalizeOpenNotes(performance.now()); // stop() 전에 (stop이 transport 위치를 0으로 리셋하므로)
     stop();
     Tone.getDraw().cancel();
     setIsPlaying(false);
@@ -115,6 +129,7 @@ function PracticePlayPage() {
   const pausePlayback = () => {
     pause();
     pauseStartRef.current = performance.now();
+    finalizeOpenNotes(pauseStartRef.current); // 정지 시점에 열린 노트 확정 (정지 시간이 길이에 안 껴들게)
     setIsPlaying(false);
   };
   const resumePlayback = () => {
@@ -127,6 +142,10 @@ function PracticePlayPage() {
         endTime: b.endTime !== null ? b.endTime + pausedMs : null,
       })),
     );
+    // 재개 시 입력·사운드 상태 리셋 — 누른 채 정지했을 때 남는 stuck/먹통 방지
+    heldRef.current.clear();
+    releaseAll();
+    resetInput();
     resume();
     setIsPlaying(true);
   };

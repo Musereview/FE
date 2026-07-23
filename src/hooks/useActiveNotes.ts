@@ -1,6 +1,6 @@
 // src/hooks/useActiveNotes.ts
 // 현재 눌려있는 건반 목록 관리 훅
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useMidi } from '@/hooks/useMidi';
 import { useSettingStore } from '@/stores/settingsStore';
 
@@ -32,5 +32,8 @@ export function useActiveNotes(
     inputId, // ← 선택된 기기만 입력받도록 전달
   );
 
-  return { activeNotes, inputs, error };
+  // 눌린 건반 표시 초기화 (정지/재개 시 stuck 상태 방지)
+  const reset = useCallback(() => setActiveNotes(new Set()), []);
+
+  return { activeNotes, inputs, error, reset };
 }

@@ -36,5 +36,8 @@ export function usePianoSound() {
     getSynth().triggerRelease(note, Tone.immediate());
   };
 
-  return { noteOn, noteOff };
+  // 울리고 있는 모든 소리 즉시 끊기 (정지/일시정지 등)
+  const releaseAll = () => synthRef.current?.releaseAll(Tone.immediate());
+
+  return { noteOn, noteOff, releaseAll };
 }
