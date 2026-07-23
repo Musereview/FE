@@ -225,10 +225,11 @@ function PracticePlayPage() {
 
       {/* 본문 */}
       <div className="relative flex flex-1 flex-col px-[160px] pt-8">
-        {/* 백킹트랙 + 진행점 */}
-        <div className="flex flex-col gap-4">
+        {/* 백킹트랙 + 진행점 (중앙 정렬, 반응형) — 진행점은 본문 기준 top-113, 백킹트랙 오른쪽 끝에 정렬 */}
+        <div className="relative mx-auto flex w-full max-w-[1510px] flex-col">
           <BackingTrack measures={measures} currentBeat={currentBeat} beatsPerBar={beatsPerBar} />
-          <div className="absolute top-[113px] right-[160px] flex">
+          {/* top-[81px] = 본문 top-[113px] - pt-8(32px) */}
+          <div className="absolute top-[81px] right-0 flex">
             <MetronomeDots total={beatsPerBar} current={beatInBar} />
           </div>
         </div>

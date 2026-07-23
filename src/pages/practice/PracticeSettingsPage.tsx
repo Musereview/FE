@@ -66,10 +66,11 @@ function PracticeSettingsPage() {
 
       {/* 본문 (연습 화면과 동일 — 정적) */}
       <div className="relative flex flex-1 flex-col px-[160px] pt-8">
-        {/* 백킹트랙 + 진행점 */}
-        <div className="flex flex-col gap-4">
+        {/* 백킹트랙 + 진행점 (중앙 정렬, 반응형) — 진행점 본문 기준 top-113, 백킹트랙 오른쪽 정렬 */}
+        <div className="relative mx-auto flex w-full max-w-[1510px] flex-col">
           <BackingTrack measures={measures} currentBeat={-1} beatsPerBar={beatsPerBar} />
-          <div className="absolute top-[113px] right-[160px] flex">
+          {/* top-[81px] = 본문 top-[113px] - pt-8(32px) */}
+          <div className="absolute top-[81px] right-0 flex">
             <MetronomeDots total={beatsPerBar} current={-1} />
           </div>
         </div>

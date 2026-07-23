@@ -20,20 +20,21 @@ export default function BackingTrack({ measures, currentBeat, beatsPerBar, class
   const visibleMeasures = measures.slice(startMeasure, startMeasure + PAGE_SIZE);
 
   return (
-    // 컨테이너: width 1510px, padding 12px, justify-between, radius 6px, bg gray-900
-    <div className={`flex w-[1510px] items-center justify-between rounded-[6px] bg-gray-900 p-3 ${className}`}>
+    // 컨테이너: 최대 1510px, 마디 균등 분할(반응형) — 폭이 바뀌어도 셀이 고르게 정렬됨
+    <div className={`flex w-full max-w-[1510px] items-center gap-6 rounded-[6px] bg-gray-900 p-3 ${className}`}>
       {visibleMeasures.map((measure, localIndex) => {
         const measureIndex = startMeasure + localIndex; // 전체 진행 기준 마디 인덱스
         return (
-          <div key={measureIndex} className="flex items-center gap-1">
+          // 마디 = 균등 폭(flex-1), 마디 안 셀도 균등 분할
+          <div key={measureIndex} className="flex flex-1 items-center gap-1">
             {measure.map((chord, cellIndex) => {
               const flatIndex = measureIndex * beatsPerBar + cellIndex;
               const isCurrent = flatIndex === currentBeat;
               return (
-                // 셀: 80×30, radius 4px, bg gray-600 (재생 중인 박은 보라색)
+                // 셀: 높이 30, 폭 균등(flex-1), radius 4px, bg gray-600 (재생 중인 박은 보라색)
                 <div
                   key={cellIndex}
-                  className={`button-label1 flex h-[30px] w-[80px] items-center justify-center rounded-[4px] ${
+                  className={`button-label1 flex h-[30px] flex-1 items-center justify-center rounded-[4px] ${
                     isCurrent ? 'bg-secondary-400 text-gray-900' : 'bg-gray-600 text-gray-950'
                   }`}>
                   <span className={chord ? '' : 'invisible'}>{chord ?? '-'}</span>
