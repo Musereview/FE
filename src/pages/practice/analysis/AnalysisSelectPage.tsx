@@ -315,13 +315,12 @@
 //     </div>
 //   );
 // }
+//경로 : C:\project\MuseReview\FE\src\pages\practice\analysis\AnalysisSelectPage.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
 
-import ScoreRenderer from '@/components/music/ScoreRenderer';
+import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
 import { useScoreCursorSync } from '@/hooks/music/useScoreCursorSync';
-import { useSlidingWindow } from '@/hooks/music/useSlidingWindow';
 import { computeMeasureTimings } from '@/utils/musicXmlTiming';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 
@@ -336,9 +335,8 @@ export default function AnalysisSelectPage() {
 
   const [xmlContent, setXmlContent] = useState('');
   const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
-  const [measureXPositions, setMeasureXPositions] = useState<number[]>([]);
 
-  const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
+  const scoreViewerRef = useRef<ScoreViewerHandle>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // 1) 전체 MusicXML은 최초 1회만 fetch (더 이상 마디별로 자르지 않는다)
@@ -356,7 +354,7 @@ export default function AnalysisSelectPage() {
     };
   }, []);
 
-  // 2) 오디오 엘리먼트 (기존과 동일한 자리)
+  // 2) 오디오 엘리먼트
   useEffect(() => {
     const audio = new Audio('https://actions.google.com/sounds/v1/science_fiction/ambient_space_machine.ogg');
     audioRef.current = audio;
@@ -374,26 +372,17 @@ export default function AnalysisSelectPage() {
     else audioRef.current.pause();
   }, [isPlaying]);
 
-  const handleOSMDReady = useCallback((osmd: OpenSheetMusicDisplay, positions: number[]) => {
-    osmdRef.current = osmd;
-    setMeasureXPositions(positions);
-  }, []);
-
-  // 3) 오디오 진행 시간 -> 현재 마디 인덱스 계산 + OSMD 커서 자동 이동
+  // 3) 오디오 진행 시간 -> 현재 마디 인덱스 (순수 로직, OSMD와 무관)
   const { currentMeasureIndex } = useScoreCursorSync({
-    osmdRef,
     audioRef,
     measureStartTimes,
     isPlaying,
   });
 
-  // 4) 현재 마디 -> Sliding Window (1~4 -> 4~7 -> 7~10 ...)
-  const { translateX, viewportWidth } = useSlidingWindow(measureXPositions, currentMeasureIndex);
-
   const handleRewind = useCallback(() => {
     setIsPlaying(false);
     if (audioRef.current) audioRef.current.currentTime = 0;
-    osmdRef.current?.cursor.reset();
+    scoreViewerRef.current?.reset();
     setToastMessage('첫 마디로 되돌아갔습니다.');
     setTimeout(() => setToastMessage(null), 3000);
   }, []);
@@ -436,7 +425,6 @@ export default function AnalysisSelectPage() {
     audioRef.current?.pause();
 
     // "분석하기"를 누르는 순간에만 1회 잘라서 다음 페이지로 넘긴다.
-    // (표시/슬라이딩 경로와는 완전히 분리되어 있으므로 성능에 영향 없음)
     const rangeXml = extractMeasureRange(xmlContent, startNum, endNum);
     navigate(`/practice/${practiceId}/analysis/result?start=${startNum}&end=${endNum}`, { state: { rangeXml } });
   };
@@ -540,11 +528,13 @@ export default function AnalysisSelectPage() {
 
       <div className="mt-[40px]">
         {xmlContent && (
-          <ScoreRenderer
+          <ScoreViewer
+            ref={scoreViewerRef}
             xmlContent={xmlContent}
-            translateX={translateX}
-            viewportWidth={viewportWidth}
-            onReady={handleOSMDReady}
+            currentMeasureIndex={currentMeasureIndex}
+            followPlayback={isPlaying}
+            height={480}
+            className="w-full"
           />
         )}
       </div>
