@@ -1,4 +1,3 @@
-//경로 : C:\project\MuseReview\FE\src\hooks\music\useAutoFollowScroll.ts
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 
 interface Options {
