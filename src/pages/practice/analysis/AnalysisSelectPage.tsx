@@ -6,6 +6,7 @@ import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreVie
 import { useScoreCursorSync } from '@/hooks/music/useScoreCursorSync';
 import { computeMeasureTimings } from '@/utils/musicXmlTiming';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
+import LoadingPage from '@/pages/common/LoadingPage';
 
 export default function AnalysisSelectPage() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function AnalysisSelectPage() {
   const [startMeasure, setStartMeasure] = useState('1마디');
   const [endMeasure, setEndMeasure] = useState('30마디');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [xmlContent, setXmlContent] = useState('');
   const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
@@ -42,9 +44,11 @@ export default function AnalysisSelectPage() {
     };
   }, []);
 
-  // 2) 오디오 엘리먼트 (테스트용 공개 MP3 링크 장착으로 소리와 커서 연동 확인 가능)
+  // 2) 오디오 엘리먼트 (페이지 진입 시 프리로드 적용으로 재생 딜레이 방지)
   useEffect(() => {
     const audio = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+    audio.preload = 'auto'; // 미리 로드(프리로드) 설정
+    audio.load(); //즉시 로드(딜레이 방지)
     audioRef.current = audio;
     audio.onended = () => handleRewind();
     return () => {
@@ -94,7 +98,7 @@ export default function AnalysisSelectPage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // 4) 분석하기 버튼 클릭 시 목업 데이터를 태워 곧바로 다음 페이지로 이동
+  // 4) 분석하기 버튼 클릭 시 유효성 검사 및 로딩/이동 처리
   const handleStartAnalysis = () => {
     const startNum = getMeasureNumber(startMeasure);
     const endNum = getMeasureNumber(endMeasure);
@@ -106,18 +110,19 @@ export default function AnalysisSelectPage() {
       return;
     }
 
+    // 2. 시작 마디와 종료 마디가 같거나 범위를 벗어난 경우 (동일 마디, diff <= 0)
     if (startNum === 0 || endNum === 0 || diff <= 0) {
-      triggerToast('올바른 분석 구간을 설정해 주세요.');
+      triggerToast('분석 구간은 최소 1마디 이상이어야 합니다.');
       return;
     }
 
-    // 2. 32마디 초과 검사
+    // 3. 32마디 초과 검사
     if (diff > 32) {
       triggerToast('분석 구간은 최대 32마디까지 선택할 수 있습니다.');
       return;
     }
 
-    // 3. 존재하지 않는 마디 입력 검사 (악보 범위를 벗어난 경우)
+    // 4. 존재하지 않는 마디 입력 검사 (악보 범위를 벗어난 경우)
     if (startNum > totalMeasures || endNum > totalMeasures) {
       triggerToast('선택한 마디가 악보 범위를 벗어났습니다.');
       return;
@@ -136,15 +141,26 @@ export default function AnalysisSelectPage() {
       createdAt: new Date().toISOString(),
     };
 
-    // 마디 구간 XML 자르기 및 상태 전달과 함께 결과 페이지로 이동
     const rangeXml = extractMeasureRange(xmlContent, startNum, endNum);
-    navigate(`/practice/${practiceId || '1'}/analysis/result?start=${startNum}&end=${endNum}`, {
-      state: { rangeXml, analysisData: mockAnalysisData },
-    });
+
+    setIsLoading(true);
+
+    setTimeout(() => {
+      setIsLoading(false);
+      navigate(`/practice/${practiceId || '1'}/analysis/result?start=${startNum}&end=${endNum}`, {
+        state: { rangeXml, analysisData: mockAnalysisData },
+      });
+    }, 2000);
   };
 
   return (
-    <div className="relative min-h-screen w-full min-w-[1280px] bg-[#090A0F] px-4 py-[60px] font-sans text-white select-none md:px-16 xl:px-[120px]">
+    <div className="relative min-h-screen w-full min-w-[1280px] bg-[#0B0F19] px-4 py-[60px] font-sans text-white select-none md:px-16 xl:px-[120px]">
+      {isLoading && (
+        <div className="fixed inset-0 z-50 bg-[#0B0F19]">
+          <LoadingPage />
+        </div>
+      )}
+
       {toastMessage && (
         <div className="fixed top-[40px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-[12px] rounded-[12px] bg-[#E02424] px-[24px] py-[16px] text-[16px] font-bold text-white shadow-2xl">
           <span>⚠️</span> {toastMessage}
@@ -154,7 +170,7 @@ export default function AnalysisSelectPage() {
       <div className="flex flex-col">
         <button
           onClick={() => navigate(-1)}
-          className="flex cursor-pointer items-center gap-[6px] text-[15px] font-medium text-[#A6A8B2] transition-colors hover:text-white">
+          className="flex cursor-pointer items-center gap-[8px] text-[15px] font-medium text-[#CECFD1] transition-colors hover:text-white">
           <svg width="9" height="15" viewBox="0 0 9 15" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M8 1.5L1.5 7.5L8 13.5"
@@ -167,35 +183,37 @@ export default function AnalysisSelectPage() {
           연습으로
         </button>
 
-        <h1 className="mt-[44px] text-[28px] font-bold tracking-tight text-white">분석 파트 설정</h1>
+        <h1 className="mt-[32px] text-[28px] font-bold tracking-tight text-white">분석 파트 설정</h1>
 
         <div className="mt-[35px] flex w-full items-end justify-between">
-          <div className="flex h-[52px] items-center gap-[19px]">
+          <div className="flex h-[52px] items-center gap-[16px]">
+            {/* 재생 / 정지 버튼  */}
             <button
               onClick={() => setIsPlaying((p) => !p)}
-              className="flex h-[26px] w-[33px] cursor-pointer items-center justify-center bg-transparent transition-all outline-none hover:scale-105 active:scale-95">
+              className="flex aspect-square h-[52px] w-[52px] cursor-pointer items-center justify-center bg-transparent transition-all outline-none hover:scale-105 active:scale-95">
               {isPlaying ? (
-                <svg width="26" height="33" viewBox="0 0 26 33" fill="none">
-                  <rect x="3" y="1" width="6" height="31" rx="1.5" fill="#69FFC0" />
-                  <rect x="17" y="1" width="6" height="31" rx="1.5" fill="#69FFC0" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" fill="none">
+                  <rect x="15" y="11" width="7" height="30" rx="2" fill="#69FFC0" />
+                  <rect x="30" y="11" width="7" height="30" rx="2" fill="#69FFC0" />
                 </svg>
               ) : (
-                <svg width="26" height="33" viewBox="0 0 26 33" fill="none">
+                <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" fill="none">
                   <path
-                    d="M25.4208 15.384C26.1931 15.88 26.1931 17.12 25.4208 17.6159L1.73767 32.8254C0.965374 33.3214 0 32.7014 0 31.7095L0 1.29051C0 0.298557 0.965378 -0.321418 1.73768 0.17456L25.4208 15.384Z"
+                    d="M40.4208 25.384C41.1931 25.88 41.1931 27.12 40.4208 27.6159L16.7377 42.8254C15.9654 43.3214 15 42.7014 15 41.7095L15 11.2905C15 10.2986 15.9654 9.67858 16.7377 10.1746L40.4208 25.384Z"
                     fill="#69FFC0"
                   />
                 </svg>
               )}
             </button>
 
+            {/* 되돌아가기(리와인드) 버튼 */}
             <button
               onClick={handleRewind}
-              className="flex h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-[6px] transition-all outline-none hover:scale-105 active:scale-95">
-              <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+              className="flex aspect-square h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-[6px] bg-[#2B2E36] transition-all outline-none hover:scale-105 active:scale-95">
+              <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" fill="none">
                 <rect width="52" height="52" rx="6" fill="#2B2E36" />
                 <path
-                  d="M31.1991 9.8666C31.6986 9.63179 32.2949 9.84675 32.5301 10.3461L34.8875 15.3549C35.2172 16.0554 34.9161 16.8913 34.2157 17.2211L29.2059 19.5785C28.7063 19.8134 28.1109 19.5986 27.8758 19.099C27.6407 18.5994 27.8549 18.0042 28.3543 17.7689L31.4569 16.308C29.3431 15.3161 26.9824 14.9457 24.6532 15.2523C21.9794 15.6043 19.4957 16.8288 17.5887 18.7357C15.682 20.6426 14.4574 23.1257 14.1053 25.7992C13.7533 28.473 14.2941 31.1883 15.6424 33.5238C16.9908 35.8593 19.0719 37.6851 21.5633 38.7172C24.0548 39.7492 26.8178 39.9307 29.4227 39.2328C32.0276 38.5348 34.3298 36.9963 35.9715 34.8568C37.6131 32.7173 38.5037 30.0955 38.5038 27.3988C38.5039 26.8467 38.9516 26.3988 39.5038 26.3988C40.0558 26.399 40.5036 26.8468 40.5038 27.3988C40.5037 30.5358 39.4681 33.5858 37.5584 36.0746C35.6487 38.5633 32.9704 40.3525 29.9403 41.1644C26.9102 41.9763 23.6969 41.7653 20.7987 40.5648C17.9003 39.3643 15.4786 37.2407 13.91 34.5238C12.3416 31.8071 11.7135 28.6486 12.1229 25.5385C12.5324 22.4284 13.9566 19.5399 16.1747 17.3217C18.393 15.1034 21.2822 13.6784 24.3924 13.2689C27.0866 12.9144 29.8164 13.3397 32.2645 14.4789L30.7206 11.1977C30.4857 10.6981 30.6997 10.1018 31.1991 9.8666Z"
+                  d="M31.199 9.86647C31.6985 9.63189 32.2939 9.8468 32.5291 10.346L34.8865 15.3548C35.2162 16.0554 34.9152 16.8912 34.2147 17.221L29.2059 19.5784C28.7061 19.8135 28.11 19.5986 27.8748 19.0989C27.6399 18.5992 27.8547 18.0039 28.3543 17.7688L31.4559 16.3089C29.3421 15.3169 26.9815 14.9465 24.6522 15.2532C21.9784 15.6053 19.4947 16.8296 17.5877 18.7366C15.6811 20.6435 14.4563 23.1266 14.1043 25.8001C13.7524 28.4737 14.2931 31.1892 15.6414 33.5247C16.9898 35.86 19.0709 37.686 21.5623 38.718C24.0537 39.75 26.8169 39.9314 29.4217 39.2337C32.0265 38.5357 34.3288 36.997 35.9705 34.8577C37.6121 32.7183 38.5026 30.0963 38.5027 27.3997C38.5027 26.8475 38.9506 26.3998 39.5027 26.3997C40.0549 26.3998 40.5027 26.8475 40.5027 27.3997C40.5026 30.5366 39.4671 33.5868 37.5574 36.0755C35.6477 38.564 32.9693 40.3534 29.9393 41.1653C26.9092 41.977 23.6958 41.7661 20.7977 40.5657C17.8994 39.3652 15.4776 37.2415 13.909 34.5247C12.3406 31.808 11.7126 28.6494 12.1219 25.5393C12.5313 22.4293 13.9557 19.5408 16.1736 17.3225C18.3919 15.1043 21.2812 13.6793 24.3914 13.2698C27.0854 12.9152 29.8154 13.3397 32.2635 14.4788L30.7195 11.1975C30.4847 10.6979 30.6994 10.1016 31.199 9.86647Z"
                   fill="#CECFD1"
                 />
               </svg>
@@ -229,14 +247,14 @@ export default function AnalysisSelectPage() {
 
             <button
               onClick={handleStartAnalysis}
-              className="flex h-[48px] cursor-pointer items-center gap-[6px] rounded-[8px] bg-[#69FFC0] px-[24px] text-[15px] font-bold text-[#090A0F] transition-all hover:bg-[#52E0A7] active:scale-[0.98]">
+              className="flex h-[48px] cursor-pointer items-center gap-[8px] rounded-[8px] bg-[#69FFC0] px-[24px] text-[15px] font-bold text-[#0B0F19] transition-all hover:bg-[#52E0A7] active:scale-[0.98]">
               분석하기
               <svg
                 width="14"
                 height="14"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="currentColor"
+                stroke="#0B0F19"
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round">
@@ -247,7 +265,7 @@ export default function AnalysisSelectPage() {
         </div>
       </div>
 
-      <div className="mt-[5px]">
+      <div className="mt-[24px]">
         {xmlContent && (
           <ScoreViewer
             ref={scoreViewerRef}
