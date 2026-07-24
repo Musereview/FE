@@ -1,10 +1,10 @@
 // src/pages/main/MainPage.tsx
 import { useOutletContext } from 'react-router-dom';
-import AttendanceSection from './components/AttendanceSection';
-import LearningBanner from './components/LearningBanner';
-import RecommendedLearnings from './components/RecommandLearn';
-import RecentPractices from './components/RecentPractices';
-import DashboardNoti from './components/DashboardNoti';
+import AttendanceSection from '@/components/main/AttendanceSection';
+import LearningBanner from '@/components/main/LearningBanner';
+import RecommendedLearnings from '@/components/main/RecommandLearn';
+import RecentPractices from '@/components/main/RecentPractices';
+import DashboardNoti from '@/components/main/DashboardNoti';
 import type { NotiItem } from '@/types/notification';
 
 interface LayoutContextType {
