@@ -127,7 +127,6 @@ export default function AnalysisSelectPage() {
 
     const parsedPlayingId = practiceId ? parseInt(practiceId, 10) : 31;
 
-    // 완벽한 테스트를 위한 목업 응답 데이터 구성
     const mockAnalysisData = {
       analysisId: 10,
       playingId: isNaN(parsedPlayingId) ? 31 : parsedPlayingId,
@@ -156,7 +155,16 @@ export default function AnalysisSelectPage() {
         <button
           onClick={() => navigate(-1)}
           className="flex cursor-pointer items-center gap-[6px] text-[15px] font-medium text-[#A6A8B2] transition-colors hover:text-white">
-          <span className="text-[12px]">＜</span> 연습으로
+          <svg width="9" height="15" viewBox="0 0 9 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M8 1.5L1.5 7.5L8 13.5"
+              stroke="#CECFD1"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>{' '}
+          연습으로
         </button>
 
         <h1 className="mt-[44px] text-[28px] font-bold tracking-tight text-white">분석 파트 설정</h1>

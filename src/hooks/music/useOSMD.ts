@@ -18,8 +18,6 @@ export function useOSMD({
   xmlPath,
   zoom = 1.1,
   drawMeasureNumbers = false,
-  // 기본값을 32767보다 훨씬 크게(20만 unit) 잡아, 325마디 이상의 긴 악보도
-  //    하나의 StaffLine 안에 전부 들어가도록 한다. (SVG는 실질적인 폭 제한이 없음)
   sheetMaximumWidth = 200_000,
 
   onReady,
@@ -38,8 +36,7 @@ export function useOSMD({
     containerRef.current.innerHTML = '';
     setIsLoading(true);
 
-    // IOSMDOptions의 일부 속성은 설치된 opensheetmusicdisplay 버전의 타입 선언에
-    // 누락돼 있을 수 있어 안전하게 caller 시점에 캐스팅한다.
+    // IOSMDOptions의 일부 속성은 설치된 opensheetmusicdisplay 버전의 타입 선언에 누락돼 있을 수 있어 안전하게 caller 시점에 캐스팅한다.
     const options = {
       autoResize: false,
       backend: 'svg',
@@ -50,8 +47,7 @@ export function useOSMD({
       drawMeasureNumbers,
       //  하나의 긴 가로 악보로 렌더링
       renderSingleHorizontalStaffline: true,
-      // MusicXML에 박혀 있는 <print new-system="yes"/>, <print new-page="yes"/> 같은
-      //    강제 줄바꿈/페이지 나눔 지시를 무시한다. (sample.xml에 다수 포함되어 있어 필수)
+
       newSystemFromXML: false,
       newPageFromXML: false,
     } as ConstructorParameters<typeof OpenSheetMusicDisplay>[1];
@@ -100,20 +96,46 @@ export function useOSMD({
   return { containerRef, osmdRef, isLoading, measureXPositions };
 }
 
+// function applyDarkModeColors(container: HTMLElement) {
+//   const NOTE_COLOR = '#C7CBD5';
+
+//   container.querySelectorAll('svg').forEach((svg) => {
+//     svg.style.backgroundColor = 'transparent';
+//     svg.style.height = 'auto';
+//     svg.querySelectorAll('path, rect, text, ellipse').forEach((el) => {
+//       const fill = el.getAttribute('fill');
+//       const stroke = el.getAttribute('stroke');
+//       if (fill && fill !== 'none' && fill !== 'transparent') {
+//         el.setAttribute('fill', NOTE_COLOR);
+//       }
+//       if (stroke && stroke !== 'none' && stroke !== 'transparent') {
+//         el.setAttribute('stroke', NOTE_COLOR);
+//       }
+//     });
+//   });
+// }
+
 function applyDarkModeColors(container: HTMLElement) {
-  const NOTE_COLOR = '#C7CBD5';
+  const NOTE_COLOR = '#AEB1B6'; // 음표 및 악상 기호 색상
+  const STAFF_COLOR = '#6E737D'; // 오선지 선 색상
 
   container.querySelectorAll('svg').forEach((svg) => {
     svg.style.backgroundColor = 'transparent';
     svg.style.height = 'auto';
-    svg.querySelectorAll('path, rect, text, ellipse').forEach((el) => {
+
+    svg.querySelectorAll('path, rect, text, ellipse, line').forEach((el) => {
       const fill = el.getAttribute('fill');
       const stroke = el.getAttribute('stroke');
+
+      // 1. 채워진 요소(음표 머리 등) 색상 변경
       if (fill && fill !== 'none' && fill !== 'transparent') {
         el.setAttribute('fill', NOTE_COLOR);
       }
+
+      // 2. 선 요소(오선지, 기둥, 마디선 등) 색상 변경
       if (stroke && stroke !== 'none' && stroke !== 'transparent') {
-        el.setAttribute('stroke', NOTE_COLOR);
+        // 오선지 라인이나 테두리 톤을 피그마 느낌으로 다듬기
+        el.setAttribute('stroke', STAFF_COLOR);
       }
     });
   });
