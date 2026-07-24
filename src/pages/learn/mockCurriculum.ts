@@ -59,6 +59,16 @@ export function getCurriculum(curriculumId: string): Curriculum {
   return MOCK_CURRICULA[curriculumId] ?? MOCK_CURRICULA[DEFAULT_CURRICULUM_ID];
 }
 
+// 커리큘럼(단계) 순서
+const CURRICULUM_ORDER = Object.keys(MOCK_CURRICULA);
+
+// 다음 단계 커리큘럼 id (없거나 마지막이면 null)
+export function getNextCurriculumId(currentId: string): string | null {
+  const idx = CURRICULUM_ORDER.indexOf(currentId);
+  if (idx === -1 || idx >= CURRICULUM_ORDER.length - 1) return null;
+  return CURRICULUM_ORDER[idx + 1];
+}
+
 export function getCurriculumProgress(steps: TopicChapter[]): number {
   if (steps.length === 0) return 0;
   const completedCount = steps.filter((step) => step.status === 'completed').length;

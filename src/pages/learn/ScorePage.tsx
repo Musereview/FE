@@ -1,6 +1,6 @@
 // 학습 결과(점수) 페이지 — 프론트 채점 결과를 표시 (채점 로직은 다음 단계)
 import { useNavigate, useParams } from 'react-router-dom';
-import { getCurriculum } from './mockCurriculum';
+import { getCurriculum, getNextCurriculumId } from './mockCurriculum';
 import { useLearningScoreStore } from '@/stores/learningScoreStore';
 import { buildFeedback } from '@/constants/scoreFeedback';
 import RefreshIcon from '@/assets/restart.svg?react';
@@ -14,6 +14,7 @@ function ScorePage() {
   const { result } = useLearningScoreStore();
 
   const title = `${curriculum.stepDescription.replace(/^-\s*/, '')} - 학습 결과`;
+  const nextCurriculumId = getNextCurriculumId(curriculumId); // 다음 단계 (없으면 null)
 
   const stats = [
     { label: '정확도', value: `${result.accuracy}%` },
@@ -41,10 +42,10 @@ function ScorePage() {
             다시하기
             <RefreshIcon className="ml-2 h-[24px] w-[24px]" />
           </button>
-          {/* TODO: '다음 학습으로' 다음 스텝 경로 확정 시 교체 (현재는 스텝 상세로) */}
+          {/* 다음 단계의 단계별 학습 페이지로 이동 (마지막 단계면 커리큘럼 목록으로) */}
           <button
             type="button"
-            onClick={() => navigate(`/learn/curriculum/${curriculumId}`)}
+            onClick={() => navigate(nextCurriculumId ? `/learn/curriculum/${nextCurriculumId}` : '/learn/curriculum')}
             className="button-large2 bg-primary-400 flex h-[60px] w-[174px] items-center justify-center rounded-[6px] py-1.5 pr-3 pl-3.5 text-gray-950">
             다음 학습으로
             <ChevronRightIcon className="ml-2 h-[24px] w-[24px]" />
