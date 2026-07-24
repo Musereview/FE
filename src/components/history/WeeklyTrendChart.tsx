@@ -1,4 +1,4 @@
-// src/components/history/WeeklyTrendChart.tsx
+// // src/components/history/WeeklyTrendChart.tsx
 
 export default function WeeklyTrendChart() {
   const points = [
@@ -30,15 +30,7 @@ export default function WeeklyTrendChart() {
       </div>
 
       {/* 차트 메인 박스  */}
-      <div
-        className="flex w-[1196px] flex-col rounded-[6px] border border-[#2E3142] bg-[#161B22]"
-        style={{
-          paddingTop: '66px',
-          paddingBottom: '40px',
-          paddingLeft: '40px',
-          paddingRight: '40px',
-          boxSizing: 'border-box',
-        }}>
+      <div className="box-border flex w-[1196px] flex-col rounded-[6px] border border-[#2E3142] bg-[#161B22] px-[40px] pt-[66px] pb-[40px]">
         {/* 전체 차트 영역 */}
         <div className="relative flex h-[260px] w-full">
           {/* 1. Y축 수치 레이블 */}

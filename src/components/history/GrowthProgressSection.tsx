@@ -3,7 +3,7 @@
 export default function GrowthProgressSection() {
   return (
     <div className="flex w-[1196px] flex-col rounded-[6px] border border-[#2E3142] bg-[#161B22] p-[40px]">
-      {/* 그래프 및 라벨 리스트 영역 (행마다 32px 간격) */}
+      {/* 그래프 및 라벨 리스트 영역  */}
       <div className="flex flex-col gap-[32px]">
         {/* 스케일 (+8) */}
         <div className="flex items-center justify-between">
