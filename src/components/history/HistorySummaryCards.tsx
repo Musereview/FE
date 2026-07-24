@@ -1,5 +1,3 @@
-// src/components/history/HistorySummaryCards.tsx
-
 import React from 'react';
 
 interface SummaryCardProps {
@@ -9,39 +7,19 @@ interface SummaryCardProps {
   deltaText: string;
 }
 
-// 1. 이번주 요약 카드 공통 컴포넌트 추출
+// 1. 이번주 요약 카드 공통 컴포넌트
 function SummaryCard({ icon, title, value, deltaText }: SummaryCardProps) {
   return (
-    <div className="box-border flex h-[160px] flex-1 flex-col items-start justify-between rounded-[6px] border border-[#2E3142] bg-[#1B1E27] p-[24px]">
+    <div className="box-border flex h-[160px] flex-1 flex-col items-start justify-between rounded-[6px] border border-gray-800 bg-gray-900 p-[24px]">
       <div className="flex w-full items-center justify-between">
         <div className="flex items-center gap-[12px]">
           {icon}
-          <span
-            className="text-[#E7E7E8]"
-            style={{
-              fontFamily: 'Pretendard',
-              fontSize: '22px',
-              fontWeight: 500,
-              lineHeight: '32px',
-              letterSpacing: '-0.44px',
-            }}>
-            {title}
-          </span>
+          <span className="text-[22px] leading-[32px] font-medium tracking-[-0.44px] text-gray-300">{title}</span>
         </div>
-        <span
-          className="text-[#9CFFD6]"
-          style={{
-            fontFamily: 'Pretendard',
-            fontSize: '32px',
-            fontWeight: 600,
-            lineHeight: '44px',
-            letterSpacing: '-0.64px',
-          }}>
-          {value}
-        </span>
+        <span className="text-primary-300 text-[32px] leading-[44px] font-semibold tracking-[-0.64px]">{value}</span>
       </div>
-      <div className="text-[15px] font-normal text-[#868A91]">
-        전 주보다 <span className="text-[#9CFFD6]">{deltaText}</span>했어요
+      <div className="text-[15px] font-normal text-gray-600">
+        전 주보다 <span className="text-primary-300">{deltaText}</span>했어요
       </div>
     </div>
   );
