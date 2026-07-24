@@ -43,7 +43,7 @@ export function useOSMD({
     const options = {
       autoResize: false,
       backend: 'svg',
-      drawingParameters: 'default', // 레이아웃에 따라 default, leadsheet으로 변경 예정
+      drawingParameters: 'compacttight', // 레이아웃에 따라 default, leadsheet으로 변경 예정
       drawTitle: false,
       drawSubtitle: false,
       drawComposer: false,
@@ -60,6 +60,10 @@ export function useOSMD({
     osmd.zoom = zoom;
 
     osmd.EngravingRules.SheetMaximumWidth = sheetMaximumWidth;
+
+    osmd.EngravingRules.PageTopMargin = 0;
+    osmd.EngravingRules.TitleTopDistance = 0;
+
     // -----------------------------------------------------------------------------
 
     osmdRef.current = osmd;

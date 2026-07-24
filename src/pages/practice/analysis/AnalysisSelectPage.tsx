@@ -165,8 +165,7 @@ export default function AnalysisSelectPage() {
           <div className="flex h-[52px] items-center gap-[19px]">
             <button
               onClick={() => setIsPlaying((p) => !p)}
-              className="flex cursor-pointer items-center justify-center bg-transparent transition-all outline-none hover:scale-105 active:scale-95"
-              style={{ width: '33px', height: '26px' }}>
+              className="flex h-[26px] w-[33px] cursor-pointer items-center justify-center bg-transparent transition-all outline-none hover:scale-105 active:scale-95">
               {isPlaying ? (
                 <svg width="26" height="33" viewBox="0 0 26 33" fill="none">
                   <rect x="3" y="1" width="6" height="31" rx="1.5" fill="#69FFC0" />
@@ -184,8 +183,7 @@ export default function AnalysisSelectPage() {
 
             <button
               onClick={handleRewind}
-              className="flex cursor-pointer items-center justify-center rounded-[6px] transition-all outline-none hover:scale-105 active:scale-95"
-              style={{ width: '52px', height: '52px' }}>
+              className="flex h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-[6px] transition-all outline-none hover:scale-105 active:scale-95">
               <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
                 <rect width="52" height="52" rx="6" fill="#2B2E36" />
                 <path
@@ -241,7 +239,7 @@ export default function AnalysisSelectPage() {
         </div>
       </div>
 
-      <div className="mt-[40px]">
+      <div className="mt-[5px]">
         {xmlContent && (
           <ScoreViewer
             ref={scoreViewerRef}

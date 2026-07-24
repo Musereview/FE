@@ -25,17 +25,6 @@ export interface ScoreViewerProps {
   onReady?: (osmd: OpenSheetMusicDisplay, measureXPositions: number[]) => void;
 }
 
-/**
- * 하나의 긴 Horizontal Score(단일 System, 줄바꿈 없음)를 렌더링하고,
- * 필요 시 재생 위치를 따라 가로 스크롤 + 커서를 자동으로 이동시키는 재사용 가능한 악보 뷰어.
- *
- * - 분석 마디 설정 페이지 / 분석 결과 페이지 / 히스토리 상세 페이지에서 공통으로 사용한다.
- * - MusicXML은 최초 1회만 OSMD에 load/render 된다.
- * - 이후 재생 위치 이동은 오직 scrollLeft 변경 + cursor.update() 로만 이루어지며
- *   OSMD를 다시 render하지 않는다.
- * - 사용자가 직접 스크롤하면 자동 추적이 잠시 중단되고, 일정 시간 뒤(또는 재생 재개 시)
- *   다시 재생 위치를 따라간다.
- */
 const ScoreViewer = forwardRef<ScoreViewerHandle, ScoreViewerProps>(function ScoreViewer(
   {
     xmlContent,
@@ -97,11 +86,15 @@ const ScoreViewer = forwardRef<ScoreViewerHandle, ScoreViewerProps>(function Sco
       {/* 가로 스크롤 뷰포트. 자동 줄바꿈 대신 여기서 좌우로만 이동한다. */}
       <div
         ref={scrollRef}
-        //className="overflow-x-auto overflow-y-hidden p-[40px] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#3A3D4A] [&::-webkit-scrollbar-track]:bg-transparent"
+
         className="overflow-x-auto overflow-y-hidden px-0 py-7 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#3A3D4A] [&::-webkit-scrollbar-track]:bg-transparent"
         style={{ height }}>
         {/* renderSingleHorizontalStaffline: true 로 렌더링된, 줄바꿈 없는 단일 라인 악보 */}
-        <div ref={containerRef} className="inline-block align-top" />
+        <div
+          ref={containerRef}
+          className="inline-block align-top"
+          style={{ transform: 'scale(1.2)', transformOrigin: 'top left' }}
+        />
       </div>
     </div>
   );
