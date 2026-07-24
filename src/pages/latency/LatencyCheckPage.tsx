@@ -7,6 +7,7 @@ import { noteCenterFraction } from '@/constants/piano';
 import Metronome from '@/components/metronome/MetronomeDots';
 import { useActiveNotes } from '@/hooks/useActiveNotes';
 import { useMetronome } from '@/hooks/useMetronome';
+import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
 import RefreshIcon from '@/assets/restart.svg?react';
 import * as Tone from 'tone';
@@ -25,6 +26,7 @@ function LatencyCheckPage() {
   const navigate = useNavigate();
   const { keyCount, inputId, bpm, setLatency } = useSettingStore();
   const { start, stop } = useMetronome();
+  const { noteOn: playNote, noteOff: stopNote } = usePianoSound();
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [beatInBar, setBeatInBar] = useState(-1);
@@ -53,7 +55,8 @@ function LatencyCheckPage() {
   const finishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 측정용 MIDI 입력 (건반 하이라이트와 같은 useMidi 인스턴스를 공유 — measuring일 때만 기록)
-  const { activeNotes } = useActiveNotes((note, _velocity, time) => {
+  const { activeNotes } = useActiveNotes((note, velocity, time) => {
+    playNote(note, velocity); // 탭 피드백 소리
     // 친 음 위치에서 노트바 생성 (박자 유효 여부와 무관하게 시각 피드백) — measuring 단계에서만
     // 선택된 keyCount 범위 밖 노트는 NoteBars가 렌더링하지 않아 onAnimationEnd가 발동하지 않으므로 애초에 쌓지 않는다
     if (phaseRef.current === 'measuring' && noteCenterFraction(note, keyCount) >= 0) {
@@ -77,7 +80,7 @@ function LatencyCheckPage() {
       usedBeatsRef.current.add(nearest);
       samplesRef.current.push(offset);
     }
-  });
+  }, stopNote); // 뗄 때 소리 끝
 
   // 애니메이션 종료된 노트바 제거
   const handleBarDone = (id: number) => setNoteBars((prev) => prev.filter((b) => b.id !== id));
@@ -233,7 +236,6 @@ function LatencyCheckPage() {
               {countdown}
             </span>
           )}
-          {/* phase === 'measuring' → 노트바 (나중에) */}
         </div>
 
         {/* 건반 영역 (+ 친 음에서 솟아오르는 노트바) */}

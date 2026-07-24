@@ -1,15 +1,16 @@
 //사이드바
 // src/layout/Navbar.tsx
-import { NavLink, useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import PracticeIcon from '@/assets/layout/practice.svg?react';
 import LearnIcon from '@/assets/layout/learn.svg?react';
 import HistoryIcon from '@/assets/layout/history.svg?react';
-
 import LogoIcon from '@/assets/layout/logo.svg?react';
 import NotificationIcon from '@/assets/layout/notification.svg?react';
 import ProfileIcon from '@/assets/layout/profile.svg?react';
 import MoreIcon from '@/assets/layout/more.svg?react';
 import type { NotiItem } from '@/types/notification';
+import WithdrawModal from '@/components/common/WithdrawModal';
 
 interface NavItem {
   Icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
@@ -30,10 +31,55 @@ const STUDENT_MENU: NavItem[] = [
 ];
 
 function Navbar({ onOpenNotification, notiList }: NavbarProps) {
-  const hasUnread = notiList.some((item) => !item.isRead);
+  const navigate = useNavigate();
   const location = useLocation();
+  const hasUnread = notiList.some((item) => !item.isRead);
   const latencyCheckFrom =
     location.pathname === '/latency-check' ? new URLSearchParams(location.search).get('from') : null;
+
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+
+  // 팝업이 열려 있을 때 외부 클릭 / ESC 로 닫기
+  useEffect(() => {
+    if (!isMoreOpen) return;
+
+    const handlePointerDown = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setIsMoreOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMoreOpen(false);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMoreOpen]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('accessToken');
+    setIsMoreOpen(false);
+    navigate('/login');
+  };
+
+  const handleWithdraw = () => {
+    setIsMoreOpen(false);
+    setIsWithdrawOpen(true);
+  };
+
+  const handleConfirmWithdraw = () => {
+    setIsWithdrawOpen(false);
+    // 회원탈퇴 API
+    // 탈퇴 완료 후: 토큰 제거 + 로그인 페이지 이동
+    localStorage.removeItem('accessToken');
+    navigate('/login');
+  };
 
   return (
     <div className="flex h-screen w-[90px] shrink-0 flex-col items-center justify-between border-r border-gray-700 bg-gray-950 px-[18px] py-6">
@@ -96,12 +142,43 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
         </NavLink>
 
         {/* 더보기 */}
-        <div className="relative flex h-[54px] items-center justify-center">
-          <button type="button" aria-label="더보기">
+        <div ref={moreRef} className="relative flex h-[54px] items-center justify-center">
+          <button
+            type="button"
+            aria-label="더보기"
+            aria-haspopup="menu"
+            aria-expanded={isMoreOpen}
+            onClick={() => setIsMoreOpen((v) => !v)}
+            className={`transition-colors hover:opacity-80 ${isMoreOpen ? 'text-primary-400' : ''}`}>
             <MoreIcon className="size-9" />
           </button>
+
+          {/* 더보기 팝업 (로그아웃/회원탈퇴) */}
+          {isMoreOpen && (
+            <div
+              role="menu"
+              className="absolute bottom-[19px] left-full z-50 ml-[35px] flex w-max flex-col gap-3 rounded-[4px] bg-gray-900 py-4">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleLogout}
+                className="body-medium flex w-full items-center justify-center px-6 py-1 whitespace-nowrap text-gray-300 transition-opacity hover:opacity-80">
+                로그아웃
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleWithdraw}
+                className="body-medium text-error flex w-full items-center justify-center px-6 py-1 whitespace-nowrap transition-opacity hover:opacity-80">
+                회원탈퇴
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* 회원탈퇴 확인 모달 */}
+      {isWithdrawOpen && <WithdrawModal onCancel={() => setIsWithdrawOpen(false)} onConfirm={handleConfirmWithdraw} />}
     </div>
   );
 }
