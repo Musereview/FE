@@ -47,6 +47,7 @@ function PracticePlayPage() {
   const heldRef = useRef<Map<number, number>>(new Map()); // midi → 진행 중 노트바 id
   const recordingRef = useRef<PlayedNote[]>([]); // 연주 녹음 (Transport 시각 기준)
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 진입 시 자동재생 예약
   const pauseStartRef = useRef(performance.now()); // 정지 시각 (노트바 얼림 기준 + 재개 시 보정)
 
   // 친 음: 소리 재생 + 노트바 생성(성장 시작) → 뗄 때 소리·길이 확정 후 위로 사라짐
@@ -101,7 +102,16 @@ function PracticePlayPage() {
     resetInput(); // 눌린 건반 표시 초기화 (stuck 방지)
   };
 
+  // 예약된 자동재생(START 타이머) 취소
+  const cancelAutoStart = () => {
+    if (startTimerRef.current) {
+      clearTimeout(startTimerRef.current);
+      startTimerRef.current = null;
+    }
+  };
+
   const stopPlayback = () => {
+    cancelAutoStart(); // 재시작/분석 등으로 정지 시 대기 중인 자동재생 취소
     finalizeOpenNotes(performance.now()); // stop() 전에 (stop이 transport 위치를 0으로 리셋하므로)
     stop();
     Tone.getDraw().cancel();
@@ -111,6 +121,8 @@ function PracticePlayPage() {
   };
 
   const startPlayback = async () => {
+    cancelAutoStart(); // 대기 중인 자동재생 취소 (중복 시작 방지)
+    setShowStart(false); // 수동 재생/자동재생 모두 START 숨김
     await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능)
     totalBeatRef.current = 0;
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
@@ -182,13 +194,10 @@ function PracticePlayPage() {
     };
   }, [stop]);
 
-  // 진입 시 START 1초 표시 후 자동 재생
+  // 진입 시 START 1초 표시 후 자동 재생 (startPlayback이 START 숨김·중복 취소 처리)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowStart(false);
-      startPlayback();
-    }, 1000);
-    return () => clearTimeout(timer);
+    startTimerRef.current = setTimeout(() => startPlayback(), 1000);
+    return () => cancelAutoStart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
