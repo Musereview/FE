@@ -67,19 +67,23 @@ export default function AnalysisChatSection({ analysisId }: AnalysisChatSectionP
     try {
       await sendMentorChatStream(analysisId, userQuestion, (event) => {
         if (event.type === 'chunk') {
+          // chunk 타입일 때는 data가 string 형태라고 가정
+          const chunkText = typeof event.data === 'string' ? event.data : '';
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === tempAssistantMsgId ? { ...msg, content: (msg.content || '') + event.data } : msg,
+              msg.id === tempAssistantMsgId ? { ...msg, content: (msg.content || '') + chunkText } : msg,
             ),
           );
         } else if (event.type === 'complete') {
+          // complete 타입일 때는 data가 객체 형태(SSEEventData)라고 가정
+          const eventData = typeof event.data === 'object' && event.data !== null ? event.data : {};
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === tempAssistantMsgId
                 ? {
                     ...msg,
-                    content: event.data.content,
-                    referencesJson: event.data.referencesJson,
+                    content: eventData.content ?? msg.content,
+                    referencesJson: eventData.referencesJson ?? null,
                     isStreaming: false,
                   }
                 : msg,
