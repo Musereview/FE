@@ -2,7 +2,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { getCurriculum } from './mockCurriculum';
 import { useLearningScoreStore } from '@/stores/learningScoreStore';
-import { getScoreFeedback } from '@/constants/scoreFeedback';
+import { buildFeedback } from '@/constants/scoreFeedback';
 import RefreshIcon from '@/assets/restart.svg?react';
 import ChevronRightIcon from '@/assets/check.svg?react';
 import StarIcon from '@/assets/Star.svg?react';
@@ -58,7 +58,7 @@ function ScorePage() {
           <div className="display-small text-primary-400 text-center tracking-[-3px]">{result.score}점</div>
           <p className="heading-small-b flex items-center gap-2 text-gray-400">
             <StarIcon className="mr-2 h-[36px] w-[36px]" />
-            {getScoreFeedback(result.score)}
+            {buildFeedback(result)}
           </p>
         </div>
 

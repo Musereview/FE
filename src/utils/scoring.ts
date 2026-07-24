@@ -72,8 +72,8 @@ export function scoreLearning(
 
   // 정확도: 음+타이밍 허용(perfect+good) 비율
   const accuracy = Math.round(((perfect + good) / total) * 100);
-  // 리듬 타이밍: perfect 만점, good 부분점(0.5)
-  const timing = Math.round(((perfect + good * 0.5) / total) * 100);
+  // 리듬 타이밍 = Perfect 비율 (기획 정의)
+  const timing = Math.round((perfect / total) * 100);
   // 연속 성공: bad가 아닌(perfect/good) 최대 연속 구간
   let streak = 0;
   let run = 0;
@@ -88,5 +88,5 @@ export function scoreLearning(
   // 최종 점수: 가중 평균 (perfect 100, good 60, bad 0) — DB 저장 대상
   const score = Math.round((perfect * 100 + good * 60) / total);
 
-  return { results, score: { score, accuracy, timing, streak, missedNotes } };
+  return { results, score: { score, accuracy, timing, streak, missedNotes, total: results.length } };
 }
