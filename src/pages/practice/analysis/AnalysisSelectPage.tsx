@@ -1,4 +1,3 @@
-// 경로 : C:\project\MuseReview\FE\src\pages\practice\analysis\AnalysisSelectPage.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -25,6 +24,15 @@ export default function AnalysisSelectPage() {
   const scoreViewerRef = useRef<ScoreViewerHandle>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 언마운트 시 토스트 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
   // 1) 전체 MusicXML은 최초 1회만 fetch
   useEffect(() => {
     let cancelled = false;
@@ -36,7 +44,10 @@ export default function AnalysisSelectPage() {
         const timings = computeMeasureTimings(text);
         setMeasureStartTimes(timings.measureStartTimes);
         if (timings.measureStartTimes.length > 0) {
-          setTotalMeasures(timings.measureStartTimes.length);
+          const measuresCount = timings.measureStartTimes.length;
+          setTotalMeasures(measuresCount);
+
+          setEndMeasure(`${measuresCount}마디`);
         }
       });
     return () => {
@@ -93,10 +104,11 @@ export default function AnalysisSelectPage() {
     return isNaN(num) ? 0 : num;
   };
 
-  const triggerToast = (msg: string) => {
+  const triggerToast = useCallback((msg: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
+  }, []);
 
   // 4) 분석하기 버튼 클릭 시 유효성 검사 및 로딩/이동 처리
   const handleStartAnalysis = () => {
@@ -239,7 +251,7 @@ export default function AnalysisSelectPage() {
                 type="text"
                 value={endMeasure}
                 onFocus={() => handleFocus(endMeasure, setEndMeasure)}
-                onBlur={() => handleBlur(endMeasure, setEndMeasure, '30마디')}
+                onBlur={() => handleBlur(endMeasure, setEndMeasure, `${totalMeasures}마디`)}
                 onChange={(e) => handleChange(e.target.value, setEndMeasure)}
                 className="h-[48px] w-[140px] rounded-[8px] border border-[#2E3142]/60 bg-[#1F212A] px-[16px] text-center text-[15px] font-semibold text-white focus:border-[#69FFC0] focus:outline-none"
               />
