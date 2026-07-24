@@ -6,7 +6,7 @@ import TryAgainIcon from '@/assets/restart.svg?react';
 
 interface CardActionButtonProps {
   status: ChapterStatus;
-  onClick?: () => void;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 const BUTTON_CONFIG: Record<

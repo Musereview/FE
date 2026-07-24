@@ -1,4 +1,4 @@
-import type { ChapterStatus, Curriculum, TopicChapter } from '@/types/topic';
+import type { ChapterProgress, ChapterStatus, Curriculum, CurrentLearningInfo, TopicChapter } from '@/types/topic';
 
 const STEP_TEMPLATES: Pick<TopicChapter, 'title' | 'description'>[] = [
   { title: 'Chapter 1', description: '코드에 자연스럽게 색채를 더하는 9th를 학습합니다.' },
@@ -24,6 +24,8 @@ const CURRICULUM_INFO: Omit<Curriculum, 'steps'> = {
   title: 'Tension Notes',
   difficulty: 'advanced',
   description: '코드에 9th, 11th, 13th를 더해 더 풍부한 화성을 만드는 방법을 배웁니다.',
+  bpm: 120,
+  timeSignature: '4/4',
   stepDescription: '-11th 텐션 노트 활용하기',
   example: {
     title: '11th Tension Notes Practice - 11th 텐션 활용 예제',
@@ -67,4 +69,27 @@ export function getPackageStatus(progress: number): ChapterStatus {
   if (progress === 0) return 'ready';
   if (progress === 100) return 'completed';
   return 'learning';
+}
+
+export function getChapterProgressList(chapters: TopicChapter[]): ChapterProgress[] {
+  return chapters.map((chapter) => {
+    const curriculum = getCurriculum(chapter.id);
+    return { chapter, curriculum, progress: getCurriculumProgress(curriculum.steps) };
+  });
+}
+
+export function getCurrentLearningPackage(chapterProgressList: ChapterProgress[]): CurrentLearningInfo | null {
+  for (const { chapter, curriculum, progress } of chapterProgressList) {
+    const learningStepIndex = curriculum.steps.findIndex((step) => step.status === 'learning');
+    if (learningStepIndex === -1) continue;
+
+    return {
+      curriculumId: chapter.id,
+      title: curriculum.title,
+      difficulty: curriculum.difficulty,
+      stepLabel: `${learningStepIndex + 1}단계 - ${curriculum.stepDescription.replace(/^-\s*/, '')}`,
+      progress,
+    };
+  }
+  return null;
 }

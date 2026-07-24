@@ -24,5 +24,7 @@ export function useMetronome() {
     [getMetronome],
   );
   const stop = useCallback(() => ref.current?.stop(), []);
-  return { start, stop };
+  const pause = useCallback(() => ref.current?.pause(), []);
+  const resume = useCallback(() => ref.current?.resume(), []);
+  return { start, stop, pause, resume };
 }

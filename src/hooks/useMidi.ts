@@ -44,9 +44,9 @@ export function useMidi(
 
           for (const input of list) {
             input.onmidimessage = (e) => {
-              // 기기를 선택한 상태면, 그 기기의 입력만 처리
+              // input에서 선택한 기기만 처리 (미선택이면 아무 입력도 받지 않음)
               const active = handlers.current.activeInputId;
-              if (active && input.id !== active) return;
+              if (input.id !== active) return;
 
               const [status, note, velocity] = e.data!;
               const cmd = status & 0xf0;

@@ -55,7 +55,13 @@ function ChapterCard({ chapter, showAction = true, onClick, onActionClick }: Cha
             {statusLabel}
           </span>
 
-          <CardActionButton status={status} onClick={onActionClick} />
+          <CardActionButton
+            status={status}
+            onClick={(event) => {
+              event.stopPropagation();
+              onActionClick?.();
+            }}
+          />
         </div>
       ) : (
         <div className="flex w-[100px] shrink-0 items-center justify-center">

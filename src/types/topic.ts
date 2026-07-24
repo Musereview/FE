@@ -35,6 +35,10 @@ export interface Curriculum {
   title: string;
   difficulty: TopicDifficulty;
   description: string;
+  /** 설정 화면에서 메트로놈/박자 세팅에 사용 */
+  bpm: number;
+  /** 예: '4/4', '3/4' */
+  timeSignature: string;
   /** 단계별 학습 상세(설정) 페이지 배너에 쓰이는 스텝 소개 문구 */
   stepDescription: string;
   example: CurriculumExample;
@@ -43,4 +47,18 @@ export interface Curriculum {
   tips: string[];
   tipHighlight: string;
   steps: TopicChapter[];
+}
+
+export interface CurrentLearningInfo {
+  curriculumId: string;
+  title: string;
+  difficulty: TopicDifficulty;
+  stepLabel: string;
+  progress: number;
+}
+
+export interface ChapterProgress {
+  chapter: TopicChapter;
+  curriculum: Curriculum;
+  progress: number;
 }
