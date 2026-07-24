@@ -42,7 +42,7 @@ const ScoreViewer = forwardRef<ScoreViewerHandle, ScoreViewerProps>(function Sco
     xmlPath,
     currentMeasureIndex,
     followPlayback = false,
-    zoom = 1.1,
+    zoom = 1.3,
     drawMeasureNumbers = false,
     height = 420,
     className = '',
@@ -97,7 +97,8 @@ const ScoreViewer = forwardRef<ScoreViewerHandle, ScoreViewerProps>(function Sco
       {/* 가로 스크롤 뷰포트. 자동 줄바꿈 대신 여기서 좌우로만 이동한다. */}
       <div
         ref={scrollRef}
-        className="overflow-x-auto overflow-y-hidden p-[40px] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#3A3D4A] [&::-webkit-scrollbar-track]:bg-transparent"
+        //className="overflow-x-auto overflow-y-hidden p-[40px] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#3A3D4A] [&::-webkit-scrollbar-track]:bg-transparent"
+        className="overflow-x-auto overflow-y-hidden px-0 py-7 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#3A3D4A] [&::-webkit-scrollbar-track]:bg-transparent"
         style={{ height }}>
         {/* renderSingleHorizontalStaffline: true 로 렌더링된, 줄바꿈 없는 단일 라인 악보 */}
         <div ref={containerRef} className="inline-block align-top" />
