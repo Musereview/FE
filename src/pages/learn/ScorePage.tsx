@@ -24,7 +24,7 @@ function ScorePage() {
   ];
 
   return (
-    <div className="relative mx-auto flex h-full w-[1510px] flex-col items-center bg-gray-950">
+    <div className="relative mx-auto flex h-full w-full max-w-[1510px] flex-col items-center bg-gray-950">
       {/* 헤더 */}
       <header className="absolute top-[76px] mb-[32px] flex w-full items-center justify-between px-[80px]">
         <div className="heading-small-b h-[36px] w-[714px] text-gray-300">{title}</div>
