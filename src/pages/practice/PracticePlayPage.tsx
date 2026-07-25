@@ -230,14 +230,14 @@ function PracticePlayPage() {
           <button
             type="button"
             onClick={handleRestart}
-            className="button-large2 flex h-[60px] w-[175px] items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
+            className="button-large2 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
             재시작
             <RefreshIcon className="h-6 w-6" />
           </button>
           <button
             type="button"
             onClick={() => navigate('/practice')}
-            className="button-large2 flex h-[60px] w-[175px] items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
+            className="button-large2 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
             트랙 변경
             <ChangeIcon className="h-6 w-6" />
           </button>

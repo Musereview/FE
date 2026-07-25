@@ -203,7 +203,7 @@ function LatencyCheckPage() {
         <div className="heading-medium-b text-gray-200">레이턴시 체크</div>
         <button
           onClick={handleRestart}
-          className="button-large2 flex h-[60px] w-[175px] items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
+          className="button-large2 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
           재시작
           <RefreshIcon className="h-5 w-5" />
         </button>
