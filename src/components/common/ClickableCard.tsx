@@ -8,6 +8,7 @@ interface ClickableCardProps {
 
 function ClickableCard({ onClick, className, children }: ClickableCardProps) {
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.repeat) return;
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       onClick?.();
