@@ -177,7 +177,9 @@ export default function AnalysisSelectPage() {
       )}
 
       {toastMessage && (
-        <div className="bg-error body-small fixed top-[40px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-[12px] rounded-[12px] px-[24px] py-[16px] text-gray-100 shadow-2xl">
+        <div
+          role="alert"
+          className="bg-error body-small fixed top-[40px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-[12px] rounded-[12px] px-[24px] py-[16px] text-gray-100 shadow-2xl">
           <span>⚠️</span> {toastMessage}
         </div>
       )}
@@ -227,8 +229,11 @@ export default function AnalysisSelectPage() {
 
           <div className="flex items-end gap-[16px]">
             <div className="flex flex-col gap-[8px]">
-              <label className="caption-medium text-gray-600">분석 시작 마디</label>
+              <label htmlFor="analysis-start-measure" className="caption-medium text-gray-600">
+                분석 시작 마디
+              </label>
               <input
+                id="analysis-start-measure"
                 type="text"
                 value={startMeasure}
                 onFocus={() => handleFocus(startMeasure, setStartMeasure)}
@@ -239,8 +244,11 @@ export default function AnalysisSelectPage() {
             </div>
 
             <div className="flex flex-col gap-[8px]">
-              <label className="caption-medium text-gray-600">분석 종료 마디</label>
+              <label htmlFor="analysis-end-measure" className="caption-medium text-gray-600">
+                분석 종료 마디
+              </label>
               <input
+                id="analysis-end-measure"
                 type="text"
                 value={endMeasure}
                 onFocus={() => handleFocus(endMeasure, setEndMeasure)}
