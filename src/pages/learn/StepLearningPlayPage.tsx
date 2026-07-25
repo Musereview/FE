@@ -67,6 +67,11 @@ function StepLearningPlayPage() {
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 진입 시 자동재생 예약
   const scoreRef = useRef<LearningScoreHandle>(null); // 악보 판정·색칠 핸들
+  // 진입 자동재생(마운트 시점 클로저)이 stale bpm으로 시작하지 않도록 최신 bpm을 ref로 유지
+  const bpmRef = useRef(bpm);
+  useEffect(() => {
+    bpmRef.current = bpm;
+  }, [bpm]);
 
   // 친 음: 소리 재생 + 녹음(Transport 시각 = 곡 박자 기준) + 악보 판정 색칠
   const handleNoteOn = (note: number, velocity = 100) => {
@@ -129,7 +134,7 @@ function StepLearningPlayPage() {
     setMeasureIndex(0);
     setPlayheadBeat(-1);
     scoreRef.current?.reset(); // 처음부터 재생 시 색칠 초기화
-    start(bpm, beatsPerBar, (time, bib) => {
+    start(bpmRef.current, beatsPerBar, (time, bib) => {
       const pbeat = totalBeatRef.current; // 곡 시작 기준 현재 박(언랩)
       // 악보 한 바퀴(totalCells 박)를 모두 지나면 루프 대신 정지 (mock: 백킹트랙·악보 모두 8마디)
       if (pbeat >= totalCells) {
