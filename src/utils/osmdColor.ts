@@ -14,6 +14,8 @@ interface ColorableNote {
   sourceNote?: { halfTone: number; isRest(): boolean };
   getNoteheadSVGs?(): HTMLElement[];
   getStemSVG?(): HTMLElement | null;
+  getFlagSVG?(): HTMLElement | null; // 꼬리 (8분음표 이하)
+  getBeamSVGs?(): HTMLElement[]; // 빔 (여러 음 묶음)
 }
 
 export interface NoteEvent {
@@ -70,6 +72,27 @@ function stemOf(g: ColorableNote): HTMLElement | null {
     return null;
   }
 }
+function flagOf(g: ColorableNote): HTMLElement | null {
+  try {
+    return g.getFlagSVG?.() ?? null;
+  } catch {
+    return null;
+  }
+}
+function beamsOf(g: ColorableNote): HTMLElement[] {
+  try {
+    return g.getBeamSVGs?.() ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// 기둥·꼬리·빔을 한 색으로 칠하기 (노트헤드 제외)
+function paintParts(g: ColorableNote, color: string) {
+  applyColor(stemOf(g), { fill: color, stroke: color });
+  applyColor(flagOf(g), { fill: color, stroke: color });
+  beamsOf(g).forEach((b) => applyColor(b, { fill: color, stroke: color }));
+}
 
 // 요소 자신 + 하위 도형(path/ellipse 등)까지 색 적용
 // (getNoteheadSVGs가 <g>를 반환하고 하위 path에 명시적 fill이 걸린 경우까지 확실히 덮기 위함)
@@ -92,7 +115,7 @@ function applyColor(el: HTMLElement | null, opts: { fill?: string; stroke?: stri
 export function paintCurrent(gnotes: ColorableNote[]) {
   gnotes.forEach((g) => {
     heads(g).forEach((h) => applyColor(h, { fill: CURRENT_NOTE_COLOR, stroke: null }));
-    applyColor(stemOf(g), { fill: CURRENT_NOTE_COLOR, stroke: CURRENT_NOTE_COLOR });
+    paintParts(g, CURRENT_NOTE_COLOR);
   });
 }
 
@@ -100,8 +123,8 @@ export function paintCurrent(gnotes: ColorableNote[]) {
 export function paintJudged(gnotes: ColorableNote[], judgment: NoteJudgment) {
   const color = JUDGMENT_COLOR[judgment];
   gnotes.forEach((g) => {
-    heads(g).forEach((h) => applyColor(h, { fill: DEFAULT_NOTE_COLOR, stroke: color, strokeWidth: '3' }));
-    applyColor(stemOf(g), { fill: DEFAULT_NOTE_COLOR, stroke: DEFAULT_NOTE_COLOR });
+    heads(g).forEach((h) => applyColor(h, { fill: DEFAULT_NOTE_COLOR, stroke: color, strokeWidth: '1' }));
+    paintParts(g, color);
   });
 }
 
@@ -109,7 +132,7 @@ export function paintJudged(gnotes: ColorableNote[], judgment: NoteJudgment) {
 export function paintDefault(gnotes: ColorableNote[]) {
   gnotes.forEach((g) => {
     heads(g).forEach((h) => applyColor(h, { fill: DEFAULT_NOTE_COLOR, stroke: null }));
-    applyColor(stemOf(g), { fill: DEFAULT_NOTE_COLOR, stroke: DEFAULT_NOTE_COLOR });
+    paintParts(g, DEFAULT_NOTE_COLOR);
   });
 }
 
