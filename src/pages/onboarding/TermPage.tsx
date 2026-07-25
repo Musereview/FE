@@ -64,7 +64,12 @@ function TermPage() {
         <div className="flex flex-col items-end gap-25">
           <div className="flex w-full flex-col gap-6">
             {/* 전체 동의 */}
-            <button type="button" onClick={toggleAll} className="flex cursor-pointer items-center gap-3 p-5">
+            <button
+              type="button"
+              onClick={toggleAll}
+              role="checkbox"
+              aria-checked={allChecked}
+              className="flex cursor-pointer items-center gap-3 p-5">
               <Checkbox checked={allChecked} />
               <span className="heading-small-b text-gray-300">전체 동의</span>
             </button>
@@ -79,6 +84,8 @@ function TermPage() {
                       <button
                         type="button"
                         onClick={() => toggleOne(key)}
+                        role="checkbox"
+                        aria-checked={agreed[key]}
                         className="flex cursor-pointer items-center gap-3">
                         <Checkbox checked={agreed[key]} />
                         <span className="body-medium text-gray-300">{label}</span>
