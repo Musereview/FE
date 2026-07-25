@@ -117,8 +117,13 @@ function StepLearningPlayPage() {
     setPlayheadBeat(-1);
     scoreRef.current?.reset(); // 처음부터 재생 시 색칠 초기화
     start(bpm, beatsPerBar, (time, bib) => {
-      const beat = totalBeatRef.current % totalCells;
       const pbeat = totalBeatRef.current; // 곡 시작 기준 현재 박(언랩)
+      // 악보 한 바퀴(totalCells 박)를 모두 지나면 루프 대신 정지 (mock: 백킹트랙·악보 모두 8마디)
+      if (pbeat >= totalCells) {
+        Tone.getDraw().schedule(() => stopPlayback(), time);
+        return;
+      }
+      const beat = pbeat % totalCells;
       const measure = Math.floor(pbeat / beatsPerBar); // 곡 진행 마디(언랩) — 악보 슬라이드 기준
       Tone.getDraw().schedule(() => {
         setBeatInBar(bib);
