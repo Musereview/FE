@@ -30,7 +30,7 @@ const MOCK_CHORDS = ['Cm7(#11)', 'CM7(#11)', 'Dm7', 'Am7'];
 function StepLearningPlayPage() {
   const navigate = useNavigate();
   const { curriculumId = '' } = useParams();
-  const { keyCount } = useSettingStore();
+  const { keyCount, inputId, latencyByDevice } = useSettingStore();
   const { start, stop, pause, resume } = useMetronome();
   const { noteOn: playNote, noteOff: stopNote, releaseAll } = usePianoSound();
   const setScore = useLearningScoreStore((s) => s.setScore); // 채점 결과 → 점수 화면 전달
@@ -44,6 +44,10 @@ function StepLearningPlayPage() {
   const { learningId, learningStepId } = getLearningIds(curriculumId);
   const { data: practiceData } = usePracticeData(learningId, learningStepId);
   const bpm = practiceData?.bpm ?? curriculum.bpm; // 실습 데이터 우선, 로딩 중엔 커리큘럼 값
+
+  // 입력 레이턴시 보정값 (레이턴시 체크에서 측정한 값). 미측정/실패면 0
+  const rawLatency = inputId ? latencyByDevice[inputId] : undefined;
+  const latencyMs = typeof rawLatency === 'number' ? rawLatency : 0;
   const beatsPerBar = Number(curriculum.timeSignature.split('/')[0]); // '4/4' → 4
   const measures = buildFallbackProgression(MOCK_CHORDS, beatsPerBar);
   const totalCells = measures.length * beatsPerBar;
@@ -258,6 +262,7 @@ function StepLearningPlayPage() {
             playheadBeat={playheadBeat}
             bpm={bpm}
             difficulty={curriculum.difficulty}
+            latencyMs={latencyMs}
             visibleMeasures={3}
             height={600}
             className="w-full"

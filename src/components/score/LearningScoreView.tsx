@@ -36,6 +36,7 @@ interface LearningScoreViewProps {
   playheadBeat?: number; // 곡 시작 기준 현재 박 (현재 음 하이라이트 기준). 미재생 시 -1
   bpm?: number; // 타이밍 판정용
   difficulty?: Difficulty; // 타이밍 허용치 선택
+  latencyMs?: number; // 입력 레이턴시 보정값(ms) — 입력 시각에서 빼서 정박과 비교
   visibleMeasures?: number; // 한 화면에 보이는 마디 수 (기본 3)
   zoom?: number; // OSMD 기본 렌더 배율 (여기에 화면맞춤 scale이 추가로 곱해짐)
   height?: number; // 뷰포트 높이(px)
@@ -50,6 +51,7 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
     playheadBeat = -1,
     bpm = 120,
     difficulty = 'intermediate',
+    latencyMs = 0,
     visibleMeasures = 3,
     zoom = 1.2,
     height = 260,
@@ -137,7 +139,8 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
           return;
         }
         const onSec = ev.onBeat * (60 / bpm);
-        const judgment = judgeNote(true, (atSec - onSec) * 1000, TIMING_TOLERANCE[difficulty]); // 맞은 음 → 타이밍 판정
+        const timingErrorMs = (atSec - latencyMs / 1000 - onSec) * 1000; // 레이턴시 보정 후 정박과 비교
+        const judgment = judgeNote(true, timingErrorMs, TIMING_TOLERANCE[difficulty]); // 맞은 음 → 타이밍 판정
         paintJudged(ev.gnotes, judgment);
         judgedRef.current.set(idx, judgment);
       },
@@ -164,7 +167,7 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
         results: Array.from(judgedRef.current.entries()),
       }),
     }),
-    [bpm, difficulty],
+    [bpm, difficulty, latencyMs],
   );
 
   // measureXPositions = [마디0 좌측x, 마디1 좌측x, ..., 악보 끝x] → 길이 = 마디수 + 1
