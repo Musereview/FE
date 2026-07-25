@@ -143,6 +143,7 @@ export default function AnalysisSelectPage() {
     audioRef.current?.pause();
 
     const parsedPlayingId = practiceId ? parseInt(practiceId, 10) : 31;
+    const audioUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'; // 👈 사용할 음원 주소 통일const audioUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
 
     const mockAnalysisData = {
       analysisId: 10,
@@ -160,7 +161,7 @@ export default function AnalysisSelectPage() {
     setTimeout(() => {
       setIsLoading(false);
       navigate(`/practice/${practiceId || '1'}/analysis/result?start=${startNum}&end=${endNum}`, {
-        state: { rangeXml, analysisData: mockAnalysisData },
+        state: { rangeXml, analysisData: mockAnalysisData, audioUrl },
       });
     }, 2000);
   };

@@ -1,44 +1,379 @@
-import { useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import * as Tone from 'tone';
+
 import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
+import { computeMeasureTimings, findMeasureIndexAtTime } from '@/utils/musicXmlTiming';
+import { useMetronome } from '@/hooks/useMetronome';
+import MetronomeDots from '@/components/metronome/MetronomeDots';
 import AnalysisChatSection from '@/components/mentor/AnalysisChatSection';
+import { axiosInstance } from '@/apis/axiosInstance';
+
+/** AI 분석 리포트 도메인 점수 인터페이스 */
+interface DomainScores {
+  scale: number;
+  tension: number;
+  progression: number;
+  voiceLeading: number;
+}
+
+/** LLM 리포트 데이터 인터페이스 */
+interface ReportData {
+  analysisReportId: number;
+  generationType: string;
+  llmStatus: string;
+  contentFormat: string;
+  content: string;
+  createdAt: string;
+}
+
+/** 연주 분석 상세 데이터 구조 인터페이스 (any를 사용하지 않고 엄격한 타입 정의) */
+interface AnalysisData {
+  analysisId: number;
+  playingId?: number;
+  title: string;
+  genre: string;
+  key: string;
+  bpm: number;
+  playedAt: string;
+  status?: string;
+  totalScore?: number;
+  grade?: string;
+  summary?: string;
+  audioUrl?: string;
+  domainScores?: DomainScores;
+  report?: ReportData;
+  createdAt?: string;
+  completedAt?: string;
+}
+
+/** API 연동 실패 시 사용할 목(Mock) 분석 상세 데이터 */
+const MOCK_ANALYSIS_DATA: AnalysisData = {
+  analysisId: 10,
+  playingId: 31,
+  title: 'Jazz Standard Practice',
+  genre: 'JAZZ',
+  key: 'C Major',
+  bpm: 120,
+  playedAt: '2026-05-04T14:32:00',
+  status: 'COMPLETED',
+  totalScore: 80.5,
+  grade: '좋음',
+  summary: '긴장감을 오래 유지하는 흐름이 많았어요.',
+  audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+  domainScores: {
+    scale: 100.0,
+    tension: 33.3,
+    progression: 100.0,
+    voiceLeading: 75.3,
+  },
+  report: {
+    analysisReportId: 7,
+    generationType: 'LLM',
+    llmStatus: 'SUCCESS',
+    contentFormat: 'MARKDOWN',
+    content:
+      '## 긴장감을 오래 유지하는 흐름이 많았어요.\n\n이번 연주에서는 코드톤에 바로 해결하기보다, 텐션 계열의 음을 유지하며 분위기를 끌고 가는 흐름이 자주 보였습니다.',
+    createdAt: '2026-07-01T14:32:10',
+  },
+  createdAt: '2026-07-01T14:32:00',
+  completedAt: '2026-07-01T14:32:08',
+};
+
+/** 특정 마디 위치에서의 활성 템포(BPM) 및 박자 정보를 추출하는 헬퍼 함수 */
+function extractActiveTempoMeterAtMeasure(
+  fullXmlText: string,
+  targetMeasureNumber: number,
+): { bpm: number; beats: number; beatType: number } {
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(fullXmlText, 'application/xml');
+  const part = xml.querySelector('part');
+  if (!part) return { bpm: 120, beats: 4, beatType: 4 };
+
+  const measures = [...part.querySelectorAll('measure')];
+
+  let beats = 4;
+  let beatType = 4;
+  let bpm = 120;
+
+  for (const measure of measures) {
+    const measureNumber = parseInt(measure.getAttribute('number') ?? '0', 10);
+
+    const timeEl = measure.querySelector('attributes > time');
+    if (timeEl) {
+      const b = timeEl.querySelector('beats')?.textContent;
+      const bt = timeEl.querySelector('beat-type')?.textContent;
+      if (b) beats = parseInt(b, 10);
+      if (bt) beatType = parseInt(bt, 10);
+    }
+
+    const tempoEl = measure.querySelector('sound[tempo]');
+    if (tempoEl) {
+      const t = tempoEl.getAttribute('tempo');
+      if (t) bpm = parseFloat(t);
+    }
+
+    if (measureNumber >= targetMeasureNumber) break;
+  }
+
+  return { bpm, beats, beatType };
+}
 
 export default function AnalysisResultPage() {
   const navigate = useNavigate();
   const { practiceId } = useParams<{ practiceId: string }>();
   const parsedAnalysisId = Number(practiceId) || 10;
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const scoreViewerRef = useRef<ScoreViewerHandle>(null);
-  const [xmlPath] = useState<string>('/sample.xml');
+  // URL 쿼리 파라미터에서 유저가 선택한 시작/끝 마디 구간 추출 (기본값: 1~16마디)
+  const [searchParams] = useSearchParams();
+  const startBar = parseInt(searchParams.get('start') ?? '1', 10) || 1;
+  const endBar = parseInt(searchParams.get('end') ?? String(startBar + 15), 10) || startBar + 15;
 
-  const handleRewind = () => {
+  // 컴포넌트 상태 관리
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isScoreReady, setIsScoreReady] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
+
+  // 음원 동기화 및 마디 타이밍 상태
+  const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
+  const [audioStartOffsetSec, setAudioStartOffsetSec] = useState(0);
+  const [sectionDurationSec, setSectionDurationSec] = useState(0);
+
+  // 악보 뷰어 및 메트로놈 제어 상태
+  const [currentMeasureIndex, setCurrentMeasureIndex] = useState(startBar - 1);
+  const [beatInBar, setBeatInBar] = useState(-1);
+  const [beatsPerBar, setBeatsPerBar] = useState(4);
+  const [bpm, setBpm] = useState(120);
+
+  // Ref 관리
+  const scoreViewerRef = useRef<ScoreViewerHandle>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  // Tone.js 기반 메트로놈 훅 연결
+  const { start, stop, pause } = useMetronome();
+  const isLoading = !isScoreReady;
+
+  /** 1. 분석 결과 상세 데이터를 서버에서 조회 (실패 시 Mock Data fallback) */
+  useEffect(() => {
+    async function fetchAnalysisDetail() {
+      try {
+        const response = await axiosInstance.get(`/api/v1/analyses/${parsedAnalysisId}`);
+        if (response.data?.isSuccess && response.data?.data) {
+          setAnalysisData(response.data.data);
+        } else {
+          setAnalysisData(MOCK_ANALYSIS_DATA);
+        }
+      } catch (err) {
+        console.warn('API 호출 실패: Mock Data를 사용합니다.', err);
+        setAnalysisData(MOCK_ANALYSIS_DATA);
+      }
+    }
+    fetchAnalysisDetail();
+  }, [parsedAnalysisId]);
+
+  /** 2. sample.xml 악보를 분석하여 선택한 마디 구간의 시작 시간(초)과 지속 시간 계산 */
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadScoreInfo() {
+      try {
+        const text = await fetch('/sample.xml').then((r) => r.text());
+        if (cancelled || !text) return;
+
+        // 전체 악보의 마디별 시작 타이밍 분석
+        const timings = computeMeasureTimings(text);
+        setMeasureStartTimes(timings.measureStartTimes);
+
+        const startIndex = Math.max(0, startBar - 1);
+        const endIndex = Math.min(timings.measureStartTimes.length - 1, endBar);
+
+        // 선택한 구간의 시작 초(offset)와 전체 지속 시간 산출
+        const offsetSec = timings.measureStartTimes[startIndex] ?? 0;
+        const endSec = timings.measureStartTimes[endIndex] ?? timings.totalDuration;
+
+        setAudioStartOffsetSec(offsetSec);
+        setSectionDurationSec(Math.max(2, endSec - offsetSec));
+        setCurrentMeasureIndex(startIndex);
+
+        // 해당 마디 구간의 템포 및 박자 추출
+        const { bpm: activeBpm, beats } = extractActiveTempoMeterAtMeasure(text, startBar);
+        setBpm(analysisData?.bpm || activeBpm);
+        setBeatsPerBar(beats);
+      } catch (e) {
+        console.error('MusicXML 분석 실패:', e);
+      }
+    }
+
+    loadScoreInfo();
+    return () => {
+      cancelled = true;
+    };
+  }, [startBar, endBar, analysisData?.bpm]);
+
+  /** 3. 오디오 객체 초기화 및 종료 핸들러 설정 */
+  useEffect(() => {
+    const audioUrl = analysisData?.audioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    const audio = new Audio(audioUrl);
+    audio.preload = 'auto';
+    audio.load();
+    audioRef.current = audio;
+
+    // 오디오 재생이 자연스럽게 끝났을 때의 처리 (첫 마디로 튕기지 않고 제자리에 정지)
+    audio.onended = () => {
+      setIsPlaying(false);
+      stop();
+      setToastMessage('선택한 구간 재생이 완료되었습니다.');
+      setTimeout(() => setToastMessage(null), 3000);
+    };
+
+    return () => {
+      audio.pause();
+      audioRef.current = null;
+    };
+  }, [analysisData?.audioUrl, stop]);
+
+  /** 수동 리와인드 (처음으로 버튼 클릭 시 선택 구간의 시작 지점으로 이동) */
+  const handleRewind = useCallback(() => {
     setIsPlaying(false);
+    stop();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = audioStartOffsetSec;
+    }
+    setCurrentMeasureIndex(startBar - 1);
+    setBeatInBar(-1);
     scoreViewerRef.current?.reset();
+    setToastMessage('선택한 구간의 첫 마디로 되돌아가셨습니다.');
+    setTimeout(() => setToastMessage(null), 3000);
+  }, [audioStartOffsetSec, stop, startBar]);
+
+  /** 4. 재생 상태에 따른 오디오 플레이 및 메트로놈 타이머 제어 */
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      const rangeEndSec = audioStartOffsetSec + sectionDurationSec;
+      // 재생 시작 시 현재 시간이 선택 구간 범위를 벗어났다면 시작점으로 점프
+      if (audio.currentTime < audioStartOffsetSec || audio.currentTime >= rangeEndSec) {
+        audio.currentTime = audioStartOffsetSec;
+      }
+
+      audio.play().catch((err) => {
+        console.warn('오디오 재생 차단:', err);
+      });
+
+      // 메트로놈 시작 (박자 싱크 맞춤)
+      start(bpm, beatsPerBar, (time, bib) => {
+        Tone.getDraw().schedule(() => {
+          setBeatInBar(bib);
+        }, time);
+      });
+    } else {
+      audio.pause();
+      pause();
+    }
+  }, [isPlaying, audioStartOffsetSec, sectionDurationSec, bpm, beatsPerBar, start, pause, stop]);
+
+  /** 5. 실시간 재생 시간에 따른 악보 커서(Cursor) 및 자동 스크롤 틱 처리 */
+  useEffect(() => {
+    if (!isPlaying || measureStartTimes.length === 0) return;
+
+    const tick = () => {
+      const audio = audioRef.current;
+      if (audio) {
+        const elapsed = audio.currentTime;
+
+        // 선택한 구간의 종료 시점에 도달하면 자동 정지 및 토스트 안내
+        if (elapsed >= audioStartOffsetSec + sectionDurationSec) {
+          setIsPlaying(false);
+          stop();
+          audio.pause();
+          setToastMessage('선택한 구간 재생이 완료되었습니다.');
+          setTimeout(() => setToastMessage(null), 3000);
+          return;
+        }
+
+        // 현재 재생 시간에 해당하는 마디 인덱스 탐색 및 업데이트
+        const idx = findMeasureIndexAtTime(measureStartTimes, Math.max(0, elapsed));
+        setCurrentMeasureIndex((prev) => (prev !== idx ? idx : prev));
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [isPlaying, measureStartTimes, audioStartOffsetSec, sectionDurationSec, stop]);
+
+  /** 재생/일시정지 토글 핸들러 (Tone.js 오디오 컨텍스트 활성화 포함) */
+  const handleTogglePlay = async () => {
+    if (isLoading) return;
+    await Tone.start();
+    setIsPlaying((p) => !p);
+  };
+
+  /** 리와인드 버튼 클릭 핸들러 */
+  const handleRewindClick = () => {
+    if (isLoading) return;
+    handleRewind();
+  };
+
+  /** 연주 일시 포맷팅 헬퍼 함수 */
+  const formatPlayedAt = (isoString?: string) => {
+    if (!isoString) return '5월 4일 · 14:32';
+    const date = new Date(isoString);
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${month}월 ${day}일 · ${hours}:${minutes}`;
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-gray-950 px-[160px] pt-[76px] pb-[76px] text-gray-300">
-      {/* 1. 상단 헤더 영역 */}
+    <div className="box-border flex min-h-screen flex-col items-center overflow-x-hidden bg-gray-950 px-4 py-[76px] text-gray-300 md:px-12 xl:px-[160px]">
+      {/* 상단 알림 토스트 메시지 */}
+      {toastMessage && (
+        <div className="fixed top-[40px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-[12px] rounded-[12px] bg-[#E02424] px-[24px] py-[16px] text-[16px] font-bold text-white shadow-2xl">
+          <span>⚠️</span> {toastMessage}
+        </div>
+      )}
+
+      {/* 상단 헤더 영역 (뒤로가기, 곡 정보, 메타데이터) */}
       <div className="mb-[36px] flex w-full max-w-[1400px] items-start justify-between">
         <div>
-          <h1 className="heading-medium-b mb-3 text-white">Jazz Standard Practice</h1>
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-4 flex cursor-pointer items-center gap-[6px] text-[15px] font-medium text-[#A6A8B2] transition-colors hover:text-white">
+            <span className="text-[12px]">＜</span> 구간 다시 설정
+          </button>
+          <h1 className="heading-medium-b mb-3 text-white">{analysisData?.title || 'Jazz Standard Practice'}</h1>
           <div className="flex items-center space-x-2">
-            <span className="rounded bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">JAZZ</span>
-            <span className="rounded bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">C Major</span>
-            <span className="rounded bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">120BPM</span>
+            <span className="rounded bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">
+              {analysisData?.genre ? analysisData.genre.toUpperCase() : 'JAZZ'}
+            </span>
+            <span className="rounded bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">
+              {analysisData?.key || 'C Major'}
+            </span>
+            <span className="rounded bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">{bpm}BPM</span>
           </div>
         </div>
-        <div className="caption-regular mt-1 text-gray-600">5월 4일 · 14:32</div>
+
+        <div className="caption-regular mt-1 text-gray-600">{formatPlayedAt(analysisData?.playedAt)}</div>
       </div>
 
-      {/* 2. 상단 플레이어 및 악보 영역 */}
+      {/* 플레이어 컨트롤 및 악보 영역 */}
       <div className="mb-[36px] flex w-full max-w-[1400px] flex-col">
         <div className="mb-[36px] flex items-center justify-between">
           <div className="flex items-center gap-[16px]">
+            {/* 재생 / 일시정지 버튼 */}
             <button
-              onClick={() => setIsPlaying((p) => !p)}
-              className="flex aspect-square h-[52px] w-[52px] cursor-pointer items-center justify-center bg-transparent transition-all outline-none hover:scale-105 active:scale-95">
+              onClick={handleTogglePlay}
+              disabled={isLoading}
+              className="flex aspect-square h-[52px] w-[52px] cursor-pointer items-center justify-center bg-transparent transition-all outline-none hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100">
               {isPlaying ? (
                 <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" fill="none">
                   <rect x="15" y="11" width="7" height="30" rx="2" fill="#69FFC0" />
@@ -54,9 +389,11 @@ export default function AnalysisResultPage() {
               )}
             </button>
 
+            {/* 리와인드 (처음으로 되돌리기) 버튼 */}
             <button
-              onClick={handleRewind}
-              className="flex aspect-square h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-[6px] bg-[#2B2E36] transition-all outline-none hover:scale-105 active:scale-95">
+              onClick={handleRewindClick}
+              disabled={isLoading}
+              className="flex aspect-square h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-[6px] bg-[#2B2E36] transition-all outline-none hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100">
               <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" fill="none">
                 <rect width="52" height="52" rx="6" fill="#2B2E36" />
                 <path
@@ -67,32 +404,32 @@ export default function AnalysisResultPage() {
             </button>
           </div>
 
-          <div className="flex items-center space-x-3">
-            <div className="bg-secondary-400 h-3.5 w-3.5 rounded-full shadow-[0_0_8px_rgba(198,128,255,0.6)]" />
-            <div className="border-secondary-400/50 h-3.5 w-3.5 rounded-full border" />
-            <div className="border-secondary-400/50 h-3.5 w-3.5 rounded-full border" />
-            <div className="border-secondary-400/50 h-3.5 w-3.5 rounded-full border" />
+          {/* 메트로놈 닷 인디케이터 (박자 시각화) */}
+          <div className="flex items-center">
+            <MetronomeDots total={beatsPerBar} current={isPlaying ? beatInBar : -1} />
           </div>
         </div>
 
-        {/* 악보 뷰어 영역 */}
+        {/* 악보 뷰어 영역 (sample.xml 기반 렌더링 및 실시간 커서 스크롤 연동) */}
         <div className="w-full">
           <ScoreViewer
             ref={scoreViewerRef}
-            xmlPath={xmlPath}
+            xmlPath={'/sample.xml'}
+            currentMeasureIndex={currentMeasureIndex}
             followPlayback={isPlaying}
             height={420}
             className="w-full"
+            onReady={() => setIsScoreReady(true)}
           />
         </div>
       </div>
 
-      {/* 3. 하단 AI 연주 분석 리포트 + 멘토 채팅 섹션 */}
+      {/* 하단 AI 연주 분석 리포트 + 멘토 채팅 섹션 */}
       <div className="mb-[36px] w-full max-w-[1400px]">
         <AnalysisChatSection analysisId={parsedAnalysisId} />
       </div>
 
-      {/* 4. 최하단 액션 버튼 그룹 */}
+      {/* 최하단 네비게이션 액션 버튼 그룹 */}
       <div className="flex w-full max-w-[1400px] items-center justify-between pt-2">
         <button
           onClick={() => navigate(`/practice/${practiceId}/analysis/select`)}
