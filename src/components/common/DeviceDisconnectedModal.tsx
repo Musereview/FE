@@ -17,6 +17,7 @@ export function DeviceDisconnectedModal({ onEndPractice, onGoSettings }: DeviceD
       cancelLabel="연습 종료"
       confirmLabel="설정으로"
       confirmVariant="primary"
+      dismissible={false}
       onCancel={onEndPractice}
       onConfirm={onGoSettings}
     />

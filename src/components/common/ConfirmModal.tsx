@@ -13,6 +13,7 @@ interface ConfirmModalProps {
   onConfirm: () => void;
   tone?: ModalTone;
   confirmVariant?: ConfirmVariant;
+  dismissible?: boolean;
 }
 
 const titleToneClass: Record<ModalTone, string> = {
@@ -34,6 +35,7 @@ export function ConfirmModal({
   onConfirm,
   tone = 'default',
   confirmVariant = 'primary',
+  dismissible = true,
 }: ConfirmModalProps) {
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -43,17 +45,18 @@ export function ConfirmModal({
   }, []);
 
   useEffect(() => {
+    if (!dismissible) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onCancel]);
+  }, [dismissible, onCancel]);
 
   return (
     <div
       role="presentation"
-      onClick={onCancel}
+      onClick={dismissible ? onCancel : undefined}
       className="fixed inset-y-0 right-0 left-[90px] z-50 flex items-center justify-center bg-gray-950/60 backdrop-blur-sm">
       <div
         role="dialog"
