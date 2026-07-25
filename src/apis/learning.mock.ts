@@ -6,7 +6,7 @@ import type { PracticeDataResponse } from '@/types/learning';
 export async function getPracticeDataMock(learningId: number, learningStepId: number): Promise<PracticeDataResponse> {
   void learningId;
   void learningStepId;
-  return { bpm: 90, keySignature: 'C', midiData: '{}' };
+  return { bpm: 120, keySignature: 'C', midiData: '{}' };
 }
 
 // 프론트 curriculumId(문자열) → practice-data API용 숫자 id (learningId=패키지, learningStepId=단계)
