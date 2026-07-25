@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as Tone from 'tone';
 import Piano from '@/components/piano/Piano';
-import LearningScoreView from '@/components/score/LearningScoreView';
+import LearningScoreView, { type LearningScoreHandle } from '@/components/score/LearningScoreView';
 import MetronomeDots from '@/components/metronome/MetronomeDots';
 import BackingTrack from '@/pages/practice/components/BackingTrack';
 import { buildFallbackProgression } from '@/pages/practice/trackDisplay';
@@ -47,16 +47,20 @@ function StepLearningPlayPage() {
   const [beatInBar, setBeatInBar] = useState(-1); // 진행점 (마디 내 0-based)
   const [currentBeat, setCurrentBeat] = useState(-1); // 백킹트랙 전체 진행 박
   const [measureIndex, setMeasureIndex] = useState(0); // 악보 현재 진행 마디 (가운데 정렬 기준)
+  const [playheadBeat, setPlayheadBeat] = useState(-1); // 곡 시작 기준 현재 박 (악보 현재 음 하이라이트)
   const [showStart, setShowStart] = useState(true); // 진입 시 START 안내
   const totalBeatRef = useRef(0);
   const recordingRef = useRef<PlayedNote[]>([]); // 연주 녹음 — 채점(다음 단계)에서 정답 음과 비교
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 진입 시 자동재생 예약
+  const scoreRef = useRef<LearningScoreHandle>(null); // 악보 판정·색칠 핸들
 
-  // 친 음: 소리 재생 + 녹음(Transport 시각 = 곡 박자 기준)
+  // 친 음: 소리 재생 + 녹음(Transport 시각 = 곡 박자 기준) + 악보 판정 색칠
   const handleNoteOn = (note: number, velocity = 100) => {
     playNote(note, velocity);
-    recordingRef.current.push({ midi: note, velocity, onSec: Tone.getTransport().seconds, offSec: null });
+    const atSec = Tone.getTransport().seconds;
+    recordingRef.current.push({ midi: note, velocity, onSec: atSec, offSec: null });
+    scoreRef.current?.judge(note, atSec); // 현재 음과 대조해 Excellent/Good/Bad 색칠
   };
   const handleNoteOff = (note: number) => {
     stopNote(note);
@@ -98,6 +102,8 @@ function StepLearningPlayPage() {
     setBeatInBar(-1);
     setCurrentBeat(-1);
     setMeasureIndex(0);
+    setPlayheadBeat(-1);
+    scoreRef.current?.reset(); // 악보 색칠 초기화
   };
 
   const startPlayback = async () => {
@@ -108,13 +114,17 @@ function StepLearningPlayPage() {
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
     setIsPlaying(true);
     setMeasureIndex(0);
+    setPlayheadBeat(-1);
+    scoreRef.current?.reset(); // 처음부터 재생 시 색칠 초기화
     start(bpm, beatsPerBar, (time, bib) => {
       const beat = totalBeatRef.current % totalCells;
-      const measure = Math.floor(totalBeatRef.current / beatsPerBar); // 곡 진행 마디(언랩) — 악보 슬라이드 기준
+      const pbeat = totalBeatRef.current; // 곡 시작 기준 현재 박(언랩)
+      const measure = Math.floor(pbeat / beatsPerBar); // 곡 진행 마디(언랩) — 악보 슬라이드 기준
       Tone.getDraw().schedule(() => {
         setBeatInBar(bib);
         setCurrentBeat(beat);
         setMeasureIndex(measure);
+        setPlayheadBeat(pbeat);
       }, time);
       totalBeatRef.current += 1;
     });
@@ -220,8 +230,12 @@ function StepLearningPlayPage() {
         {/* 악보 영역 — 현재 마디를 가운데 두고 이전/다음 마디가 좌우에 보이도록 슬라이딩 */}
         <div className="mx-auto mt-8 flex w-full max-w-[1510px] flex-1 items-center">
           <LearningScoreView
-            xmlPath="/sample.xml"
+            ref={scoreRef}
+            xmlPath="/learn-sample.xml"
             currentMeasureIndex={measureIndex}
+            playheadBeat={playheadBeat}
+            bpm={bpm}
+            difficulty={curriculum.difficulty}
             visibleMeasures={3}
             height={600}
             className="w-full"

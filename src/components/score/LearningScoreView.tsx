@@ -1,33 +1,72 @@
 // 학습 화면 악보 뷰 — 한 화면에 지정한 마디 수(기본 3마디)만 보이도록 확대하고,
 // 현재 진행 마디를 항상 "가운데"에 둔다. 왼쪽=지나간 마디 / 오른쪽=다음 마디.
-// OSMD를 단일 가로 라인으로 1회 렌더한 뒤(재렌더 없음), 컨테이너에 고정 배율(scale) + translateX만
-// 적용해 현재 마디를 중앙에 맞춘다. 마디가 바뀌면 translateX가 CSS transition으로 부드럽게 슬라이드.
-import { useEffect, useRef, useState } from 'react';
+// 추가로, 사용자 입력에 대한 판정(Excellent/Good/Bad)을 음표 색으로 표시한다.
+//  - 현재 쳐야 하는 음: 보라색(secondary-400) 전체 채움
+//  - 판정된 음: 노트헤드 테두리를 판정색으로, 채움은 원복
+//  - 아직 차례가 아닌 음: 색 변화 없음
+// OSMD는 단일 가로 라인으로 1회 렌더(재렌더 없음), 색칠은 SVG를 직접 조작하므로 슬라이드 re-render에도 유지된다.
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useOSMD } from '@/hooks/music/useOSMD';
+import { judgeNote } from '@/utils/scoring';
+import { TIMING_TOLERANCE, type NoteJudgment } from '@/constants/scoring';
+import type { Difficulty } from '@/constants/difficulty';
+import {
+  extractNoteEvents,
+  findCurrentEventIndex,
+  paintCurrent,
+  paintDefault,
+  paintJudged,
+  type NoteEvent,
+} from '@/utils/osmdColor';
+
+export interface LearningScoreHandle {
+  /** 사용자가 친 음을 현재 음과 대조해 판정·색칠한다. (틀린 음은 오타로 기록만) */
+  judge: (midi: number, atSec: number) => void;
+  /** 모든 음표 색을 기본으로 되돌린다. (재시작/정지) */
+  reset: () => void;
+  /** 채점용 집계 (판정된 음별 결과 + 오타 수). 추후 점수 화면 연동용. */
+  getStats: () => { wrongHits: number; results: [number, NoteJudgment][] };
+}
 
 interface LearningScoreViewProps {
   xmlContent?: string;
   xmlPath?: string;
-  currentMeasureIndex: number; // 0-based 현재 진행 마디
+  currentMeasureIndex: number; // 0-based 현재 진행 마디 (슬라이드 기준)
+  playheadBeat?: number; // 곡 시작 기준 현재 박 (현재 음 하이라이트 기준). 미재생 시 -1
+  bpm?: number; // 타이밍 판정용
+  difficulty?: Difficulty; // 타이밍 허용치 선택
   visibleMeasures?: number; // 한 화면에 보이는 마디 수 (기본 3)
   zoom?: number; // OSMD 기본 렌더 배율 (여기에 화면맞춤 scale이 추가로 곱해짐)
-  height?: number; // 뷰포트 높이(px) — 세로 넘침 방지 배율 계산에 사용
+  height?: number; // 뷰포트 높이(px)
   className?: string;
 }
 
-export default function LearningScoreView({
-  xmlContent,
-  xmlPath,
-  currentMeasureIndex,
-  visibleMeasures = 3,
-  zoom = 1.2,
-  height = 260,
-  className = '',
-}: LearningScoreViewProps) {
+const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps>(function LearningScoreView(
+  {
+    xmlContent,
+    xmlPath,
+    currentMeasureIndex,
+    playheadBeat = -1,
+    bpm = 120,
+    difficulty = 'intermediate',
+    visibleMeasures = 3,
+    zoom = 1.2,
+    height = 260,
+    className = '',
+  },
+  ref,
+) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(0);
   const [svgHeight, setSvgHeight] = useState(0); // 렌더된 악보 원본 높이(px, 배율 전)
-  const { containerRef, isLoading, measureXPositions } = useOSMD({ xmlContent, xmlPath, zoom });
+  const [eventsVersion, setEventsVersion] = useState(0); // 정답 음 추출 완료 시 하이라이트 재평가 트리거
+  const { containerRef, osmdRef, isLoading, measureXPositions } = useOSMD({ xmlContent, xmlPath, zoom });
+
+  // 판정 상태 (React 렌더와 무관하게 SVG를 직접 색칠하므로 ref로 관리)
+  const eventsRef = useRef<NoteEvent[]>([]); // 정답 음 이벤트 목록
+  const judgedRef = useRef<Map<number, NoteJudgment>>(new Map()); // 판정 확정된 이벤트(맞음/놓침)
+  const currentIdxRef = useRef(-1); // 현재 보라색으로 칠해진 이벤트 인덱스
+  const wrongHitsRef = useRef(0); // 오타 수 (틀린 음 입력 — 현재 음을 소비하지 않음)
 
   // 뷰포트 폭 추적 (반응형)
   useEffect(() => {
@@ -40,13 +79,78 @@ export default function LearningScoreView({
     return () => ro.disconnect();
   }, []);
 
-  // 렌더 완료 후 악보 원본 높이 측정 (세로 맞춤 배율 계산용)
+  // 렌더 완료 후: 악보 원본 높이 측정 + 정답 음 이벤트 추출
   useEffect(() => {
     if (measureXPositions.length <= 1) return;
     const svg = containerRef.current?.querySelector('svg') as SVGSVGElement | null;
     const h = svg?.height?.baseVal?.value ?? 0;
     if (h) setSvgHeight(h);
-  }, [measureXPositions, containerRef]);
+
+    eventsRef.current = extractNoteEvents(osmdRef.current);
+    judgedRef.current.clear();
+    currentIdxRef.current = -1;
+    setEventsVersion((v) => v + 1); // 추출 완료 → 하이라이트 재평가(재생이 이미 시작됐어도 현재 음 칠하도록)
+  }, [measureXPositions, containerRef, osmdRef]);
+
+  // 현재 박에 맞춰 "현재 음" 보라색 이동.
+  // (C) 지나갔는데 못 친(판정 안 된) 음은 "놓친 음" → Bad(빨강 테두리)로 확정.
+  // eventsVersion 의존: 악보가 늦게 로드돼도 추출 직후 현재 음을 즉시 칠한다.
+  useEffect(() => {
+    const events = eventsRef.current;
+    if (events.length === 0) return;
+    const newIdx = findCurrentEventIndex(events, playheadBeat);
+    const prev = currentIdxRef.current;
+    if (newIdx === prev) return;
+    // 새 현재 음보다 앞선(시간이 지난) 미판정 음 → 놓친 음(Bad)
+    if (newIdx > prev) {
+      for (let i = Math.max(prev, 0); i < newIdx; i++) {
+        if (!judgedRef.current.has(i)) {
+          paintJudged(events[i].gnotes, 'bad');
+          judgedRef.current.set(i, 'bad');
+        }
+      }
+    }
+    // 새 현재 음 보라 (아직 판정 안 된 경우만)
+    if (newIdx >= 0 && !judgedRef.current.has(newIdx)) paintCurrent(events[newIdx].gnotes);
+    currentIdxRef.current = newIdx;
+  }, [playheadBeat, eventsVersion]);
+
+  // 부모(입력 핸들러)에서 호출
+  useImperativeHandle(
+    ref,
+    () => ({
+      // (C) 현재 음과 대조: 맞으면 타이밍으로 판정(Excellent/Good/Bad), 틀리면 오타로 기록만(현재 음은 대기)
+      judge: (midi: number, atSec: number) => {
+        const idx = currentIdxRef.current;
+        if (idx < 0) return;
+        const ev = eventsRef.current[idx];
+        if (!ev) return;
+        if (judgedRef.current.has(idx)) {
+          wrongHitsRef.current += 1; // 이미 판정된 자리에서의 추가 입력 = 오타
+          return;
+        }
+        if (!ev.midis.includes(midi)) {
+          wrongHitsRef.current += 1; // 틀린 음 = 오타 (현재 음 소비하지 않고 대기)
+          return;
+        }
+        const onSec = ev.onBeat * (60 / bpm);
+        const judgment = judgeNote(true, (atSec - onSec) * 1000, TIMING_TOLERANCE[difficulty]); // 맞은 음 → 타이밍 판정
+        paintJudged(ev.gnotes, judgment);
+        judgedRef.current.set(idx, judgment);
+      },
+      reset: () => {
+        for (const ev of eventsRef.current) paintDefault(ev.gnotes);
+        judgedRef.current.clear();
+        wrongHitsRef.current = 0;
+        currentIdxRef.current = -1;
+      },
+      getStats: () => ({
+        wrongHits: wrongHitsRef.current,
+        results: Array.from(judgedRef.current.entries()),
+      }),
+    }),
+    [bpm, difficulty],
+  );
 
   // measureXPositions = [마디0 좌측x, 마디1 좌측x, ..., 악보 끝x] → 길이 = 마디수 + 1
   const measureCount = Math.max(1, measureXPositions.length - 1);
@@ -82,4 +186,6 @@ export default function LearningScoreView({
       />
     </div>
   );
-}
+});
+
+export default LearningScoreView;
