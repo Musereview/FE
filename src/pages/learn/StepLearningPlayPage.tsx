@@ -142,7 +142,7 @@ function StepLearningPlayPage() {
         return;
       }
       const beat = pbeat % totalCells;
-      const measure = Math.floor(pbeat / beatsPerBar); // 곡 진행 마디(언랩) — 악보 슬라이드 기준
+      const measure = Math.floor(beat / beatsPerBar); // 백킹 루프와 같은 주기 — 악보 슬라이드가 백킹과 어긋나지 않게
       Tone.getDraw().schedule(() => {
         setBeatInBar(bib);
         setCurrentBeat(beat);
