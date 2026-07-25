@@ -66,6 +66,7 @@ function StepLearningPlayPage() {
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 진입 시 자동재생 예약
   const scoreRef = useRef<LearningScoreHandle>(null); // 악보 판정·색칠 핸들
+  const endedRef = useRef(false); // 곡 끝 정지 중복 예약 방지
   // 진입 자동재생(마운트 시점 클로저)이 stale bpm으로 시작하지 않도록 최신 bpm을 ref로 유지
   const bpmRef = useRef(bpm);
   useEffect(() => {
@@ -122,11 +123,21 @@ function StepLearningPlayPage() {
     // 정지 시엔 색칠·판정을 지우지 않음(끝/분석 시 결과 유지). 새 재생(startPlayback)에서 초기화한다.
   };
 
+  // 곡 끝: 진행점·마디·색칠을 끝 지점 그대로 두고 재생만 멈춤 (정지 버튼과 달리 위치 리셋 안 함)
+  const finishPlayback = () => {
+    finalizeOpenNotes(); // stop() 전에 열린 노트 확정
+    stop();
+    Tone.getDraw().cancel();
+    setIsPlaying(false);
+    // beatInBar/currentBeat/measureIndex/색칠 모두 유지 (끝 지점 상태 그대로)
+  };
+
   const startPlayback = async () => {
     cancelAutoStart(); // 대기 중인 자동재생 취소 (중복 시작 방지)
     setShowStart(false);
     await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
     totalBeatRef.current = 0;
+    endedRef.current = false; // 재생 시작 시 끝 가드 해제 (재시작/재생 시 다시 정지 가능하도록)
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
     setIsPlaying(true);
     setMeasureIndex(0);
@@ -135,7 +146,9 @@ function StepLearningPlayPage() {
       const pbeat = totalBeatRef.current; // 곡 시작 기준 현재 박(언랩)
       // 악보 한 바퀴(totalCells 박)를 모두 지나면 루프 대신 정지 (mock: 백킹트랙·악보 모두 8마디)
       if (pbeat >= totalCells) {
-        Tone.getDraw().schedule(() => stopPlayback(), time);
+        if (endedRef.current) return; // 중복 예약 방지
+        endedRef.current = true;
+        Tone.getDraw().schedule(() => finishPlayback(), time); // 진행 위치 유지하고 정지만
         return;
       }
       const beat = pbeat % totalCells;
