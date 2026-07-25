@@ -6,7 +6,7 @@ import Piano from '@/components/piano/Piano';
 import PracticeNoteBars, { type LiveNoteBar } from '@/components/piano/PracticeNoteBars';
 import { noteCenterFraction } from '@/constants/piano';
 import MetronomeDots from '@/components/metronome/MetronomeDots';
-import BackingTrack from '@/pages/practice/components/BackingTrack';
+import BackingTrack from '@/components/practice/BackingTrack';
 import { useActiveNotes } from '@/hooks/useActiveNotes';
 import { useMetronome } from '@/hooks/useMetronome';
 import { usePianoSound } from '@/hooks/usePianoSound';
