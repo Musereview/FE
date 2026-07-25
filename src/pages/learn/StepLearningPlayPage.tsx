@@ -103,16 +103,16 @@ function StepLearningPlayPage() {
     resetInput(); // 눌린 건반 표시 초기화
   };
 
-  // 예약된 자동재생(START 타이머) 취소
-  const cancelAutoStart = () => {
-    if (startTimerRef.current) {
-      clearTimeout(startTimerRef.current);
-      startTimerRef.current = null;
-    }
+  // 예약된 시작 타이머(진입 자동재생 + 재시작) 모두 취소
+  const cancelPendingStarts = () => {
+    if (startTimerRef.current) clearTimeout(startTimerRef.current);
+    if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+    startTimerRef.current = null;
+    restartTimerRef.current = null;
   };
 
   const stopPlayback = () => {
-    cancelAutoStart();
+    cancelPendingStarts();
     finalizeOpenNotes(); // stop() 전에 (stop이 transport 위치를 0으로 리셋하므로)
     stop();
     Tone.getDraw().cancel();
@@ -133,7 +133,7 @@ function StepLearningPlayPage() {
   };
 
   const startPlayback = async () => {
-    cancelAutoStart(); // 대기 중인 자동재생 취소 (중복 시작 방지)
+    cancelPendingStarts(); // 대기 중인 자동재생·재시작 타이머 취소 (중복 시작 방지)
     setShowStart(false);
     await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
     totalBeatRef.current = 0;
@@ -181,8 +181,7 @@ function StepLearningPlayPage() {
     else startPlayback(); // 처음부터
   };
   const handleRestart = () => {
-    stopPlayback();
-    if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+    stopPlayback(); // cancelPendingStarts로 대기 타이머 정리됨
     restartTimerRef.current = setTimeout(() => startPlayback(), 80); // 연속 stop→start 글리치 방지
   };
 
@@ -199,14 +198,14 @@ function StepLearningPlayPage() {
     return () => {
       stop();
       Tone.getDraw().cancel();
-      if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+      cancelPendingStarts();
     };
   }, [stop]);
 
   // 진입 시 START 1초 표시 후 자동 재생
   useEffect(() => {
     startTimerRef.current = setTimeout(() => startPlayback(), 1000);
-    return () => cancelAutoStart();
+    return () => cancelPendingStarts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
