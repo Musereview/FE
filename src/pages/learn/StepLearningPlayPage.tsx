@@ -16,7 +16,8 @@ import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
 import { useLearningScoreStore } from '@/stores/learningScoreStore';
 import type { PlayedNote } from '@/stores/practiceResultStore';
-import { getCurriculum, getCurriculumProgress, getScorePath } from './mockCurriculum';
+import { getCurriculum, getCurriculumProgress, getScorePath, getLearningIds } from './mockCurriculum';
+import { usePracticeData } from '@/hooks/usePracticeData';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import StopIcon from '@/assets/practice/stop.svg?react';
 import RefreshIcon from '@/assets/restart.svg?react';
@@ -36,7 +37,12 @@ function StepLearningPlayPage() {
   const curriculum = getCurriculum(curriculumId);
   const chapterNo = curriculumId.match(/\d+/)?.[0] ?? ''; // 'chapter-1' → '1'
   const title = chapterNo ? `${curriculum.title}-chapter ${chapterNo}` : curriculum.title;
-  const bpm = curriculum.bpm;
+
+  // 실습 데이터(bpm/keySignature/midiData) — '이 이론으로 실습하기'에서 조회. 지금은 mock.
+  // TODO: midiData를 채점 정답 데이터로 사용(현재는 악보(OSMD)에서 추출). keySignature도 필요 시 활용.
+  const { learningId, learningStepId } = getLearningIds(curriculumId);
+  const { data: practiceData } = usePracticeData(learningId, learningStepId);
+  const bpm = practiceData?.bpm ?? curriculum.bpm; // 실습 데이터 우선, 로딩 중엔 커리큘럼 값
   const beatsPerBar = Number(curriculum.timeSignature.split('/')[0]); // '4/4' → 4
   const measures = buildFallbackProgression(MOCK_CHORDS, beatsPerBar);
   const totalCells = measures.length * beatsPerBar;
