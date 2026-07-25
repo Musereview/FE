@@ -314,6 +314,7 @@ function PracticePlayPage() {
         </div>
       </div>
 
+      {/* 모달 임시로 확인 disconnected -> (true || disconnected) 변경해서 확인 가능 */}
       {disconnected && (
         <DeviceDisconnectedModal
           onEndPractice={() => navigate('/practice')}
