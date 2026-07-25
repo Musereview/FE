@@ -1,7 +1,9 @@
 import type { Track } from '@/types/track';
 import ClockIcon from '@/assets/practice/clock.svg?react';
 import ChordDividerIcon from '@/assets/practice/chord-divider.svg?react';
-import { DIFFICULTY_LABEL, DIFFICULTY_COLOR, MODE_LABEL } from '@/pages/practice/trackDisplay';
+import DifficultyBadge from '@/components/common/DifficultyBadge';
+import ClickableCard from '@/components/common/ClickableCard';
+import { MODE_LABEL } from '@/pages/practice/trackDisplay';
 
 interface TrackCardProps {
   track: Track;
@@ -12,21 +14,7 @@ function TrackCard({ track, onClick }: TrackCardProps) {
   const { title, key, mode, timeSignature, chords, genre, bpm, difficulty, duration } = track;
 
   return (
-    <div
-      onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={
-        onClick
-          ? (event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-      className={`flex w-full flex-col gap-4 rounded-[10px] bg-gray-800 p-6 ${onClick ? 'cursor-pointer' : ''}`}>
+    <ClickableCard onClick={onClick} className="flex w-full flex-col gap-4 rounded-[10px] bg-gray-800 p-6">
       <div className="flex w-full flex-col gap-4">
         <div className="flex w-full flex-col gap-0.5">
           <h3 className="button-large1 truncate text-gray-100">{title}</h3>
@@ -51,9 +39,7 @@ function TrackCard({ track, onClick }: TrackCardProps) {
           <span className="button-label2 rounded-[6px] border-[0.5px] border-gray-300 px-2.5 py-0.5 text-gray-400">
             {bpm} BPM
           </span>
-          <span className={`button-label2 rounded-[6px] border-[0.5px] px-2.5 py-0.5 ${DIFFICULTY_COLOR[difficulty]}`}>
-            {DIFFICULTY_LABEL[difficulty]}
-          </span>
+          <DifficultyBadge difficulty={difficulty} variant="tag" size="md" />
         </div>
 
         <div className="flex items-center gap-1">
@@ -61,7 +47,7 @@ function TrackCard({ track, onClick }: TrackCardProps) {
           <span className="button-label2 text-gray-400">{duration}</span>
         </div>
       </div>
-    </div>
+    </ClickableCard>
   );
 }
 

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import ClickableCard from '@/components/common/ClickableCard';
 
 export interface HistoryPracticeItem {
   practiceId?: number;
@@ -18,49 +19,9 @@ interface HistoryRecentPracticesProps {
   data?: HistoryPracticeItem[];
 }
 
-const FALLBACK_MOCK_ITEMS: HistoryPracticeItem[] = [
-  {
-    practiceId: 1,
-    title: 'Jazz Standard Practice',
-    scoreChange: '+8점',
-    scoreType: 'up',
-    description:
-      '리디안 스케일 활용이 우수하며, 텐션음 해결이 자연스러웠습니다.\n박자 안정성을 더 개선하면 좋겠습니다.',
-    timeLabel: '소요시간 10분',
-    date: '오늘',
-  },
-  {
-    practiceId: 2,
-    title: 'Modal Interchange Practice',
-    scoreChange: '+6점',
-    scoreType: 'up',
-    description: '모달 인터체인지 개념을 잘 적용했으나, 전조 구간에서 약간의 불안정함이 있었습니다.',
-    timeLabel: '소요시간 10분',
-    date: '어제',
-  },
-  {
-    practiceId: 3,
-    title: 'Voice Leading Exercise',
-    scoreChange: '-5점',
-    scoreType: 'down',
-    description: '보이스 리딩이 매끄럽지 못했고, 코드 톤 간 연결이 부자연스러웠습니다.\n더 많은 연습이 필요합니다.',
-    timeLabel: '소요시간 10분',
-    date: '4월 30일',
-  },
-  {
-    practiceId: 4,
-    title: 'Blues Scale Improvisation',
-    scoreChange: '—',
-    scoreType: 'neutral',
-    description: '블루스 스케일을 효과적으로 사용했고, 리듬감이 뛰어났습니다.',
-    timeLabel: '소요시간 10분',
-    date: '4월 29일',
-  },
-];
-
 export default function HistoryRecentPractices({ data }: HistoryRecentPracticesProps) {
   const navigate = useNavigate();
-  const practiceList = data && data.length > 0 ? data : FALLBACK_MOCK_ITEMS;
+  const practiceList = data ?? [];
 
   return (
     <div className="flex w-full flex-col gap-[12px]">
@@ -77,10 +38,10 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
         };
 
         return (
-          <div
+          <ClickableCard
             key={index}
             onClick={handleClick}
-            className="box-border flex w-full max-w-[1196px] cursor-pointer items-center justify-between rounded-[6px] border border-gray-800 bg-gray-900 p-[24px] text-white transition-colors select-none hover:border-gray-700">
+            className="box-border flex w-full max-w-[1196px] items-center justify-between rounded-[6px] border border-gray-800 bg-gray-900 p-[24px] text-white transition-colors select-none hover:border-gray-700">
             {/* 좌측 구역 */}
             <div className="flex flex-1 flex-col gap-[8px] pr-[24px]">
               <div className="flex items-center">
@@ -185,7 +146,7 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
                 />
               </svg>
             </div>
-          </div>
+          </ClickableCard>
         );
       })}
     </div>
