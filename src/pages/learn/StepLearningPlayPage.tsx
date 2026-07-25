@@ -14,6 +14,7 @@ import { useActiveNotes } from '@/hooks/useActiveNotes';
 import { useMetronome } from '@/hooks/useMetronome';
 import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
+import { useLearningScoreStore } from '@/stores/learningScoreStore';
 import type { PlayedNote } from '@/stores/practiceResultStore';
 import { getCurriculum, getCurriculumProgress, getScorePath } from './mockCurriculum';
 import PlayIcon from '@/assets/practice/play.svg?react';
@@ -30,6 +31,7 @@ function StepLearningPlayPage() {
   const { keyCount } = useSettingStore();
   const { start, stop, pause, resume } = useMetronome();
   const { noteOn: playNote, noteOff: stopNote, releaseAll } = usePianoSound();
+  const setScore = useLearningScoreStore((s) => s.setScore); // 채점 결과 → 점수 화면 전달
 
   const curriculum = getCurriculum(curriculumId);
   const chapterNo = curriculumId.match(/\d+/)?.[0] ?? ''; // 'chapter-1' → '1'
@@ -103,7 +105,7 @@ function StepLearningPlayPage() {
     setCurrentBeat(-1);
     setMeasureIndex(0);
     setPlayheadBeat(-1);
-    scoreRef.current?.reset(); // 악보 색칠 초기화
+    // 정지 시엔 색칠·판정을 지우지 않음(끝/분석 시 결과 유지). 새 재생(startPlayback)에서 초기화한다.
   };
 
   const startPlayback = async () => {
@@ -159,6 +161,14 @@ function StepLearningPlayPage() {
     restartTimerRef.current = setTimeout(() => startPlayback(), 80); // 연속 stop→start 글리치 방지
   };
 
+  // 분석하기: 지금까지의 판정을 집계해 점수 스토어에 담고 점수 화면으로 이동
+  const handleAnalyze = () => {
+    const result = scoreRef.current?.getScore();
+    if (result) setScore(result);
+    stopPlayback();
+    navigate(`/learn/curriculum/${curriculumId}/score`);
+  };
+
   // 언마운트 시 정리
   useEffect(() => {
     return () => {
@@ -207,7 +217,7 @@ function StepLearningPlayPage() {
           </button>
           <button
             type="button"
-            onClick={() => navigate(`/learn/curriculum/${curriculumId}/score`)}
+            onClick={handleAnalyze}
             className="button-large2 bg-primary-400 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] px-3 py-[6px] text-gray-950">
             분석하기
           </button>

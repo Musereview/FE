@@ -7,9 +7,10 @@
 // OSMD는 단일 가로 라인으로 1회 렌더(재렌더 없음), 색칠은 SVG를 직접 조작하므로 슬라이드 re-render에도 유지된다.
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useOSMD } from '@/hooks/music/useOSMD';
-import { judgeNote } from '@/utils/scoring';
+import { judgeNote, summarizeJudgments } from '@/utils/scoring';
 import { TIMING_TOLERANCE, type NoteJudgment } from '@/constants/scoring';
 import type { Difficulty } from '@/constants/difficulty';
+import type { LearningScore } from '@/stores/learningScoreStore';
 import {
   extractNoteEvents,
   findCurrentEventIndex,
@@ -24,8 +25,8 @@ export interface LearningScoreHandle {
   judge: (midi: number, atSec: number) => void;
   /** 모든 음표 색을 기본으로 되돌린다. (재시작/정지) */
   reset: () => void;
-  /** 채점용 집계 (판정된 음별 결과 + 오타 수). 추후 점수 화면 연동용. */
-  getStats: () => { wrongHits: number; results: [number, NoteJudgment][] };
+  /** 지금까지의 판정을 집계한 최종 점수 지표 (점수 화면 연동용). */
+  getScore: () => LearningScore;
 }
 
 interface LearningScoreViewProps {
@@ -66,6 +67,7 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
   const eventsRef = useRef<NoteEvent[]>([]); // 정답 음 이벤트 목록
   const judgedRef = useRef<Map<number, NoteJudgment>>(new Map()); // 판정 확정된 이벤트(맞음/놓침)
   const currentIdxRef = useRef(-1); // 현재 보라색으로 칠해진 이벤트 인덱스
+  const missedRef = useRef<Set<number>>(new Set()); // 놓친 음(시간 지나도록 안 친 음) 인덱스
   const wrongHitsRef = useRef(0); // 오타 수 (틀린 음 입력 — 현재 음을 소비하지 않음)
 
   // 뷰포트 폭 추적 (반응형)
@@ -107,6 +109,7 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
         if (!judgedRef.current.has(i)) {
           paintJudged(events[i].gnotes, 'bad');
           judgedRef.current.set(i, 'bad');
+          missedRef.current.add(i); // 놓친 음(안 침)으로 기록 — 오타(틀린 음)와 구분
         }
       }
     }
@@ -141,8 +144,20 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
       reset: () => {
         for (const ev of eventsRef.current) paintDefault(ev.gnotes);
         judgedRef.current.clear();
+        missedRef.current.clear();
         wrongHitsRef.current = 0;
         currentIdxRef.current = -1;
+      },
+      // 지금까지의 판정을 집계 (미해결 이벤트는 놓친 음=Bad으로 간주) → 최종 점수 지표
+      getScore: () => {
+        const results = eventsRef.current.map((_, i) => {
+          const resolved = judgedRef.current.has(i);
+          return {
+            judgment: resolved ? (judgedRef.current.get(i) as NoteJudgment) : ('bad' as NoteJudgment),
+            missed: missedRef.current.has(i) || !resolved,
+          };
+        });
+        return summarizeJudgments(results);
       },
       getStats: () => ({
         wrongHits: wrongHitsRef.current,
