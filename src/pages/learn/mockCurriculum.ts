@@ -73,13 +73,6 @@ export function getScorePath(curriculumId: string): string {
   return SCORE_BY_CURRICULUM[curriculumId] ?? DEFAULT_SCORE_PATH;
 }
 
-// mock: 프론트 curriculumId(문자열) → practice-data API용 숫자 id (learningId=패키지, learningStepId=단계)
-// TODO: 실제 학습 데이터의 id 매핑으로 교체.
-export function getLearningIds(curriculumId: string): { learningId: number; learningStepId: number } {
-  const n = Number(curriculumId.match(/\d+/)?.[0]);
-  return { learningId: Number.isFinite(n) && n > 0 ? n : 1, learningStepId: 1 };
-}
-
 // 커리큘럼(단계) 순서
 const CURRICULUM_ORDER = Object.keys(MOCK_CURRICULA);
 

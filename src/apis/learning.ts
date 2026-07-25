@@ -22,11 +22,3 @@ export async function getPracticeData(learningId: number, learningStepId: number
   );
   return data.data;
 }
-
-// TODO(mock): 백엔드 연동 전 임시 데이터. 연동 시 usePracticeData의 queryFn을 getPracticeData로 교체하면 됨.
-// params는 실제 API 시그니처를 맞추기 위해 받되, mock에선 사용하지 않음.
-export async function getPracticeDataMock(learningId: number, learningStepId: number): Promise<PracticeDataResponse> {
-  void learningId;
-  void learningStepId;
-  return { bpm: 90, keySignature: 'C', midiData: '{}' };
-}
