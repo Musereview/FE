@@ -71,6 +71,7 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
   const currentIdxRef = useRef(-1); // 현재 보라색으로 칠해진 이벤트 인덱스
   const missedRef = useRef<Set<number>>(new Set()); // 놓친 음(시간 지나도록 안 친 음) 인덱스
   const wrongHitsRef = useRef(0); // 오타 수 (틀린 음 입력 — 현재 음을 소비하지 않음)
+  const hitMidisRef = useRef<Map<number, Set<number>>>(new Map()); // idx별 이미 맞춘 화음 음 (모두 쳐야 완료)
 
   // 뷰포트 폭 추적 (반응형)
   useEffect(() => {
@@ -138,9 +139,19 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
           wrongHitsRef.current += 1; // 틀린 음 = 오타 (현재 음 소비하지 않고 대기)
           return;
         }
+        // 화음: 모든 음이 입력될 때까지 이벤트를 미해결로 유지 (첫 음만으로 완료 처리하지 않음)
+        const hits = hitMidisRef.current.get(idx) ?? new Set<number>();
+        if (hits.has(midi)) {
+          wrongHitsRef.current += 1; // 같은 화음 음 중복 입력 = 오타
+          return;
+        }
+        hits.add(midi);
+        hitMidisRef.current.set(idx, hits);
+        const needed = new Set(ev.midis).size; // 중복 음 대비 유니크 개수
+        if (hits.size < needed) return; // 나머지 화음 음 대기
         const onSec = ev.onBeat * (60 / bpm);
-        const timingErrorMs = (atSec - latencyMs / 1000 - onSec) * 1000; // 레이턴시 보정 후 정박과 비교
-        const judgment = judgeNote(true, timingErrorMs, TIMING_TOLERANCE[difficulty]); // 맞은 음 → 타이밍 판정
+        const timingErrorMs = (atSec - latencyMs / 1000 - onSec) * 1000; // 레이턴시 보정 후 정박과 비교 (마지막 음 기준)
+        const judgment = judgeNote(true, timingErrorMs, TIMING_TOLERANCE[difficulty]); // 화음 완성 → 타이밍 판정
         paintJudged(ev.gnotes, judgment);
         judgedRef.current.set(idx, judgment);
       },
@@ -148,6 +159,7 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
         for (const ev of eventsRef.current) paintDefault(ev.gnotes);
         judgedRef.current.clear();
         missedRef.current.clear();
+        hitMidisRef.current.clear();
         wrongHitsRef.current = 0;
         currentIdxRef.current = -1;
       },
