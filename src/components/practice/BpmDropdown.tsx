@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import ChevronDownIcon from '@/assets/practice/chevron-down.svg?react';
+import Dropdown from '@/components/common/Dropdown';
 import {
   FILTER_PANEL_BASE_CLASSNAME,
   getFilterChevronClassName,
@@ -47,24 +48,10 @@ function BpmDropdown({
   className = '',
 }: BpmDropdownProps) {
   const setClampedValue = (next: number) => onChange(clampBpm(next));
-  const containerRef = useRef<HTMLDivElement>(null);
   const stepperButtonClassName = getBpmStepperButtonClassName(STEPPER_SIZE_CLASSNAME[size]);
 
   const [isEditingValue, setIsEditingValue] = useState(false);
   const [draftValue, setDraftValue] = useState(String(value));
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        onOpenChange(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onOpenChange]);
 
   useEffect(() => {
     if (!isOpen) setIsEditingValue(false);
@@ -86,79 +73,77 @@ function BpmDropdown({
   };
 
   return (
-    <div ref={containerRef} className={`relative ${showLabel ? 'flex flex-col items-start gap-3' : ''} ${className}`}>
-      {showLabel && <p className="body-regular2 w-full text-gray-300">BPM</p>}
-
-      <button
-        type="button"
-        aria-label="BPM"
-        onClick={() => onOpenChange(!isOpen)}
-        className={getFilterTriggerClassName(isOpen, size)}>
-        {showLabel ? value : 'BPM'}
-        <ChevronDownIcon className={getFilterChevronClassName(isOpen, size)} />
-      </button>
-
-      {isOpen && (
-        <div className={`${FILTER_PANEL_BASE_CLASSNAME} flex items-center ${PANEL_CLASSNAME[size]}`}>
-          <div className={`flex ${SLIDER_WRAPPER_CLASSNAME[size]} flex-col gap-1`}>
-            <input
-              type="range"
-              aria-label="BPM"
-              min={BPM_MIN}
-              max={BPM_MAX}
-              value={value}
-              onChange={(event) => setClampedValue(Number(event.target.value))}
-              className={BPM_SLIDER_TRACK_CLASSNAME}
-            />
-            <div className="flex items-center justify-between">
-              <span className={RANGE_LABEL_CLASSNAME[size]}>{BPM_MIN}</span>
-              <span className={RANGE_LABEL_CLASSNAME[size]}>{BPM_MAX}</span>
-            </div>
-          </div>
-
-          <div className="flex shrink-0 items-center">
-            <button
-              type="button"
-              aria-label="BPM 감소"
-              onClick={() => setClampedValue(value - 1)}
-              className={`${stepperButtonClassName} rounded-l-[4px]`}>
-              −
-            </button>
-            <div
-              className={`bg-primary-400 flex ${VALUE_STEPPER_WRAPPER_CLASSNAME[size]} shrink-0 items-center justify-center p-0.5`}>
-              {isEditingValue ? (
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  aria-label="BPM 직접 입력"
-                  autoFocus
-                  value={draftValue}
-                  onChange={(event) => setDraftValue(event.target.value.replace(/[^0-9]/g, ''))}
-                  onBlur={commitDraftValue}
-                  onKeyDown={handleDraftKeyDown}
-                  className={`${VALUE_PILL_BASE_CLASSNAME} text-center outline-none`}
-                />
-              ) : (
-                <button
-                  type="button"
-                  aria-label="BPM 직접 입력"
-                  onClick={startEditingValue}
-                  className={`${VALUE_PILL_BASE_CLASSNAME} flex cursor-text items-center justify-center`}>
-                  {value}
-                </button>
-              )}
-            </div>
-            <button
-              type="button"
-              aria-label="BPM 증가"
-              onClick={() => setClampedValue(value + 1)}
-              className={`${stepperButtonClassName} rounded-r-[4px]`}>
-              +
-            </button>
-          </div>
+    <Dropdown
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      containerClassName={`relative ${showLabel ? 'flex flex-col items-start gap-3' : ''} ${className}`}
+      beforeTrigger={showLabel && <p className="body-regular2 w-full text-gray-300">BPM</p>}
+      triggerAriaLabel="BPM"
+      triggerClassName={getFilterTriggerClassName(isOpen, size)}
+      trigger={
+        <>
+          {showLabel ? value : 'BPM'}
+          <ChevronDownIcon className={getFilterChevronClassName(isOpen, size)} />
+        </>
+      }
+      panelClassName={`${FILTER_PANEL_BASE_CLASSNAME} flex items-center ${PANEL_CLASSNAME[size]}`}>
+      <div className={`flex ${SLIDER_WRAPPER_CLASSNAME[size]} flex-col gap-1`}>
+        <input
+          type="range"
+          aria-label="BPM"
+          min={BPM_MIN}
+          max={BPM_MAX}
+          value={value}
+          onChange={(event) => setClampedValue(Number(event.target.value))}
+          className={BPM_SLIDER_TRACK_CLASSNAME}
+        />
+        <div className="flex items-center justify-between">
+          <span className={RANGE_LABEL_CLASSNAME[size]}>{BPM_MIN}</span>
+          <span className={RANGE_LABEL_CLASSNAME[size]}>{BPM_MAX}</span>
         </div>
-      )}
-    </div>
+      </div>
+
+      <div className="flex shrink-0 items-center">
+        <button
+          type="button"
+          aria-label="BPM 감소"
+          onClick={() => setClampedValue(value - 1)}
+          className={`${stepperButtonClassName} rounded-l-[4px]`}>
+          −
+        </button>
+        <div
+          className={`bg-primary-400 flex ${VALUE_STEPPER_WRAPPER_CLASSNAME[size]} shrink-0 items-center justify-center p-0.5`}>
+          {isEditingValue ? (
+            <input
+              type="text"
+              inputMode="numeric"
+              aria-label="BPM 직접 입력"
+              autoFocus
+              value={draftValue}
+              onChange={(event) => setDraftValue(event.target.value.replace(/[^0-9]/g, ''))}
+              onBlur={commitDraftValue}
+              onKeyDown={handleDraftKeyDown}
+              className={`${VALUE_PILL_BASE_CLASSNAME} text-center outline-none`}
+            />
+          ) : (
+            <button
+              type="button"
+              aria-label="BPM 직접 입력"
+              onClick={startEditingValue}
+              className={`${VALUE_PILL_BASE_CLASSNAME} flex cursor-text items-center justify-center`}>
+              {value}
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          aria-label="BPM 증가"
+          onClick={() => setClampedValue(value + 1)}
+          className={`${stepperButtonClassName} rounded-r-[4px]`}>
+          +
+        </button>
+      </div>
+    </Dropdown>
   );
 }
 

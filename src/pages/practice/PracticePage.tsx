@@ -10,6 +10,7 @@ import KeyFilterDropdown from '@/components/practice/KeyFilterDropdown';
 import BpmDropdown from '@/components/practice/BpmDropdown';
 import TrackDetailModal from '@/components/practice/TrackDetailModal';
 import PlusIcon from '@/assets/practice/plus.svg?react';
+import { useClickOutside } from '@/hooks/useClickOutside';
 
 type SortBy = 'popularity' | 'latest';
 
@@ -53,16 +54,7 @@ function PracticePage() {
     navigate(location.pathname, { replace: true, state: null });
   }, [location, navigate]);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (filterRowRef.current && !filterRowRef.current.contains(event.target as Node)) {
-        setOpenFilter(null);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  useClickOutside(filterRowRef, () => setOpenFilter(null));
 
   const filteredTracks = useMemo(() => {
     const filtered = ALL_TRACKS.filter((track) => {
