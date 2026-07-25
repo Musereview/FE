@@ -1,7 +1,7 @@
 import type { Track } from '@/types/track';
 import ClockIcon from '@/assets/practice/clock.svg?react';
 import ChordDividerIcon from '@/assets/practice/chord-divider.svg?react';
-import { DIFFICULTY_LABEL, DIFFICULTY_COLOR, MODE_LABEL } from '../trackDisplay';
+import { DIFFICULTY_LABEL, DIFFICULTY_COLOR, MODE_LABEL } from '@/pages/practice/trackDisplay';
 
 interface TrackCardProps {
   track: Track;

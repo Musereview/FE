@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import Piano from '@/components/piano/Piano';
 import MetronomeDots from '@/components/metronome/MetronomeDots';
-import BackingTrack from '@/pages/practice/components/BackingTrack';
+import BackingTrack from '@/components/practice/BackingTrack';
 import { useSettingStore } from '@/stores/settingsStore';
 import { ALL_TRACKS, RECOMMENDED_TRACKS } from '@/pages/practice/mockTracks';
 import { buildFallbackProgression, MODE_LABEL } from '@/pages/practice/trackDisplay';

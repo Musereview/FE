@@ -2,8 +2,8 @@
 import { useNavigate } from 'react-router-dom';
 import { MOCK_CHAPTERS } from './mockTopics';
 import { getChapterProgressList, getPackageStatus } from './mockCurriculum';
-import BackNavLayout from './components/BackNavLayout';
-import ChapterCard from './components/ChapterCard';
+import BackNavLayout from '@/components/learn/BackNavLayout';
+import ChapterCard from '@/components/learn/ChapterCard';
 
 function TopicDetailPage() {
   const navigate = useNavigate();

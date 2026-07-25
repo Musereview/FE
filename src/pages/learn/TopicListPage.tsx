@@ -4,9 +4,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { TopicDifficulty } from '@/types/topic';
 import { MOCK_TOPICS } from './mockTopics';
 import { DIFFICULTY_ORDER } from './topicDisplay';
-import BackNavLayout from './components/BackNavLayout';
-import DifficultyTabs from './components/DifficultyTabs';
-import TopicCard from './components/TopicCard';
+import BackNavLayout from '@/components/learn/BackNavLayout';
+import DifficultyTabs from '@/components/learn/DifficultyTabs';
+import TopicCard from '@/components/learn/TopicCard';
 
 const PAGE_SIZE = 9;
 

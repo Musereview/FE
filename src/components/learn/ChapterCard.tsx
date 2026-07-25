@@ -1,5 +1,5 @@
 import type { ChapterStatus, TopicChapter } from '@/types/topic';
-import { CHAPTER_STATUS_LABEL, CHAPTER_STATUS_COLOR } from '../topicDisplay';
+import { CHAPTER_STATUS_LABEL, CHAPTER_STATUS_COLOR } from '@/pages/learn/topicDisplay';
 import ClockIcon from '@/assets/clock.svg?react';
 import CardActionButton from './CardActionButton';
 
