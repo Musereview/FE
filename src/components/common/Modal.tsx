@@ -4,6 +4,7 @@ interface ModalProps {
   onClose: () => void;
   overlayClassName: string;
   dialogClassName: string;
+  dialogAriaLabel?: string;
   dialogAriaLabelledby?: string;
   closeOnBackdropClick?: boolean;
   closeOnEscape?: boolean;
@@ -15,6 +16,7 @@ function Modal({
   onClose,
   overlayClassName,
   dialogClassName,
+  dialogAriaLabel,
   dialogAriaLabelledby,
   closeOnBackdropClick = true,
   closeOnEscape = true,
@@ -35,9 +37,10 @@ function Modal({
   useEffect(() => {
     if (!lockBodyScroll) return;
 
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = previousOverflow;
     };
   }, [lockBodyScroll]);
 
@@ -46,6 +49,7 @@ function Modal({
       <div
         role="dialog"
         aria-modal="true"
+        aria-label={dialogAriaLabel}
         aria-labelledby={dialogAriaLabelledby}
         onClick={(event) => event.stopPropagation()}
         className={dialogClassName}>

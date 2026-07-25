@@ -43,6 +43,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModa
       onClose={onClose}
       overlayClassName="fixed inset-y-0 right-0 left-[90px] z-50 flex items-center justify-center bg-gray-950/90"
       dialogClassName="relative flex h-[960px] max-h-[calc(100dvh-32px)] w-[960px] flex-col overflow-y-auto rounded-[10px] border-[0.3px] border-gray-600 bg-gray-900 px-[84px] pt-[60px]"
+      dialogAriaLabel="설정"
       closeOnBackdropClick={false}
       closeOnEscape={false}>
       {/* 닫힘 버튼 */}
