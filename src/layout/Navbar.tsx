@@ -25,7 +25,7 @@ interface NavbarProps {
 }
 
 const STUDENT_MENU: NavItem[] = [
-  { Icon: PracticeIcon, label: '연습', to: '/practice', matchFrom: 'practice' },
+  { Icon: PracticeIcon, label: '연주', to: '/practice', matchFrom: 'practice' },
   { Icon: LearnIcon, label: '학습', to: '/learn', matchFrom: 'learn' },
   { Icon: HistoryIcon, label: '히스토리', to: '/history' },
 ];

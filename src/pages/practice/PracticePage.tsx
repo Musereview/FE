@@ -3,12 +3,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Track, KeyMode } from '@/types/track';
 import { RECOMMENDED_TRACKS, ALL_TRACKS, GENRES } from './mockTracks';
-import TrackCard from './components/TrackCard';
-import RecommendedTrackCarousel from './components/RecommendedTrackCarousel';
-import SelectDropdown from './components/SelectDropdown';
-import KeyFilterDropdown from './components/KeyFilterDropdown';
-import BpmDropdown from './components/BpmDropdown';
-import TrackDetailModal from './components/TrackDetailModal';
+import TrackCard from '@/components/practice/TrackCard';
+import RecommendedTrackCarousel from '@/components/practice/RecommendedTrackCarousel';
+import SelectDropdown from '@/components/practice/SelectDropdown';
+import KeyFilterDropdown from '@/components/practice/KeyFilterDropdown';
+import BpmDropdown from '@/components/practice/BpmDropdown';
+import TrackDetailModal from '@/components/practice/TrackDetailModal';
 import PlusIcon from '@/assets/practice/plus.svg?react';
 
 type SortBy = 'popularity' | 'latest';

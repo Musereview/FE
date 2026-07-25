@@ -4,9 +4,9 @@ import type { Topic } from '@/types/topic';
 import { MOCK_TOPICS, MOCK_CHAPTERS } from './mockTopics';
 import { getChapterProgressList, getCurrentLearningPackage, getPackageStatus } from './mockCurriculum';
 import { DIFFICULTY_ORDER } from './topicDisplay';
-import RecentStudyBanner from './components/RecentStudyBanner';
-import TopicCard from './components/TopicCard';
-import ChapterCard from './components/ChapterCard';
+import RecentStudyBanner from '@/components/learn/RecentStudyBanner';
+import TopicCard from '@/components/learn/TopicCard';
+import ChapterCard from '@/components/learn/ChapterCard';
 
 const FEATURED_TOPICS = DIFFICULTY_ORDER.map((difficulty) =>
   MOCK_TOPICS.find((topic) => topic.difficulty === difficulty),

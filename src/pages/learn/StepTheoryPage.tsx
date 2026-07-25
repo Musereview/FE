@@ -2,10 +2,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getCurriculum } from './mockCurriculum';
-import BackNavLayout from './components/BackNavLayout';
-import AccordionSection from './components/AccordionSection';
-import ChordExampleRow from './components/ChordExampleRow';
-import CurriculumBanner from './components/CurriculumBanner';
+import BackNavLayout from '@/components/learn/BackNavLayout';
+import AccordionSection from '@/components/learn/AccordionSection';
+import ChordExampleRow from '@/components/learn/ChordExampleRow';
+import CurriculumBanner from '@/components/learn/CurriculumBanner';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import StopIcon from '@/assets/practice/stop.svg?react';
 import ReplayIcon from '@/assets/restart.svg?react';

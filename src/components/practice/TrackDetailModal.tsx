@@ -12,7 +12,7 @@ import {
   DIFFICULTY_COLOR,
   MODE_LABEL,
   buildFallbackProgression,
-} from '../trackDisplay';
+} from '@/pages/practice/trackDisplay';
 import { getChordsPerMeasure } from './create/chordGrid';
 
 const MEASURES_PER_ROW = 2;

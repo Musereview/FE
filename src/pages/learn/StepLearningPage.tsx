@@ -1,9 +1,9 @@
 // 단계별 학습 페이지 (커리큘럼 상세)
 import { useNavigate, useParams } from 'react-router-dom';
 import { getCurriculum, getCurriculumProgress } from './mockCurriculum';
-import BackNavLayout from './components/BackNavLayout';
-import ChapterCard from './components/ChapterCard';
-import CurriculumBanner from './components/CurriculumBanner';
+import BackNavLayout from '@/components/learn/BackNavLayout';
+import ChapterCard from '@/components/learn/ChapterCard';
+import CurriculumBanner from '@/components/learn/CurriculumBanner';
 
 function StepLearningPage() {
   const navigate = useNavigate();

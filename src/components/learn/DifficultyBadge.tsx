@@ -1,5 +1,5 @@
 import type { TopicDifficulty } from '@/types/topic';
-import { DIFFICULTY_LABEL, DIFFICULTY_COLOR } from '../topicDisplay';
+import { DIFFICULTY_LABEL, DIFFICULTY_COLOR } from '@/pages/learn/topicDisplay';
 
 interface DifficultyBadgeProps {
   difficulty: TopicDifficulty;
