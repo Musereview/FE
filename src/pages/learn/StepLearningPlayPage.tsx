@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as Tone from 'tone';
 import Piano from '@/components/piano/Piano';
+import LearningScoreView from '@/components/score/LearningScoreView';
 import MetronomeDots from '@/components/metronome/MetronomeDots';
 import BackingTrack from '@/pages/practice/components/BackingTrack';
 import { buildFallbackProgression } from '@/pages/practice/trackDisplay';
@@ -45,6 +46,7 @@ function StepLearningPlayPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [beatInBar, setBeatInBar] = useState(-1); // 진행점 (마디 내 0-based)
   const [currentBeat, setCurrentBeat] = useState(-1); // 백킹트랙 전체 진행 박
+  const [measureIndex, setMeasureIndex] = useState(0); // 악보 현재 진행 마디 (가운데 정렬 기준)
   const [showStart, setShowStart] = useState(true); // 진입 시 START 안내
   const totalBeatRef = useRef(0);
   const recordingRef = useRef<PlayedNote[]>([]); // 연주 녹음 — 채점(다음 단계)에서 정답 음과 비교
@@ -95,6 +97,7 @@ function StepLearningPlayPage() {
     setIsPlaying(false);
     setBeatInBar(-1);
     setCurrentBeat(-1);
+    setMeasureIndex(0);
   };
 
   const startPlayback = async () => {
@@ -104,11 +107,14 @@ function StepLearningPlayPage() {
     totalBeatRef.current = 0;
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
     setIsPlaying(true);
+    setMeasureIndex(0);
     start(bpm, beatsPerBar, (time, bib) => {
       const beat = totalBeatRef.current % totalCells;
+      const measure = Math.floor(totalBeatRef.current / beatsPerBar); // 곡 진행 마디(언랩) — 악보 슬라이드 기준
       Tone.getDraw().schedule(() => {
         setBeatInBar(bib);
         setCurrentBeat(beat);
+        setMeasureIndex(measure);
       }, time);
       totalBeatRef.current += 1;
     });
@@ -211,9 +217,15 @@ function StepLearningPlayPage() {
           </span>
         )}
 
-        {/* 악보 영역 — OSMD 연동(다음 단계) 예정. 백킹트랙과 건반 사이 중앙 */}
-        <div className="mx-auto mt-8 flex w-full max-w-[1510px] flex-1 items-center justify-center rounded-[8px] border border-dashed border-gray-800">
-          <span className="body-medium text-gray-600">악보 영역 (OSMD 연동 예정)</span>
+        {/* 악보 영역 — 현재 마디를 가운데 두고 이전/다음 마디가 좌우에 보이도록 슬라이딩 */}
+        <div className="mx-auto mt-8 flex w-full max-w-[1510px] flex-1 items-center">
+          <LearningScoreView
+            xmlPath="/sample.xml"
+            currentMeasureIndex={measureIndex}
+            visibleMeasures={3}
+            height={300}
+            className="w-full"
+          />
         </div>
 
         {/* 건반 */}
