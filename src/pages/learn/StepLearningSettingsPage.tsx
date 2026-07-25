@@ -78,7 +78,6 @@ function StepLearningSettingsPage() {
           <LearningScoreView
             xmlPath={getScorePath(curriculumId)}
             currentMeasureIndex={0}
-            playheadBeat={-1}
             bpm={bpm}
             difficulty={curriculum.difficulty}
             visibleMeasures={3}

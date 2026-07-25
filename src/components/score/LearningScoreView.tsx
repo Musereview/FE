@@ -27,13 +27,14 @@ export interface LearningScoreHandle {
   reset: () => void;
   /** 지금까지의 판정을 집계한 최종 점수 지표 (점수 화면 연동용). */
   getScore: () => LearningScore;
+  /** 현재 재생 박(소수, quarter-beat 단위)으로 현재 음 하이라이트/놓친 음 처리를 갱신. rAF로 매 프레임 호출. */
+  tick: (beat: number) => void;
 }
 
 interface LearningScoreViewProps {
   xmlContent?: string;
   xmlPath?: string;
   currentMeasureIndex: number; // 0-based 현재 진행 마디 (슬라이드 기준)
-  playheadBeat?: number; // 곡 시작 기준 현재 박 (현재 음 하이라이트 기준). 미재생 시 -1
   bpm?: number; // 타이밍 판정용
   difficulty?: Difficulty; // 타이밍 허용치 선택
   latencyMs?: number; // 입력 레이턴시 보정값(ms) — 입력 시각에서 빼서 정박과 비교
@@ -48,7 +49,6 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
     xmlContent,
     xmlPath,
     currentMeasureIndex,
-    playheadBeat = -1,
     bpm = 120,
     difficulty = 'intermediate',
     latencyMs = 0,
@@ -62,7 +62,6 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
   const viewportRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(0);
   const [svgHeight, setSvgHeight] = useState(0); // 렌더된 악보 원본 높이(px, 배율 전)
-  const [eventsVersion, setEventsVersion] = useState(0); // 정답 음 추출 완료 시 하이라이트 재평가 트리거
   const { containerRef, osmdRef, isLoading, measureXPositions } = useOSMD({ xmlContent, xmlPath, zoom });
 
   // 판정 상태 (React 렌더와 무관하게 SVG를 직접 색칠하므로 ref로 관리)
@@ -94,34 +93,9 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
     eventsRef.current = extractNoteEvents(osmdRef.current);
     judgedRef.current.clear();
     currentIdxRef.current = -1;
-    setEventsVersion((v) => v + 1); // 추출 완료 → 하이라이트 재평가(재생이 이미 시작됐어도 현재 음 칠하도록)
   }, [measureXPositions, containerRef, osmdRef]);
 
-  // 현재 박에 맞춰 "현재 음" 보라색 이동.
-  // (C) 지나갔는데 못 친(판정 안 된) 음은 "놓친 음" → Bad(빨강 테두리)로 확정.
-  // eventsVersion 의존: 악보가 늦게 로드돼도 추출 직후 현재 음을 즉시 칠한다.
-  useEffect(() => {
-    const events = eventsRef.current;
-    if (events.length === 0) return;
-    const newIdx = findCurrentEventIndex(events, playheadBeat);
-    const prev = currentIdxRef.current;
-    if (newIdx === prev) return;
-    // 새 현재 음보다 앞선(시간이 지난) 미판정 음 → 놓친 음(Bad)
-    if (newIdx > prev) {
-      for (let i = Math.max(prev, 0); i < newIdx; i++) {
-        if (!judgedRef.current.has(i)) {
-          paintJudged(events[i].gnotes, 'bad');
-          judgedRef.current.set(i, 'bad');
-          missedRef.current.add(i); // 놓친 음(안 침)으로 기록 — 오타(틀린 음)와 구분
-        }
-      }
-    }
-    // 새 현재 음 보라 (아직 판정 안 된 경우만)
-    if (newIdx >= 0 && !judgedRef.current.has(newIdx)) paintCurrent(events[newIdx].gnotes);
-    currentIdxRef.current = newIdx;
-  }, [playheadBeat, eventsVersion]);
-
-  // 부모(입력 핸들러)에서 호출
+  // 부모(입력 핸들러/rAF)에서 호출
   useImperativeHandle(
     ref,
     () => ({
@@ -173,6 +147,26 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
           };
         });
         return summarizeJudgments(results);
+      },
+      // rAF에서 매 프레임 호출 — 소수 박 기준으로 현재 음(보라) 이동.
+      // 지나친(현재보다 앞선) 미판정 음은 "놓친 음"(Bad)으로 확정. 정박 아닌 음(8분음표 등)도 정확히 현재 음이 됨.
+      tick: (beat: number) => {
+        const events = eventsRef.current;
+        if (events.length === 0) return;
+        const newIdx = findCurrentEventIndex(events, beat);
+        const prev = currentIdxRef.current;
+        if (newIdx === prev) return;
+        if (newIdx > prev) {
+          for (let i = Math.max(prev, 0); i < newIdx; i++) {
+            if (!judgedRef.current.has(i)) {
+              paintJudged(events[i].gnotes, 'bad');
+              judgedRef.current.set(i, 'bad');
+              missedRef.current.add(i); // 놓친 음(안 침)으로 기록 — 오타(틀린 음)와 구분
+            }
+          }
+        }
+        if (newIdx >= 0 && !judgedRef.current.has(newIdx)) paintCurrent(events[newIdx].gnotes);
+        currentIdxRef.current = newIdx;
       },
       getStats: () => ({
         wrongHits: wrongHitsRef.current,

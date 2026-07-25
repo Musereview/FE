@@ -60,7 +60,6 @@ function StepLearningPlayPage() {
   const [beatInBar, setBeatInBar] = useState(-1); // 진행점 (마디 내 0-based)
   const [currentBeat, setCurrentBeat] = useState(-1); // 백킹트랙 전체 진행 박
   const [measureIndex, setMeasureIndex] = useState(0); // 악보 현재 진행 마디 (가운데 정렬 기준)
-  const [playheadBeat, setPlayheadBeat] = useState(-1); // 곡 시작 기준 현재 박 (악보 현재 음 하이라이트)
   const [showStart, setShowStart] = useState(true); // 진입 시 START 안내
   const totalBeatRef = useRef(0);
   const recordingRef = useRef<PlayedNote[]>([]); // 연주 녹음 — 채점(다음 단계)에서 정답 음과 비교
@@ -120,7 +119,6 @@ function StepLearningPlayPage() {
     setBeatInBar(-1);
     setCurrentBeat(-1);
     setMeasureIndex(0);
-    setPlayheadBeat(-1);
     // 정지 시엔 색칠·판정을 지우지 않음(끝/분석 시 결과 유지). 새 재생(startPlayback)에서 초기화한다.
   };
 
@@ -132,7 +130,6 @@ function StepLearningPlayPage() {
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
     setIsPlaying(true);
     setMeasureIndex(0);
-    setPlayheadBeat(-1);
     scoreRef.current?.reset(); // 처음부터 재생 시 색칠 초기화
     start(bpmRef.current, beatsPerBar, (time, bib) => {
       const pbeat = totalBeatRef.current; // 곡 시작 기준 현재 박(언랩)
@@ -147,7 +144,6 @@ function StepLearningPlayPage() {
         setBeatInBar(bib);
         setCurrentBeat(beat);
         setMeasureIndex(measure);
-        setPlayheadBeat(pbeat);
       }, time);
       totalBeatRef.current += 1;
     });
@@ -200,6 +196,20 @@ function StepLearningPlayPage() {
     return () => cancelAutoStart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 악보 현재 음 하이라이트를 소수 박 해상도로 갱신 (정박 아닌 8·16분음표도 정확히 현재 음이 되도록).
+  // state 갱신 없이 imperative tick 호출 → 리렌더 없음. 박 = transport ticks/PPQ (tempo 독립, onBeat 단위와 일치)
+  useEffect(() => {
+    if (!isPlaying) return;
+    const transport = Tone.getTransport();
+    let raf = 0;
+    const loop = () => {
+      scoreRef.current?.tick(transport.ticks / transport.PPQ);
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [isPlaying]);
 
   return (
     <div className="flex h-full flex-col bg-gray-950">
@@ -264,7 +274,6 @@ function StepLearningPlayPage() {
             ref={scoreRef}
             xmlPath={getScorePath(curriculumId)}
             currentMeasureIndex={measureIndex}
-            playheadBeat={playheadBeat}
             bpm={bpm}
             difficulty={curriculum.difficulty}
             latencyMs={latencyMs}
