@@ -186,15 +186,15 @@ function StepLearningPlayPage() {
           <button
             type="button"
             onClick={handleRestart}
-            className="button-large2 flex h-[60px] w-[175px] items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
+            className="button-large2 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
             재시작
             <RefreshIcon className="h-6 w-6" />
           </button>
           <button
             type="button"
-            onClick={() => navigate(`/learn/curriculum/${curriculumId}/settings`)}
-            className="button-large2 bg-primary-400 flex h-[60px] w-[175px] items-center justify-center gap-2 rounded-[6px] px-3 py-[6px] text-gray-950">
-            난이도 변경
+            onClick={() => navigate(`/learn/curriculum/${curriculumId}/score`)}
+            className="button-large2 bg-primary-400 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] px-3 py-[6px] text-gray-950">
+            분석하기
           </button>
         </div>
       </header>
@@ -223,7 +223,7 @@ function StepLearningPlayPage() {
             xmlPath="/sample.xml"
             currentMeasureIndex={measureIndex}
             visibleMeasures={3}
-            height={300}
+            height={600}
             className="w-full"
           />
         </div>
