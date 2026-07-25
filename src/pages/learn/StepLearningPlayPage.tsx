@@ -15,7 +15,7 @@ import { useMetronome } from '@/hooks/useMetronome';
 import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
 import type { PlayedNote } from '@/stores/practiceResultStore';
-import { getCurriculum, getCurriculumProgress } from './mockCurriculum';
+import { getCurriculum, getCurriculumProgress, getScorePath } from './mockCurriculum';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import StopIcon from '@/assets/practice/stop.svg?react';
 import RefreshIcon from '@/assets/restart.svg?react';
@@ -236,7 +236,7 @@ function StepLearningPlayPage() {
         <div className="mx-auto mt-8 flex w-full max-w-[1510px] flex-1 items-center">
           <LearningScoreView
             ref={scoreRef}
-            xmlPath="/learn-sample.xml"
+            xmlPath={getScorePath(curriculumId)}
             currentMeasureIndex={measureIndex}
             playheadBeat={playheadBeat}
             bpm={bpm}
