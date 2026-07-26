@@ -1,0 +1,213 @@
+import { useMidi } from '@/hooks/useMidi';
+import { useSettingStore } from '@/stores/settingsStore';
+import * as Tone from 'tone';
+import CloseIcon from '@/assets/close.svg?react';
+import CheckIcon from '@/assets/check.svg?react';
+import DropdownIcon from '@/assets/practice/chevron-down.svg?react';
+import Dropdown from '@/components/common/Dropdown';
+import Modal from '@/components/common/Modal';
+import { useState } from 'react';
+
+interface SettingsModalProps {
+  onClose: () => void;
+  onStart: () => void;
+  onLatencyCheck: () => void; // 레이턴시 체크 경로 (다를 수 있음)
+}
+
+export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModalProps) {
+  const { inputs } = useMidi(); //기기목록만 사용
+  const { inputId, bpm, keyCount, latencyByDevice, outputSelected, setInput, setKeyCount, setOutputSelected } =
+    useSettingStore();
+  const [inputOpen, setInputOpen] = useState(false);
+  const [outputOpen, setOutputOpen] = useState(false);
+
+  const [keyOpen, setKeyOpen] = useState(false);
+
+  // 현재 선택된 기기의 레이턴시 (없으면 null)
+  const latency = inputId ? latencyByDevice[inputId] : undefined;
+  // undefined = 미측정, 'failed' = 실패, number = 성공
+
+  const handleStart = async () => {
+    await Tone.start(); // 오디오 잠금 해제 - 클릭 핸들러 안에서만 가능
+    onStart();
+  };
+
+  // 추가
+  const handleLatencyCheck = async () => {
+    await Tone.start(); // 클릭 시점에 오디오 잠금 해제 → 레이턴시 체크 화면에서 자동 재생 가능
+    onLatencyCheck();
+  };
+
+  return (
+    <Modal
+      onClose={onClose}
+      overlayClassName="fixed inset-y-0 right-0 left-[90px] z-50 flex items-center justify-center bg-gray-950/90"
+      dialogClassName="relative flex h-[960px] max-h-[calc(100dvh-32px)] w-[960px] flex-col overflow-y-auto rounded-[10px] border-[0.3px] border-gray-600 bg-gray-900 px-[84px] pt-[60px]"
+      dialogAriaLabel="설정"
+      closeOnBackdropClick={false}
+      closeOnEscape={false}>
+      {/* 닫힘 버튼 */}
+      <button onClick={onClose} aria-label="닫기" className="absolute top-[29px] right-[38px] cursor-pointer">
+        <CloseIcon className="h-6 w-6" />
+      </button>
+      {/* 미디 입력, 출력 설정 */}
+      <div className="flex w-full flex-col items-start gap-6 border-b-[0.5px] border-gray-700 pt-6 pb-12">
+        <p className="body-medium">미디 입력 및 출력 설정</p>
+        <div className="flex w-full gap-3">
+          {/* Input — 커스텀 드롭다운 */}
+          <Dropdown
+            isOpen={inputOpen}
+            onOpenChange={setInputOpen}
+            containerClassName="relative w-[388px]"
+            triggerClassName={`button-medium flex h-[60px] w-full cursor-pointer items-center justify-center gap-3 rounded-[6px] border ${
+              inputOpen ? 'text-primary-500 border-gray-800 bg-gray-800' : 'border-transparent bg-gray-800 text-white'
+            }`}
+            trigger={
+              <>
+                {inputs.find((d) => d.id === inputId)?.name ?? 'Input'}
+                <DropdownIcon className={`h-6 w-6 shrink-0 ${inputOpen ? 'rotate-180' : ''}`} />
+              </>
+            }
+            panelClassName="absolute top-full z-10 mt-1 flex w-full flex-col overflow-hidden rounded-[6px] bg-gray-800">
+            {inputs.length === 0 && (
+              <p className="flex h-[48px] items-center justify-center text-gray-400">연결된 기기가 없습니다</p>
+            )}
+            {inputs.map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => {
+                  setInput(d.id);
+                  setInputOpen(false);
+                }}
+                className={`h-[48px] w-full cursor-pointer text-center ${
+                  inputId === d.id ? 'bg-primary-500 text-gray-950' : 'bg-gray-800 text-gray-300'
+                }`}>
+                {d.name}
+              </button>
+            ))}
+          </Dropdown>
+
+          {/* Output : 시스템 설정 고정*/}
+          <Dropdown
+            isOpen={outputOpen}
+            onOpenChange={setOutputOpen}
+            containerClassName="relative w-[388px]"
+            triggerClassName={`button-medium flex h-[60px] w-full cursor-pointer items-center justify-center gap-3 rounded-[6px] border ${
+              outputOpen ? 'text-primary-500 border-gray-800 bg-gray-800' : 'border-transparent bg-gray-800 text-white'
+            }`}
+            trigger={
+              <>
+                {outputSelected ? '시스템 설정: 스피커' : 'Output'}
+                <DropdownIcon className={`h-6 w-6 shrink-0 ${outputOpen ? 'rotate-180' : ''}`} />
+              </>
+            }
+            panelClassName="absolute top-full z-10 mt-1 flex w-full flex-col overflow-hidden rounded-[6px] bg-gray-800">
+            <button
+              type="button"
+              onClick={() => {
+                setOutputSelected(true);
+                setOutputOpen(false);
+              }}
+              className={`h-[48px] w-full cursor-pointer text-center ${
+                outputSelected ? 'bg-primary-500 text-gray-950' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}>
+              시스템 설정: 스피커
+            </button>
+          </Dropdown>
+        </div>
+      </div>
+
+      {/* 레이턴시 체크 - 측정 전/후 상태 분기 */}
+      <div className="flex w-full flex-col items-start gap-6 border-b-[0.5px] border-gray-700 py-12">
+        <p className="body-medium">레이턴시 체크</p>
+        <div className="flex w-full items-end justify-between">
+          {latency === undefined ? (
+            /* 1) 미측정 */
+            <>
+              <button
+                onClick={handleLatencyCheck}
+                disabled={!inputId || !outputSelected}
+                className="button-large2 flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-gray-800 bg-gray-800 py-[6px] pr-3 pl-[14px] disabled:cursor-default disabled:opacity-40">
+                체크하기
+                <CheckIcon />
+              </button>
+              <p className="body-regular1 text-primary-400 text-right">시작 전 레이턴시를 체크해 주세요.</p>
+            </>
+          ) : latency === 'failed' ? (
+            /* 2) 측정 실패 */
+            <>
+              <button
+                onClick={handleLatencyCheck}
+                disabled={!inputId || !outputSelected}
+                className="button-large2 bg-error flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] px-[12px] py-[6px] disabled:cursor-default disabled:opacity-40">
+                재설정
+              </button>
+              <p className="body-regular1 text-error text-right">레이턴시 측정에 실패했습니다.</p>
+            </>
+          ) : (
+            /* 3) 측정 성공 */
+            <>
+              <button
+                onClick={handleLatencyCheck}
+                disabled={!inputId || !outputSelected}
+                className="button-large2 bg-error flex h-[60px] w-[190px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] px-[12px] py-[6px] disabled:cursor-default disabled:opacity-40">
+                재설정
+              </button>
+              <p className="body-regular1 text-primary-400 text-right">레이턴시 설정이 완료되었습니다.</p>
+            </>
+          )}
+        </div>
+      </div>
+      {/* BPM — 곡 고정값, 표시 전용 */}
+      <div className="flex w-[190px] flex-col items-start gap-6 py-12">
+        <p className="body-medium">BPM</p>
+        <div className="button-medium flex h-[56px] items-center self-stretch rounded-[6px] bg-gray-800 px-[18px] py-1 text-gray-400">
+          {bpm}
+        </div>
+      </div>
+      {/* 피아노 건반 개수 */}
+      <div className="flex w-[190px] flex-col items-start gap-6 py-12">
+        <p className="body-medium">피아노 건반 개수</p>
+
+        <Dropdown
+          isOpen={keyOpen}
+          onOpenChange={setKeyOpen}
+          containerClassName="relative self-stretch"
+          triggerClassName={`button-medium flex h-[56px] w-full cursor-pointer items-center justify-between rounded-[6px] border px-[18px] py-1 ${
+            keyOpen ? 'border-primary-400 text-primary-500 bg-gray-900' : 'border-gray-500 bg-gray-900'
+          }`}
+          trigger={
+            <>
+              {keyCount}
+              <DropdownIcon className={`h-[24px] w-[24px] ${keyOpen ? 'rotate-180' : ''}`} />
+            </>
+          }
+          panelClassName="absolute top-full z-10 mt-1 flex w-full flex-col overflow-hidden rounded-[6px] bg-gray-700">
+          {([88, 61] as const).map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => {
+                setKeyCount(n);
+                setKeyOpen(false);
+              }}
+              className={`button-medium h-[56px] w-full cursor-pointer px-[18px] text-left ${
+                keyCount === n
+                  ? 'bg-primary-500 text-gray-950' // 선택된 옵션
+                  : 'bg-gray-700 text-gray-300' // 나머지
+              }`}>
+              {n}
+            </button>
+          ))}
+        </Dropdown>
+      </div>
+      <button
+        onClick={handleStart}
+        disabled={!inputId || !outputSelected || typeof latency !== 'number'}
+        className="button-large2 bg-primary-400 mt-auto mb-[36px] flex h-[60px] w-[346px] cursor-pointer items-center justify-center gap-[8px] self-end rounded-[6px] px-[12px] py-[6px] text-gray-950 disabled:cursor-default disabled:opacity-40">
+        {latency !== undefined ? '계속하기' : '시작하기'}
+      </button>
+    </Modal>
+  );
+}
