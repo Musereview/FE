@@ -68,7 +68,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModa
                 <DropdownIcon className={`h-6 w-6 shrink-0 ${inputOpen ? 'rotate-180' : ''}`} />
               </>
             }
-            panelClassName="absolute top-full z-10 mt-1 w-full overflow-hidden rounded-[6px] bg-gray-800">
+            panelClassName="absolute top-full z-10 mt-1 flex w-full flex-col overflow-hidden rounded-[6px] bg-gray-800">
             {inputs.length === 0 && (
               <p className="flex h-[48px] items-center justify-center text-gray-400">연결된 기기가 없습니다</p>
             )}
@@ -102,7 +102,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModa
                 <DropdownIcon className={`h-6 w-6 shrink-0 ${outputOpen ? 'rotate-180' : ''}`} />
               </>
             }
-            panelClassName="absolute top-full z-10 mt-1 w-full overflow-hidden rounded-[6px] bg-gray-800">
+            panelClassName="absolute top-full z-10 mt-1 flex w-full flex-col overflow-hidden rounded-[6px] bg-gray-800">
             <button
               type="button"
               onClick={() => {
@@ -183,7 +183,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModa
               <DropdownIcon className={`h-[24px] w-[24px] ${keyOpen ? 'rotate-180' : ''}`} />
             </>
           }
-          panelClassName="absolute top-full z-10 mt-1 w-full overflow-hidden rounded-[6px]">
+          panelClassName="absolute top-full z-10 mt-1 flex w-full flex-col overflow-hidden rounded-[6px] bg-gray-700">
           {([88, 61] as const).map((n) => (
             <button
               key={n}
