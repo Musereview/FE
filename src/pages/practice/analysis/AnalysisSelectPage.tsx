@@ -6,6 +6,9 @@ import { useScoreCursorSync } from '@/hooks/music/useScoreCursorSync';
 import { computeMeasureTimings } from '@/utils/musicXmlTiming';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import LoadingPage from '@/pages/common/LoadingPage';
+import ChevronLeftIcon from '@/assets/practice/chevron-left.svg?react';
+import PlayIcon from '@/assets/practice/play.svg?react';
+import ReplayIcon from '@/assets/practice/replay.svg?react';
 
 export default function AnalysisSelectPage() {
   const navigate = useNavigate();
@@ -166,107 +169,106 @@ export default function AnalysisSelectPage() {
   };
 
   return (
-    <div className="relative min-h-screen w-full min-w-[1280px] bg-[#0B0F19] px-4 py-[60px] font-sans text-white select-none md:px-16 xl:px-[120px]">
+    <div className="relative min-h-screen w-full min-w-[1280px] bg-gray-950 px-4 py-[60px] font-sans text-gray-100 select-none md:px-16 xl:px-[120px]">
       {isLoading && (
-        <div className="fixed inset-0 z-50 bg-[#0B0F19]">
+        <div className="fixed inset-0 z-50 bg-gray-950">
           <LoadingPage />
         </div>
       )}
 
       {toastMessage && (
-        <div className="fixed top-[40px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-[12px] rounded-[12px] bg-[#E02424] px-[24px] py-[16px] text-[16px] font-bold text-white shadow-2xl">
+        <div
+          role="alert"
+          className="bg-error body-small fixed top-[40px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-[12px] rounded-[12px] px-[24px] py-[16px] text-gray-100 shadow-2xl">
           <span>⚠️</span> {toastMessage}
         </div>
       )}
 
       <div className="flex flex-col">
         <button
+          type="button"
           onClick={() => navigate(-1)}
-          className="flex cursor-pointer items-center gap-[8px] text-[15px] font-medium text-[#CECFD1] transition-colors hover:text-white">
-          <svg width="9" height="15" viewBox="0 0 9 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M8 1.5L1.5 7.5L8 13.5"
-              stroke="#CECFD1"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>{' '}
+          className="button-small flex items-center gap-2 text-gray-400 transition-colors hover:text-gray-100">
+          <ChevronLeftIcon className="size-5" />
           연습으로
         </button>
 
-        <h1 className="mt-[32px] text-[28px] font-bold tracking-tight text-white">분석 파트 설정</h1>
+        <h1 className="heading-medium-b mt-[32px] text-gray-100">분석 파트 설정</h1>
 
         <div className="mt-[35px] flex w-full items-end justify-between">
           <div className="flex h-[52px] items-center gap-[16px]">
             {/* 재생 / 정지 버튼  */}
             <button
+              type="button"
               onClick={() => setIsPlaying((p) => !p)}
               className="flex aspect-square h-[52px] w-[52px] cursor-pointer items-center justify-center bg-transparent transition-all outline-none hover:scale-105 active:scale-95">
               {isPlaying ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" fill="none">
-                  <rect x="15" y="11" width="7" height="30" rx="2" fill="#69FFC0" />
-                  <rect x="30" y="11" width="7" height="30" rx="2" fill="#69FFC0" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="52"
+                  height="52"
+                  viewBox="0 0 52 52"
+                  fill="none"
+                  className="text-primary-400">
+                  <rect x="15" y="11" width="7" height="30" rx="2" fill="currentColor" />
+                  <rect x="30" y="11" width="7" height="30" rx="2" fill="currentColor" />
                 </svg>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" fill="none">
-                  <path
-                    d="M40.4208 25.384C41.1931 25.88 41.1931 27.12 40.4208 27.6159L16.7377 42.8254C15.9654 43.3214 15 42.7014 15 41.7095L15 11.2905C15 10.2986 15.9654 9.67858 16.7377 10.1746L40.4208 25.384Z"
-                    fill="#69FFC0"
-                  />
-                </svg>
+                <PlayIcon className="size-9" />
               )}
             </button>
 
             {/* 되돌아가기(리와인드) 버튼 */}
             <button
+              type="button"
               onClick={handleRewind}
-              className="flex aspect-square h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-[6px] bg-[#2B2E36] transition-all outline-none hover:scale-105 active:scale-95">
-              <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" fill="none">
-                <rect width="52" height="52" rx="6" fill="#2B2E36" />
-                <path
-                  d="M31.199 9.86647C31.6985 9.63189 32.2939 9.8468 32.5291 10.346L34.8865 15.3548C35.2162 16.0554 34.9152 16.8912 34.2147 17.221L29.2059 19.5784C28.7061 19.8135 28.11 19.5986 27.8748 19.0989C27.6399 18.5992 27.8547 18.0039 28.3543 17.7688L31.4559 16.3089C29.3421 15.3169 26.9815 14.9465 24.6522 15.2532C21.9784 15.6053 19.4947 16.8296 17.5877 18.7366C15.6811 20.6435 14.4563 23.1266 14.1043 25.8001C13.7524 28.4737 14.2931 31.1892 15.6414 33.5247C16.9898 35.86 19.0709 37.686 21.5623 38.718C24.0537 39.75 26.8169 39.9314 29.4217 39.2337C32.0265 38.5357 34.3288 36.997 35.9705 34.8577C37.6121 32.7183 38.5026 30.0963 38.5027 27.3997C38.5027 26.8475 38.9506 26.3998 39.5027 26.3997C40.0549 26.3998 40.5027 26.8475 40.5027 27.3997C40.5026 30.5366 39.4671 33.5868 37.5574 36.0755C35.6477 38.564 32.9693 40.3534 29.9393 41.1653C26.9092 41.977 23.6958 41.7661 20.7977 40.5657C17.8994 39.3652 15.4776 37.2415 13.909 34.5247C12.3406 31.808 11.7126 28.6494 12.1219 25.5393C12.5313 22.4293 13.9557 19.5408 16.1736 17.3225C18.3919 15.1043 21.2812 13.6793 24.3914 13.2698C27.0854 12.9152 29.8154 13.3397 32.2635 14.4788L30.7195 11.1975C30.4847 10.6979 30.6994 10.1016 31.199 9.86647Z"
-                  fill="#CECFD1"
-                />
-              </svg>
+              className="flex aspect-square h-[52px] w-[52px] cursor-pointer items-center justify-center rounded-[6px] bg-gray-800 text-gray-400 transition-all outline-none hover:scale-105 active:scale-95">
+              <ReplayIcon className="size-6" />
             </button>
           </div>
 
           <div className="flex items-end gap-[16px]">
             <div className="flex flex-col gap-[8px]">
-              <label className="text-[13px] font-medium text-[#86899C]">분석 시작 마디</label>
+              <label htmlFor="analysis-start-measure" className="caption-medium text-gray-600">
+                분석 시작 마디
+              </label>
               <input
+                id="analysis-start-measure"
                 type="text"
                 value={startMeasure}
                 onFocus={() => handleFocus(startMeasure, setStartMeasure)}
                 onBlur={() => handleBlur(startMeasure, setStartMeasure, '1마디')}
                 onChange={(e) => handleChange(e.target.value, setStartMeasure)}
-                className="h-[48px] w-[140px] rounded-[8px] border border-[#2E3142]/60 bg-[#1F212A] px-[16px] text-center text-[15px] font-semibold text-white focus:border-[#69FFC0] focus:outline-none"
+                className="button-label1 focus:border-primary-400 h-[48px] w-[140px] rounded-[8px] border border-gray-800/60 bg-gray-900 px-[16px] text-center text-gray-100 focus:outline-none"
               />
             </div>
 
             <div className="flex flex-col gap-[8px]">
-              <label className="text-[13px] font-medium text-[#86899C]">분석 종료 마디</label>
+              <label htmlFor="analysis-end-measure" className="caption-medium text-gray-600">
+                분석 종료 마디
+              </label>
               <input
+                id="analysis-end-measure"
                 type="text"
                 value={endMeasure}
                 onFocus={() => handleFocus(endMeasure, setEndMeasure)}
                 onBlur={() => handleBlur(endMeasure, setEndMeasure, `${totalMeasures}마디`)}
                 onChange={(e) => handleChange(e.target.value, setEndMeasure)}
-                className="h-[48px] w-[140px] rounded-[8px] border border-[#2E3142]/60 bg-[#1F212A] px-[16px] text-center text-[15px] font-semibold text-white focus:border-[#69FFC0] focus:outline-none"
+                className="button-label1 focus:border-primary-400 h-[48px] w-[140px] rounded-[8px] border border-gray-800/60 bg-gray-900 px-[16px] text-center text-gray-100 focus:outline-none"
               />
             </div>
 
             <button
+              type="button"
               onClick={handleStartAnalysis}
-              className="flex h-[48px] cursor-pointer items-center gap-[8px] rounded-[8px] bg-[#69FFC0] px-[24px] text-[15px] font-bold text-[#0B0F19] transition-all hover:bg-[#52E0A7] active:scale-[0.98]">
+              className="button-label1 bg-primary-400 hover:bg-primary-500 flex h-[48px] cursor-pointer items-center gap-[8px] rounded-[8px] px-[24px] text-gray-950 transition-all active:scale-[0.98]">
               분석하기
               <svg
                 width="14"
                 height="14"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#0B0F19"
+                stroke="currentColor"
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round">

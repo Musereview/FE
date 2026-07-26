@@ -2,6 +2,7 @@ import type { ChapterStatus, TopicChapter } from '@/types/topic';
 import { CHAPTER_STATUS_LABEL, CHAPTER_STATUS_COLOR } from '@/pages/learn/topicDisplay';
 import ClockIcon from '@/assets/clock.svg?react';
 import CardActionButton from './CardActionButton';
+import ClickableCard from '@/components/common/ClickableCard';
 
 interface ChapterCardProps {
   chapter: TopicChapter;
@@ -22,21 +23,9 @@ function ChapterCard({ chapter, showAction = true, onClick, onActionClick }: Cha
       : CHAPTER_STATUS_LABEL[status];
 
   return (
-    <div
+    <ClickableCard
       onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={
-        onClick
-          ? (event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-      className={`flex h-[152px] w-full items-center justify-between rounded-[6px] bg-gray-800 px-10 py-6 ${onClick ? 'cursor-pointer' : ''}`}>
+      className="flex h-[152px] w-full items-center justify-between rounded-[6px] bg-gray-800 px-10 py-6">
       <div className="flex w-[483px] flex-col gap-3">
         <div className="flex flex-col gap-1">
           <p className="body-medium text-gray-100">{title}</p>
@@ -70,7 +59,7 @@ function ChapterCard({ chapter, showAction = true, onClick, onActionClick }: Cha
           </span>
         </div>
       )}
-    </div>
+    </ClickableCard>
   );
 }
 

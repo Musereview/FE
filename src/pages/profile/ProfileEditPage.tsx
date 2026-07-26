@@ -1,10 +1,11 @@
 // 프로필 수정 페이지
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import ProfileImage from '@/assets/profile/profile.svg?react';
 import PianoIcon from '@/assets/profile/piano.svg?react';
 import ChevronDownIcon from '@/assets/practice/chevron-down.svg?react';
+import Dropdown from '@/components/common/Dropdown';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
 import { useProfile, useUpdateProfile } from '@/hooks/useProfile';
 import { INSTRUMENT_LABEL, SKILL_LEVEL_LABEL, SKILL_LEVEL_OPTIONS } from '@/types/profile';
@@ -42,22 +43,8 @@ function ProfileEditForm({ profile }: { profile: Profile }) {
   const [level, setLevel] = useState<SkillLevel>(profile.skillLevel);
   const [levelOpen, setLevelOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const levelRef = useRef<HTMLDivElement>(null);
 
   const { mutate: updateProfile, isPending: isSaving } = useUpdateProfile();
-
-  useEffect(() => {
-    if (!levelOpen) return;
-
-    function handleClickOutside(event: MouseEvent) {
-      if (levelRef.current && !levelRef.current.contains(event.target as Node)) {
-        setLevelOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [levelOpen]);
 
   const handleSubmit = () => {
     if (!validateFormat()) return;
@@ -136,44 +123,40 @@ function ProfileEditForm({ profile }: { profile: Profile }) {
           {/* 숙련도 드롭다운 */}
           <div className="flex flex-1 flex-col gap-2">
             <p className="body-small text-gray-300">숙련도</p>
-            <div ref={levelRef} className="relative">
-              <button
-                type="button"
-                onClick={() => setLevelOpen((prev) => !prev)}
-                aria-haspopup="listbox"
-                aria-expanded={levelOpen}
-                className="flex h-[76px] w-full items-center gap-2 rounded-[6px] bg-gray-800 px-5 py-4 text-left">
-                <span className="body-large-m flex-1 text-gray-100">{SKILL_LEVEL_LABEL[level]}</span>
-                <ChevronDownIcon className={`size-6 shrink-0 text-gray-400 ${levelOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {levelOpen && (
-                <ul
-                  role="listbox"
-                  className="absolute top-[calc(100%+15px)] left-0 z-10 flex w-full flex-col overflow-hidden rounded-[6px] border-[0.5px] border-gray-600">
-                  {SKILL_LEVEL_OPTIONS.map((option) => {
-                    const selected = option === level;
-                    return (
-                      <li key={option}>
-                        <button
-                          type="button"
-                          role="option"
-                          aria-selected={selected}
-                          onClick={() => {
-                            setLevel(option);
-                            setLevelOpen(false);
-                          }}
-                          className={`button-large2 hover:bg-primary-300 flex h-[76px] w-full items-center px-5 text-left hover:text-gray-900 ${
-                            selected ? 'bg-primary-500 text-gray-950' : 'bg-gray-700 text-gray-300'
-                          }`}>
-                          {SKILL_LEVEL_LABEL[option]}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
+            <Dropdown
+              isOpen={levelOpen}
+              onOpenChange={setLevelOpen}
+              containerClassName="relative"
+              triggerAriaHasPopup="listbox"
+              triggerClassName="flex h-[76px] w-full items-center gap-2 rounded-[6px] bg-gray-800 px-5 py-4 text-left"
+              trigger={
+                <>
+                  <span className="body-large-m flex-1 text-gray-100">{SKILL_LEVEL_LABEL[level]}</span>
+                  <ChevronDownIcon className={`size-6 shrink-0 text-gray-400 ${levelOpen ? 'rotate-180' : ''}`} />
+                </>
+              }
+              panelRole="listbox"
+              panelClassName="absolute top-[calc(100%+15px)] left-0 z-10 flex w-full flex-col overflow-hidden rounded-[6px] border-[0.5px] border-gray-600">
+              {SKILL_LEVEL_OPTIONS.map((option) => {
+                const selected = option === level;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => {
+                      setLevel(option);
+                      setLevelOpen(false);
+                    }}
+                    className={`button-large2 hover:bg-primary-300 flex h-[76px] w-full items-center px-5 text-left hover:text-gray-900 ${
+                      selected ? 'bg-primary-500 text-gray-950' : 'bg-gray-700 text-gray-300'
+                    }`}>
+                    {SKILL_LEVEL_LABEL[option]}
+                  </button>
+                );
+              })}
+            </Dropdown>
           </div>
         </div>
       </div>

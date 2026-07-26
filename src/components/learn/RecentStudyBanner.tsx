@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { CurrentLearningInfo } from '@/types/topic';
-import DifficultyBadge from './DifficultyBadge';
+import DifficultyBadge from '@/components/common/DifficultyBadge';
 import bannerBg from '@/assets/main/image-mesh-gradient.png';
 import ResumeIcon from '@/assets/learn/chevron-right-resume.svg?react';
 

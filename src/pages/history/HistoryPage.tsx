@@ -3,6 +3,17 @@ import GrowthProgressSection from '@/components/history/GrowthProgressSection';
 import WeeklyTrendChart from '@/components/history/WeeklyTrendChart';
 import HistoryRecentPractices from '@/components/history/HistoryRecentPractices';
 
+function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="mb-[24px] flex items-center">
+      <h2 className="text-[24px] leading-[36px] font-semibold tracking-[-0.48px] text-gray-300">{title}</h2>
+      {subtitle && (
+        <p className="ml-[24px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-500">{subtitle}</p>
+      )}
+    </div>
+  );
+}
+
 export default function HistoryPage() {
   const historyPracticeData = [
     {
@@ -58,43 +69,25 @@ export default function HistoryPage() {
 
         {/* 2. 이번주 연주 요약 섹션 */}
         <div className="mb-[80px] flex w-[1196px] flex-col">
-          <h2 className="mb-[24px] text-[24px] leading-[36px] font-semibold tracking-[-0.48px] text-gray-300">
-            이번주 연주 요약
-          </h2>
+          <SectionHeader title="이번주 연주 요약" />
           <HistorySummaryCards />
         </div>
 
         {/* 3. 영역별 성장 변화 섹션 */}
         <div className="mb-[80px] flex w-[1196px] flex-col">
-          <div className="mb-[24px] flex items-center">
-            <h2 className="text-[24px] leading-[36px] font-semibold tracking-[-0.48px] text-gray-300">
-              영역별 성장 변화
-            </h2>
-            <p className="ml-[24px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-500">
-              지난주 대비 영역별 평균 점수 변화를 보여드려요.
-            </p>
-          </div>
+          <SectionHeader title="영역별 성장 변화" subtitle="지난주 대비 영역별 평균 점수 변화를 보여드려요." />
           <GrowthProgressSection />
         </div>
 
         {/* 4. 최근 4주 학습 추이 섹션 */}
         <div className="mb-[80px] flex w-[1196px] flex-col">
-          <div className="mb-[24px] flex items-center">
-            <h2 className="text-[24px] leading-[36px] font-semibold tracking-[-0.48px] text-gray-300">
-              최근 4주 학습 추이
-            </h2>
-            <p className="ml-[24px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-500">
-              최근 4주간 평균 점수 변화를 보여드려요.
-            </p>
-          </div>
+          <SectionHeader title="최근 4주 학습 추이" subtitle="최근 4주간 평균 점수 변화를 보여드려요." />
           <WeeklyTrendChart />
         </div>
 
         {/* 5. 최근 연주 리스트 */}
         <div className="flex w-[1196px] flex-col">
-          <h2 className="mb-[24px] text-[24px] leading-[36px] font-semibold tracking-[-0.48px] text-gray-300">
-            최근 연주
-          </h2>
+          <SectionHeader title="최근 연주" />
           <HistoryRecentPractices data={historyPracticeData} />
         </div>
       </div>
