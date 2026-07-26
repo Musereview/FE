@@ -3,11 +3,16 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import * as Tone from 'tone';
 
 import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
-import { computeMeasureTimings, findMeasureIndexAtTime } from '@/utils/musicXmlTiming';
+import {
+  computeMeasureTimings,
+  findMeasureIndexAtTime,
+  extractActiveTempoMeterAtMeasure,
+} from '@/utils/musicXmlTiming';
 import { useMetronome } from '@/hooks/useMetronome';
 import MetronomeDots from '@/components/metronome/MetronomeDots';
 import AnalysisChatSection from '@/components/mentor/AnalysisChatSection';
 import { axiosInstance } from '@/apis/axiosInstance';
+import { usePracticeResultStore } from '@/stores/practiceResultStore';
 
 /** AI 분석 리포트 도메인 점수 인터페이스 */
 interface DomainScores {
@@ -27,7 +32,7 @@ interface ReportData {
   createdAt: string;
 }
 
-/** 연주 분석 상세 데이터 구조 인터페이스 (any를 사용하지 않고 엄격한 타입 정의) */
+/** 연주 분석 상세 데이터 구조 인터페이스 */
 interface AnalysisData {
   analysisId: number;
   playingId?: number;
@@ -40,83 +45,10 @@ interface AnalysisData {
   totalScore?: number;
   grade?: string;
   summary?: string;
-  audioUrl?: string;
   domainScores?: DomainScores;
   report?: ReportData;
   createdAt?: string;
   completedAt?: string;
-}
-
-/** API 연동 실패 시 사용할 목(Mock) 분석 상세 데이터 */
-const MOCK_ANALYSIS_DATA: AnalysisData = {
-  analysisId: 10,
-  playingId: 31,
-  title: 'Jazz Standard Practice',
-  genre: 'JAZZ',
-  key: 'C Major',
-  bpm: 120,
-  playedAt: '2026-05-04T14:32:00',
-  status: 'COMPLETED',
-  totalScore: 80.5,
-  grade: '좋음',
-  summary: '긴장감을 오래 유지하는 흐름이 많았어요.',
-  audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-  domainScores: {
-    scale: 100.0,
-    tension: 33.3,
-    progression: 100.0,
-    voiceLeading: 75.3,
-  },
-  report: {
-    analysisReportId: 7,
-    generationType: 'LLM',
-    llmStatus: 'SUCCESS',
-    contentFormat: 'MARKDOWN',
-    content:
-      '## 긴장감을 오래 유지하는 흐름이 많았어요.\n\n이번 연주에서는 코드톤에 바로 해결하기보다, 텐션 계열의 음을 유지하며 분위기를 끌고 가는 흐름이 자주 보였습니다.',
-    createdAt: '2026-07-01T14:32:10',
-  },
-  createdAt: '2026-07-01T14:32:00',
-  completedAt: '2026-07-01T14:32:08',
-};
-
-/** 특정 마디 위치에서의 활성 템포(BPM) 및 박자 정보를 추출하는 헬퍼 함수 */
-function extractActiveTempoMeterAtMeasure(
-  fullXmlText: string,
-  targetMeasureNumber: number,
-): { bpm: number; beats: number; beatType: number } {
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(fullXmlText, 'application/xml');
-  const part = xml.querySelector('part');
-  if (!part) return { bpm: 120, beats: 4, beatType: 4 };
-
-  const measures = [...part.querySelectorAll('measure')];
-
-  let beats = 4;
-  let beatType = 4;
-  let bpm = 120;
-
-  for (const measure of measures) {
-    const measureNumber = parseInt(measure.getAttribute('number') ?? '0', 10);
-
-    const timeEl = measure.querySelector('attributes > time');
-    if (timeEl) {
-      const b = timeEl.querySelector('beats')?.textContent;
-      const bt = timeEl.querySelector('beat-type')?.textContent;
-      if (b) beats = parseInt(b, 10);
-      if (bt) beatType = parseInt(bt, 10);
-    }
-
-    const tempoEl = measure.querySelector('sound[tempo]');
-    if (tempoEl) {
-      const t = tempoEl.getAttribute('tempo');
-      if (t) bpm = parseFloat(t);
-    }
-
-    if (measureNumber >= targetMeasureNumber) break;
-  }
-
-  return { bpm, beats, beatType };
 }
 
 export default function AnalysisResultPage() {
@@ -129,45 +61,46 @@ export default function AnalysisResultPage() {
   const startBar = parseInt(searchParams.get('start') ?? '1', 10) || 1;
   const endBar = parseInt(searchParams.get('end') ?? String(startBar + 15), 10) || startBar + 15;
 
+  // 분석 담당자 가이드 스토어 연동 (recording MIDI 노트 및 latencyMs)
+  const { recording, latencyMs } = usePracticeResultStore();
+
   // 컴포넌트 상태 관리
   const [isPlaying, setIsPlaying] = useState(false);
   const [isScoreReady, setIsScoreReady] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
 
-  // 음원 동기화 및 마디 타이밍 상태
+  // 연주 동기화 및 마디 타이밍 상태
   const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
-  const [audioStartOffsetSec, setAudioStartOffsetSec] = useState(0);
+  const [sectionStartOffsetSec, setSectionStartOffsetSec] = useState(0);
   const [sectionDurationSec, setSectionDurationSec] = useState(0);
 
   // 악보 뷰어 및 메트로놈 제어 상태
-  const [currentMeasureIndex, setCurrentMeasureIndex] = useState(startBar - 1);
+  const startIndex = Math.max(0, startBar - 1);
+  const [currentMeasureIndex, setCurrentMeasureIndex] = useState(startIndex);
   const [beatInBar, setBeatInBar] = useState(-1);
   const [beatsPerBar, setBeatsPerBar] = useState(4);
   const [bpm, setBpm] = useState(120);
 
   // Ref 관리
   const scoreViewerRef = useRef<ScoreViewerHandle>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playbackTimeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
 
   // Tone.js 기반 메트로놈 훅 연결
   const { start, stop, pause } = useMetronome();
   const isLoading = !isScoreReady;
 
-  /** 1. 분석 결과 상세 데이터를 서버에서 조회 (실패 시 Mock Data fallback) */
+  /** 1. 분석 결과 상세 데이터를 서버에서 조회 */
   useEffect(() => {
     async function fetchAnalysisDetail() {
       try {
         const response = await axiosInstance.get(`/api/v1/analyses/${parsedAnalysisId}`);
         if (response.data?.isSuccess && response.data?.data) {
           setAnalysisData(response.data.data);
-        } else {
-          setAnalysisData(MOCK_ANALYSIS_DATA);
         }
       } catch (err) {
-        console.warn('API 호출 실패: Mock Data를 사용합니다.', err);
-        setAnalysisData(MOCK_ANALYSIS_DATA);
+        console.warn('API 호출 실패:', err);
       }
     }
     fetchAnalysisDetail();
@@ -182,22 +115,23 @@ export default function AnalysisResultPage() {
         const text = await fetch('/sample.xml').then((r) => r.text());
         if (cancelled || !text) return;
 
-        // 전체 악보의 마디별 시작 타이밍 분석
         const timings = computeMeasureTimings(text);
         setMeasureStartTimes(timings.measureStartTimes);
 
-        const startIndex = Math.max(0, startBar - 1);
-        const endIndex = Math.min(timings.measureStartTimes.length - 1, endBar);
+        const sIdx = Math.max(0, startBar - 1);
+        const eIdx = Math.min(timings.measureStartTimes.length - 1, endBar);
 
-        // 선택한 구간의 시작 초(offset)와 전체 지속 시간 산출
-        const offsetSec = timings.measureStartTimes[startIndex] ?? 0;
-        const endSec = timings.measureStartTimes[endIndex] ?? timings.totalDuration;
+        const offsetSec = timings.measureStartTimes[sIdx] ?? 0;
+        const endSec = timings.measureStartTimes[eIdx] ?? timings.totalDuration;
 
-        setAudioStartOffsetSec(offsetSec);
+        setSectionStartOffsetSec(offsetSec);
+        playbackTimeRef.current = offsetSec;
         setSectionDurationSec(Math.max(2, endSec - offsetSec));
-        setCurrentMeasureIndex(startIndex);
+        setCurrentMeasureIndex(sIdx);
 
-        // 해당 마디 구간의 템포 및 박자 추출
+        // 악보가 이미 로드된 상태라면 진입 시점에 즉시 해당 마디로 점프
+        scoreViewerRef.current?.jumpToMeasure(sIdx);
+
         const { bpm: activeBpm, beats } = extractActiveTempoMeterAtMeasure(text, startBar);
         setBpm(analysisData?.bpm || activeBpm);
         setBeatsPerBar(beats);
@@ -212,94 +146,67 @@ export default function AnalysisResultPage() {
     };
   }, [startBar, endBar, analysisData?.bpm]);
 
-  /** 3. 오디오 객체 초기화 및 종료 핸들러 설정 */
-  useEffect(() => {
-    const audioUrl = analysisData?.audioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-    const audio = new Audio(audioUrl);
-    audio.preload = 'auto';
-    audio.load();
-    audioRef.current = audio;
-
-    // 오디오 재생이 자연스럽게 끝났을 때의 처리 (첫 마디로 튕기지 않고 제자리에 정지)
-    audio.onended = () => {
-      setIsPlaying(false);
-      stop();
-      setToastMessage('선택한 구간 재생이 완료되었습니다.');
-      setTimeout(() => setToastMessage(null), 3000);
-    };
-
-    return () => {
-      audio.pause();
-      audioRef.current = null;
-    };
-  }, [analysisData?.audioUrl, stop]);
-
-  /** 수동 리와인드 (처음으로 버튼 클릭 시 선택 구간의 시작 지점으로 이동) */
+  /** 수동 리와인드 (선택한 구간의 첫 마디로 이동) */
   const handleRewind = useCallback(() => {
     setIsPlaying(false);
     stop();
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = audioStartOffsetSec;
-    }
-    setCurrentMeasureIndex(startBar - 1);
+
+    const targetMeasureIndex = Math.max(0, startBar - 1);
+    const targetOffset = measureStartTimes[targetMeasureIndex] ?? sectionStartOffsetSec;
+
+    playbackTimeRef.current = targetOffset;
+    setCurrentMeasureIndex(targetMeasureIndex);
     setBeatInBar(-1);
-    scoreViewerRef.current?.reset();
-    setToastMessage('선택한 구간의 첫 마디로 되돌아가셨습니다.');
+
+    // jumpToMeasure를 호출하여 스크롤과 커서를 선택한 구간 첫 마디로 강제 이동
+    scoreViewerRef.current?.jumpToMeasure(targetMeasureIndex);
+
+    setToastMessage(`선택한 구간(${startBar}마디)의 첫 마디로 되돌아가셨습니다.`);
     setTimeout(() => setToastMessage(null), 3000);
-  }, [audioStartOffsetSec, stop, startBar]);
+  }, [startBar, measureStartTimes, sectionStartOffsetSec, stop]);
 
-  /** 4. 재생 상태에 따른 오디오 플레이 및 메트로놈 타이머 제어 */
+  /** 3. 재생 상태에 따른 메트로놈 및 타이머 제어 */
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
     if (isPlaying) {
-      const rangeEndSec = audioStartOffsetSec + sectionDurationSec;
-      // 재생 시작 시 현재 시간이 선택 구간 범위를 벗어났다면 시작점으로 점프
-      if (audio.currentTime < audioStartOffsetSec || audio.currentTime >= rangeEndSec) {
-        audio.currentTime = audioStartOffsetSec;
-      }
-
-      audio.play().catch((err) => {
-        console.warn('오디오 재생 차단:', err);
-      });
-
-      // 메트로놈 시작 (박자 싱크 맞춤)
       start(bpm, beatsPerBar, (time, bib) => {
         Tone.getDraw().schedule(() => {
           setBeatInBar(bib);
         }, time);
       });
     } else {
-      audio.pause();
       pause();
     }
-  }, [isPlaying, audioStartOffsetSec, sectionDurationSec, bpm, beatsPerBar, start, pause, stop]);
+  }, [isPlaying, bpm, beatsPerBar, start, pause]);
 
-  /** 5. 실시간 재생 시간에 따른 악보 커서(Cursor) 및 자동 스크롤 틱 처리 */
+  /** 4. 실시간 재생 시간에 따른 악보 커서(Cursor) 및 루프 */
   useEffect(() => {
     if (!isPlaying || measureStartTimes.length === 0) return;
 
-    const tick = () => {
-      const audio = audioRef.current;
-      if (audio) {
-        const elapsed = audio.currentTime;
+    let lastTime = performance.now();
 
-        // 선택한 구간의 종료 시점에 도달하면 자동 정지 및 토스트 안내
-        if (elapsed >= audioStartOffsetSec + sectionDurationSec) {
-          setIsPlaying(false);
-          stop();
-          audio.pause();
-          setToastMessage('선택한 구간 재생이 완료되었습니다.');
-          setTimeout(() => setToastMessage(null), 3000);
-          return;
-        }
+    const tick = (now: number) => {
+      const deltaSec = (now - lastTime) / 1000;
+      lastTime = now;
 
-        // 현재 재생 시간에 해당하는 마디 인덱스 탐색 및 업데이트
-        const idx = findMeasureIndexAtTime(measureStartTimes, Math.max(0, elapsed));
-        setCurrentMeasureIndex((prev) => (prev !== idx ? idx : prev));
+      playbackTimeRef.current += deltaSec;
+      const elapsed = playbackTimeRef.current;
+      const rangeEndSec = sectionStartOffsetSec + sectionDurationSec;
+
+      if (elapsed >= rangeEndSec) {
+        setIsPlaying(false);
+        stop();
+        playbackTimeRef.current = sectionStartOffsetSec;
+        const sIdx = Math.max(0, startBar - 1);
+        setCurrentMeasureIndex(sIdx);
+        scoreViewerRef.current?.jumpToMeasure(sIdx);
+        setToastMessage('선택한 구간 재생이 완료되었습니다.');
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
       }
+
+      const idx = findMeasureIndexAtTime(measureStartTimes, Math.max(0, elapsed));
+      setCurrentMeasureIndex((prev) => (prev !== idx ? idx : prev));
+
       rafRef.current = requestAnimationFrame(tick);
     };
 
@@ -307,22 +214,19 @@ export default function AnalysisResultPage() {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [isPlaying, measureStartTimes, audioStartOffsetSec, sectionDurationSec, stop]);
+  }, [isPlaying, measureStartTimes, sectionStartOffsetSec, sectionDurationSec, recording, latencyMs, startBar, stop]);
 
-  /** 재생/일시정지 토글 핸들러 (Tone.js 오디오 컨텍스트 활성화 포함) */
   const handleTogglePlay = async () => {
     if (isLoading) return;
     await Tone.start();
     setIsPlaying((p) => !p);
   };
 
-  /** 리와인드 버튼 클릭 핸들러 */
   const handleRewindClick = () => {
     if (isLoading) return;
     handleRewind();
   };
 
-  /** 연주 일시 포맷팅 헬퍼 함수 */
   const formatPlayedAt = (isoString?: string) => {
     if (!isoString) return '5월 4일 · 14:32';
     const date = new Date(isoString);
@@ -342,7 +246,7 @@ export default function AnalysisResultPage() {
         </div>
       )}
 
-      {/* 상단 헤더 영역 (뒤로가기, 곡 정보, 메타데이터) */}
+      {/* 상단 헤더 영역 */}
       <div className="mb-[36px] flex w-full max-w-[1400px] items-start justify-between">
         <div>
           <button
@@ -369,7 +273,6 @@ export default function AnalysisResultPage() {
       <div className="mb-[36px] flex w-full max-w-[1400px] flex-col">
         <div className="mb-[36px] flex items-center justify-between">
           <div className="flex items-center gap-[16px]">
-            {/* 재생 / 일시정지 버튼 */}
             <button
               onClick={handleTogglePlay}
               disabled={isLoading}
@@ -389,7 +292,6 @@ export default function AnalysisResultPage() {
               )}
             </button>
 
-            {/* 리와인드 (처음으로 되돌리기) 버튼 */}
             <button
               onClick={handleRewindClick}
               disabled={isLoading}
@@ -404,13 +306,11 @@ export default function AnalysisResultPage() {
             </button>
           </div>
 
-          {/* 메트로놈 닷 인디케이터 (박자 시각화) */}
           <div className="flex items-center">
             <MetronomeDots total={beatsPerBar} current={isPlaying ? beatInBar : -1} />
           </div>
         </div>
 
-        {/* 악보 뷰어 영역 (sample.xml 기반 렌더링 및 실시간 커서 스크롤 연동) */}
         <div className="w-full">
           <ScoreViewer
             ref={scoreViewerRef}
@@ -419,14 +319,31 @@ export default function AnalysisResultPage() {
             followPlayback={isPlaying}
             height={420}
             className="w-full"
-            onReady={() => setIsScoreReady(true)}
+            onReady={() => {
+              setIsScoreReady(true);
+              // 악보가 처음 렌더링 완료된 직후 유저가 선택한 시작 마디로 강제 이동
+              const sIdx = Math.max(0, startBar - 1);
+              setCurrentMeasureIndex(sIdx);
+              scoreViewerRef.current?.jumpToMeasure(sIdx);
+            }}
           />
         </div>
       </div>
 
       {/* 하단 AI 연주 분석 리포트 + 멘토 채팅 섹션 */}
       <div className="mb-[36px] w-full max-w-[1400px]">
-        <AnalysisChatSection analysisId={parsedAnalysisId} />
+        <AnalysisChatSection
+          analysisId={parsedAnalysisId}
+          analysisData={
+            analysisData
+              ? {
+                  analysisId: analysisData.analysisId,
+                  summary: analysisData.summary,
+                  report: { content: analysisData.report?.content },
+                }
+              : undefined
+          }
+        />
       </div>
 
       {/* 최하단 네비게이션 액션 버튼 그룹 */}
