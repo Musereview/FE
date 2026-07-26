@@ -8,9 +8,10 @@ import * as Tone from 'tone';
 import Piano from '@/components/piano/Piano';
 import LearningScoreView, { type LearningScoreHandle } from '@/components/score/LearningScoreView';
 import MetronomeDots from '@/components/metronome/MetronomeDots';
-import BackingTrack from '@/pages/practice/components/BackingTrack';
+import BackingTrack from '@/components/practice/BackingTrack';
 import { buildFallbackProgression } from '@/pages/practice/trackDisplay';
 import { useActiveNotes } from '@/hooks/useActiveNotes';
+import { useDeviceConnection } from '@/hooks/useDeviceConnection';
 import { useMetronome } from '@/hooks/useMetronome';
 import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
@@ -23,6 +24,7 @@ import PlayIcon from '@/assets/practice/play.svg?react';
 import StopIcon from '@/assets/practice/stop.svg?react';
 import RefreshIcon from '@/assets/restart.svg?react';
 import SettingsIcon from '@/assets/setting.svg?react';
+import DeviceDisconnectedModal from '@/components/common/DeviceDisconnectedModal';
 
 // TODO(mock): 백킹트랙 코드 진행 — 추후 학습 데이터로 교체
 const MOCK_CHORDS = ['Cm7(#11)', 'CM7(#11)', 'Dm7', 'Am7'];
@@ -91,7 +93,8 @@ function StepLearningPlayPage() {
     }
   };
 
-  const { activeNotes, reset: resetInput } = useActiveNotes(handleNoteOn, handleNoteOff, isPlaying); // 정지 중엔 입력 무시
+  const { activeNotes, inputs, reset: resetInput } = useActiveNotes(handleNoteOn, handleNoteOff, isPlaying); // 정지 중엔 입력 무시
+  const { disconnected } = useDeviceConnection(inputs); // 선택 기기 연결 끊김 감지
 
   // 정지/일시정지 시점에 아직 눌린(열린) 음을 그 순간으로 확정·해제 (stuck 방지)
   const finalizeOpenNotes = () => {
@@ -192,6 +195,11 @@ function StepLearningPlayPage() {
     stopPlayback();
     navigate(`/learn/curriculum/${curriculumId}/score`);
   };
+
+  useEffect(() => {
+    if (disconnected && isPlaying) pausePlayback();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disconnected]);
 
   // 언마운트 시 정리
   useEffect(() => {
@@ -312,6 +320,14 @@ function StepLearningPlayPage() {
           />
         </div>
       </div>
+
+      {/* 모달 임시로 확인 disconnected -> (true || disconnected) 변경해서 확인 가능 */}
+      {disconnected && (
+        <DeviceDisconnectedModal
+          onEndPractice={() => navigate(`/learn/curriculum/${curriculumId}`)}
+          onGoSettings={() => navigate(`/learn/curriculum/${curriculumId}/settings`)}
+        />
+      )}
     </div>
   );
 }
