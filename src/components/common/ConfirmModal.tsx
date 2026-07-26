@@ -1,4 +1,4 @@
-// 공통 확인 모달
+// 공통 확인 모달 — 취소/확인 버튼 고정. 내용이 자유로운 모달은 common/Modal 사용
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 
 type ModalTone = 'default' | 'danger';

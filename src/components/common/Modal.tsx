@@ -1,3 +1,4 @@
+// 공통 모달 셸 — 내용이 자유로운 모달용. 취소/확인 버튼이 고정된 확인 모달은 common/ConfirmModal 사용
 import { useEffect, type ReactNode } from 'react';
 
 interface ModalProps {
