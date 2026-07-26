@@ -1,5 +1,5 @@
 import type { TopicDifficulty } from '@/types/topic';
-import { DIFFICULTY_LABEL, DIFFICULTY_ORDER } from '../topicDisplay';
+import { DIFFICULTY_LABEL, DIFFICULTY_ORDER } from '@/pages/learn/topicDisplay';
 
 interface DifficultyTabsProps {
   value: TopicDifficulty;

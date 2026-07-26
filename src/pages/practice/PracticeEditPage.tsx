@@ -3,8 +3,8 @@ import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ALL_TRACKS, RECOMMENDED_TRACKS } from './mockTracks';
 import { buildFallbackProgression, CURRENT_USER } from './trackDisplay';
-import TrackForm, { type TimeSignature } from './components/create/TrackForm';
-import { toEditableMeasures, getChordsPerMeasure } from './components/create/chordGrid';
+import TrackForm, { type TimeSignature } from '@/components/practice/create/TrackForm';
+import { toEditableMeasures, getChordsPerMeasure } from '@/components/practice/create/chordGrid';
 
 function PracticeEditPage() {
   const navigate = useNavigate();

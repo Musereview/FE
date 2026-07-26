@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import SelectDropdown from '../SelectDropdown';
+import { useClickOutside } from '@/hooks/useClickOutside';
 import {
   NOTE_OPTIONS,
   QUALITY_OPTIONS,
@@ -35,13 +36,7 @@ function ChordEditorPanel({ initialValue = '', onApply, onCancel }: ChordEditorP
   const [bass, setBass] = useState(initial.bass);
   const [openField, setOpenField] = useState<OpenField>(null);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node)) onCancel();
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onCancel]);
+  useClickOutside(panelRef, onCancel);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {

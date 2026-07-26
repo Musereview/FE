@@ -1,4 +1,4 @@
-// src/components/main/components/AttendanceSection.tsx
+
 interface AttendanceDay {
   dayOfWeek: string;
   label: string;

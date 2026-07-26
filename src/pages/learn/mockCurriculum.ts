@@ -59,6 +59,20 @@ export function getCurriculum(curriculumId: string): Curriculum {
   return MOCK_CURRICULA[curriculumId] ?? MOCK_CURRICULA[DEFAULT_CURRICULUM_ID];
 }
 
+// 챕터(커리큘럼)별 악보(MusicXML) 경로.
+// TODO: 지금은 전부 같은 mock. 실제 악보 파일이 나오면 public/scores/ 에 넣고 경로만 교체.
+const DEFAULT_SCORE_PATH = '/learn-sample.xml';
+const SCORE_BY_CURRICULUM: Record<string, string> = {
+  'chapter-1': DEFAULT_SCORE_PATH,
+  'chapter-2': DEFAULT_SCORE_PATH,
+  'chapter-3': DEFAULT_SCORE_PATH,
+};
+
+// 해당 커리큘럼의 악보 경로 (없으면 기본 mock)
+export function getScorePath(curriculumId: string): string {
+  return SCORE_BY_CURRICULUM[curriculumId] ?? DEFAULT_SCORE_PATH;
+}
+
 // 커리큘럼(단계) 순서
 const CURRICULUM_ORDER = Object.keys(MOCK_CURRICULA);
 

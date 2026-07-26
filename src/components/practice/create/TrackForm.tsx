@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { KeyMode, TrackDifficulty } from '@/types/track';
-import { GENRES } from '../../mockTracks';
+import { GENRES } from '@/pages/practice/mockTracks';
 import ChevronLeftIcon from '@/assets/practice/chevron-left.svg?react';
 import TitleField from './TitleField';
 import { isValidTitle } from './titleValidation';

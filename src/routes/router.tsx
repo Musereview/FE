@@ -19,7 +19,6 @@ import AnalysisResultPage from '@/pages/practice/analysis/AnalysisResultPage';
 import LearnPage from '@/pages/learn/LearnPage';
 import TopicListPage from '@/pages/learn/TopicListPage';
 import TopicDetailPage from '@/pages/learn/TopicDetailPage';
-import CurriculumPage from '@/pages/learn/CurriculumPage';
 import StepLearningPage from '@/pages/learn/StepLearningPage';
 import StepTheoryPage from '@/pages/learn/StepTheoryPage';
 import StepLearningSettingsPage from '@/pages/learn/StepLearningSettingsPage';
@@ -162,10 +161,6 @@ export const router = createBrowserRouter([
           {
             path: 'curriculum',
             children: [
-              {
-                index: true,
-                element: <CurriculumPage />,
-              },
               {
                 path: ':curriculumId',
                 element: <StepLearningPage />,

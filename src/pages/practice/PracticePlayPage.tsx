@@ -6,8 +6,9 @@ import Piano from '@/components/piano/Piano';
 import PracticeNoteBars, { type LiveNoteBar } from '@/components/piano/PracticeNoteBars';
 import { noteCenterFraction } from '@/constants/piano';
 import MetronomeDots from '@/components/metronome/MetronomeDots';
-import BackingTrack from '@/pages/practice/components/BackingTrack';
+import BackingTrack from '@/components/practice/BackingTrack';
 import { useActiveNotes } from '@/hooks/useActiveNotes';
+import { useDeviceConnection } from '@/hooks/useDeviceConnection';
 import { useMetronome } from '@/hooks/useMetronome';
 import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
@@ -20,6 +21,7 @@ import RefreshIcon from '@/assets/restart.svg?react';
 import CheckIcon from '@/assets/check.svg?react';
 import ChangeIcon from '@/assets/change.svg?react';
 import SettingsIcon from '@/assets/setting.svg?react';
+import DeviceDisconnectedModal from '@/components/common/DeviceDisconnectedModal';
 
 const PX_PER_BEAT = 120; // 노트바 길이 환산: 1박 = 120px
 
@@ -77,7 +79,8 @@ function PracticePlayPage() {
   };
   const handleBarDone = useCallback((id: number) => setNoteBars((prev) => prev.filter((b) => b.id !== id)), []);
 
-  const { activeNotes, reset: resetInput } = useActiveNotes(handleNoteOn, handleNoteOff, isPlaying); // 정지 중엔 입력 무시
+  const { activeNotes, inputs, reset: resetInput } = useActiveNotes(handleNoteOn, handleNoteOff, isPlaying); // 정지 중엔 입력 무시
+  const { disconnected } = useDeviceConnection(inputs); // 선택 기기 연결 끊김 감지
 
   // 백킹트랙에서 지금 차례인 코드 (null은 직전 코드 유지)
   const flatChords = measures.flat();
@@ -185,6 +188,12 @@ function PracticePlayPage() {
     navigate(`/practice/${practiceId}/analysis`);
   };
 
+  // 연습 중 기기 연결이 끊기면 재생을 멈추고 모달을 띄운다
+  useEffect(() => {
+    if (disconnected && isPlaying) pausePlayback();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disconnected]);
+
   // 언마운트 시 정리
   useEffect(() => {
     return () => {
@@ -230,14 +239,14 @@ function PracticePlayPage() {
           <button
             type="button"
             onClick={handleRestart}
-            className="button-large2 flex h-[60px] w-[175px] items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
+            className="button-large2 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
             재시작
             <RefreshIcon className="h-6 w-6" />
           </button>
           <button
             type="button"
             onClick={() => navigate('/practice')}
-            className="button-large2 flex h-[60px] w-[175px] items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
+            className="button-large2 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
             트랙 변경
             <ChangeIcon className="h-6 w-6" />
           </button>
@@ -304,6 +313,14 @@ function PracticePlayPage() {
           </div>
         </div>
       </div>
+
+      {/* 모달 임시로 확인 disconnected -> (true || disconnected) 변경해서 확인 가능 */}
+      {disconnected && (
+        <DeviceDisconnectedModal
+          onEndPractice={() => navigate('/practice')}
+          onGoSettings={() => navigate(`/practice/${practiceId}/settings`)}
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import type { TopicDifficulty } from '@/types/topic';
-import DifficultyBadge from './DifficultyBadge';
+import DifficultyBadge from '@/components/common/DifficultyBadge';
 
 interface CurriculumBannerProps {
   title: string;

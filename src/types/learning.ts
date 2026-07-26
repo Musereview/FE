@@ -15,3 +15,12 @@ export interface LearningResultResponse {
   score: number;
   completedAt: string; // ISO 8601
 }
+
+// 연주(실습) 데이터 조회 응답 data
+// GET /api/learnings/{learningId}/steps/{learningStepId}/practice-data
+// 단계 상세 화면엔 없는, 실제 연주·채점에 필요한 값만 반환
+export interface PracticeDataResponse {
+  bpm: number;
+  keySignature: string; // 예: 'C'
+  midiData: string; // 채점용 MIDI 데이터 (JSON 문자열)
+}

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import ChevronDownIcon from '@/assets/dropdown.svg?react';
+import ChevronDownIcon from '@/assets/practice/chevron-down.svg?react';
 
 interface AccordionSectionProps {
   icon?: string;

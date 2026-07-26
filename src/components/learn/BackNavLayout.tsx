@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ChevronLeftIcon from '@/assets/chevron-left.svg?react';
+import ChevronLeftIcon from '@/assets/practice/chevron-left.svg?react';
 
 interface BackNavLayoutProps {
   children: ReactNode;

@@ -1,11 +1,11 @@
 // 단계별 학습 상세(이론/예시) 페이지
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getCurriculum } from './mockCurriculum';
-import BackNavLayout from './components/BackNavLayout';
-import AccordionSection from './components/AccordionSection';
-import ChordExampleRow from './components/ChordExampleRow';
-import CurriculumBanner from './components/CurriculumBanner';
+import BackNavLayout from '@/components/learn/BackNavLayout';
+import AccordionSection from '@/components/learn/AccordionSection';
+import ChordExampleRow from '@/components/learn/ChordExampleRow';
+import CurriculumBanner from '@/components/learn/CurriculumBanner';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import StopIcon from '@/assets/practice/stop.svg?react';
 import ReplayIcon from '@/assets/restart.svg?react';
@@ -22,6 +22,7 @@ function parseDurationToMs(durationLabel: string): number {
 }
 
 function StepTheoryPage() {
+  const navigate = useNavigate();
   const { curriculumId } = useParams<{ curriculumId: string }>();
   const { title, difficulty, stepDescription, example, theory, theorySummary, tips, tipHighlight } = getCurriculum(
     curriculumId ?? '',
@@ -153,7 +154,8 @@ function StepTheoryPage() {
 
           <button
             type="button"
-            className="button-large1 bg-primary-400 flex h-[76px] w-full items-center justify-center gap-2 rounded-[4px] text-gray-950">
+            onClick={() => navigate(`/learn/curriculum/${curriculumId}/settings`)}
+            className="button-large1 bg-primary-400 flex h-[76px] w-full cursor-pointer items-center justify-center gap-2 rounded-[4px] text-gray-950">
             이 이론으로 실습하기
             <StartIcon className="size-6" />
           </button>

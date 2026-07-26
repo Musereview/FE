@@ -11,6 +11,7 @@ import ProfileIcon from '@/assets/layout/profile.svg?react';
 import MoreIcon from '@/assets/layout/more.svg?react';
 import type { NotiItem } from '@/types/notification';
 import WithdrawModal from '@/components/common/WithdrawModal';
+import { useClickOutside } from '@/hooks/useClickOutside';
 
 interface NavItem {
   Icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
@@ -25,7 +26,7 @@ interface NavbarProps {
 }
 
 const STUDENT_MENU: NavItem[] = [
-  { Icon: PracticeIcon, label: '연습', to: '/practice', matchFrom: 'practice' },
+  { Icon: PracticeIcon, label: '연주', to: '/practice', matchFrom: 'practice' },
   { Icon: LearnIcon, label: '학습', to: '/learn', matchFrom: 'learn' },
   { Icon: HistoryIcon, label: '히스토리', to: '/history' },
 ];
@@ -41,25 +42,18 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
-  // 팝업이 열려 있을 때 외부 클릭 / ESC 로 닫기
+  useClickOutside(moreRef, () => setIsMoreOpen(false), isMoreOpen);
+
+  // 팝업이 열려 있을 때 ESC 로 닫기
   useEffect(() => {
     if (!isMoreOpen) return;
 
-    const handlePointerDown = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
-        setIsMoreOpen(false);
-      }
-    };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setIsMoreOpen(false);
     };
 
-    document.addEventListener('mousedown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isMoreOpen]);
 
   const handleLogout = () => {
