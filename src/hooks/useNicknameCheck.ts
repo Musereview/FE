@@ -7,7 +7,7 @@ export type NicknameStatus = 'idle' | 'length' | 'format' | 'duplicate' | 'avail
 
 export const NICKNAME_MESSAGE: Record<Exclude<NicknameStatus, 'idle'>, { text: string; tone: 'error' | 'success' }> = {
   length: { text: '2~10자의 닉네임을 입력해 주세요.', tone: 'error' },
-  format: { text: '공백 및 특수문자는 사용할 수 없습니다.', tone: 'error' },
+  format: { text: '형식에 맞지 않는 닉네임입니다.', tone: 'error' },
   duplicate: { text: '사용 중인 닉네임입니다.', tone: 'error' },
   available: { text: '사용 가능한 닉네임입니다.', tone: 'success' },
 };

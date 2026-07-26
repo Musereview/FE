@@ -24,7 +24,7 @@ function ScorePage() {
   ];
 
   return (
-    <div className="relative mx-auto flex h-full w-[1510px] flex-col items-center bg-gray-950">
+    <div className="relative mx-auto flex h-full w-full max-w-[1510px] flex-col items-center bg-gray-950">
       {/* 헤더 */}
       <header className="absolute top-[76px] mb-[32px] flex w-full items-center justify-between px-[80px]">
         <div className="heading-small-b h-[36px] w-[714px] text-gray-300">{title}</div>
@@ -32,13 +32,13 @@ function ScorePage() {
           <button
             type="button"
             onClick={() => navigate(`/learn/curriculum/${curriculumId}/theory`)}
-            className="button-large2 flex h-[60px] w-[174px] items-center justify-center rounded-[6px] bg-gray-800 px-5 text-gray-300">
+            className="button-large2 flex h-[60px] w-[174px] cursor-pointer items-center justify-center rounded-[6px] bg-gray-800 px-5 text-gray-300">
             이론 보기
           </button>
           <button
             type="button"
             onClick={() => navigate(`/learn/curriculum/${curriculumId}/play`)}
-            className="button-large2 mr-[16px] ml-[16px] flex h-[60px] w-[176px] items-center justify-center rounded-[6px] bg-gray-800 px-[12px] py-[6px] text-gray-300">
+            className="button-large2 mr-[16px] ml-[16px] flex h-[60px] w-[176px] cursor-pointer items-center justify-center rounded-[6px] bg-gray-800 px-[12px] py-[6px] text-gray-300">
             다시하기
             <RefreshIcon className="ml-2 h-[24px] w-[24px]" />
           </button>
@@ -46,7 +46,7 @@ function ScorePage() {
           <button
             type="button"
             onClick={() => navigate(nextCurriculumId ? `/learn/curriculum/${nextCurriculumId}` : '/learn/curriculum')}
-            className="button-large2 bg-primary-400 flex h-[60px] w-[174px] items-center justify-center rounded-[6px] py-1.5 pr-3 pl-3.5 text-gray-950">
+            className="button-large2 bg-primary-400 flex h-[60px] w-[174px] cursor-pointer items-center justify-center rounded-[6px] py-1.5 pr-3 pl-3.5 text-gray-950">
             다음 학습으로
             <ChevronRightIcon className="ml-2 h-[24px] w-[24px]" />
           </button>

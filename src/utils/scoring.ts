@@ -90,3 +90,33 @@ export function scoreLearning(
 
   return { results, score: { score, accuracy, timing, streak, missedNotes, total: results.length } };
 }
+
+// per-event 판정 결과(악보 색칠에 쓰인 그 판정)를 그대로 집계해 최종 점수 지표 산출.
+// scoreLearning과 공식 동일 — 악보 색칠과 점수 화면이 같은 판정을 쓰도록 단일 소스 유지.
+export function summarizeJudgments(results: { judgment: NoteJudgment; missed: boolean }[]): LearningScore {
+  const total = results.length || 1;
+  let perfect = 0;
+  let good = 0;
+  let missedNotes = 0;
+  let streak = 0;
+  let run = 0;
+  for (const r of results) {
+    if (r.judgment === 'perfect') perfect += 1;
+    else if (r.judgment === 'good') good += 1;
+    if (r.missed) missedNotes += 1;
+    if (r.judgment !== 'bad') {
+      run += 1;
+      streak = Math.max(streak, run);
+    } else {
+      run = 0;
+    }
+  }
+  return {
+    score: Math.round((perfect * 100 + good * 60) / total), // 가중 평균 (perfect 100, good 60)
+    accuracy: Math.round(((perfect + good) / total) * 100), // 음+타이밍 허용 비율
+    timing: Math.round((perfect / total) * 100), // Perfect 비율
+    streak, // 최대 연속 성공(perfect/good)
+    missedNotes, // 놓친 음 수
+    total: results.length,
+  };
+}
