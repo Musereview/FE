@@ -8,7 +8,7 @@ import * as Tone from 'tone';
 import Piano from '@/components/piano/Piano';
 import LearningScoreView, { type LearningScoreHandle } from '@/components/score/LearningScoreView';
 import MetronomeDots from '@/components/metronome/MetronomeDots';
-import BackingTrack from '@/pages/practice/components/BackingTrack';
+import BackingTrack from '@/components/practice/BackingTrack';
 import { buildFallbackProgression } from '@/pages/practice/trackDisplay';
 import { useActiveNotes } from '@/hooks/useActiveNotes';
 import { useMetronome } from '@/hooks/useMetronome';

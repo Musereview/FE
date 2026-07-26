@@ -5,7 +5,7 @@ import { SettingsModal } from '@/components/settings/SettingsModal';
 import Piano from '@/components/piano/Piano';
 import LearningScoreView from '@/components/score/LearningScoreView';
 import MetronomeDots from '@/components/metronome/MetronomeDots';
-import BackingTrack from '@/pages/practice/components/BackingTrack';
+import BackingTrack from '@/components/practice/BackingTrack';
 import { buildFallbackProgression } from '@/pages/practice/trackDisplay';
 import { useSettingStore } from '@/stores/settingsStore';
 import { getCurriculum, getCurriculumProgress, getScorePath } from './mockCurriculum';
