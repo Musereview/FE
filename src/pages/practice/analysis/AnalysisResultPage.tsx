@@ -14,7 +14,6 @@ import AnalysisChatSection from '@/components/mentor/AnalysisChatSection';
 import { axiosInstance } from '@/apis/axiosInstance';
 import { usePracticeResultStore } from '@/stores/practiceResultStore';
 
-/** AI 분석 리포트 도메인 점수 인터페이스 */
 interface DomainScores {
   scale: number;
   tension: number;
@@ -22,7 +21,6 @@ interface DomainScores {
   voiceLeading: number;
 }
 
-/** LLM 리포트 데이터 인터페이스 */
 interface ReportData {
   analysisReportId: number;
   generationType: string;
@@ -32,7 +30,6 @@ interface ReportData {
   createdAt: string;
 }
 
-/** 연주 분석 상세 데이터 구조 인터페이스 */
 interface AnalysisData {
   analysisId: number;
   playingId?: number;
@@ -56,42 +53,34 @@ export default function AnalysisResultPage() {
   const { practiceId } = useParams<{ practiceId: string }>();
   const parsedAnalysisId = Number(practiceId) || 10;
 
-  // URL 쿼리 파라미터에서 유저가 선택한 시작/끝 마디 구간 추출 (기본값: 1~16마디)
   const [searchParams] = useSearchParams();
   const startBar = parseInt(searchParams.get('start') ?? '1', 10) || 1;
   const endBar = parseInt(searchParams.get('end') ?? String(startBar + 15), 10) || startBar + 15;
 
-  // 분석 담당자 가이드 스토어 연동 (recording MIDI 노트 및 latencyMs)
   const { recording, latencyMs } = usePracticeResultStore();
 
-  // 컴포넌트 상태 관리
   const [isPlaying, setIsPlaying] = useState(false);
   const [isScoreReady, setIsScoreReady] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
 
-  // 연주 동기화 및 마디 타이밍 상태
   const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
   const [sectionStartOffsetSec, setSectionStartOffsetSec] = useState(0);
   const [sectionDurationSec, setSectionDurationSec] = useState(0);
 
-  // 악보 뷰어 및 메트로놈 제어 상태
   const startIndex = Math.max(0, startBar - 1);
   const [currentMeasureIndex, setCurrentMeasureIndex] = useState(startIndex);
   const [beatInBar, setBeatInBar] = useState(-1);
   const [beatsPerBar, setBeatsPerBar] = useState(4);
   const [bpm, setBpm] = useState(120);
 
-  // Ref 관리
   const scoreViewerRef = useRef<ScoreViewerHandle>(null);
   const playbackTimeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
 
-  // Tone.js 기반 메트로놈 훅 연결
   const { start, stop, pause } = useMetronome();
   const isLoading = !isScoreReady;
 
-  /** 1. 분석 결과 상세 데이터를 서버에서 조회 */
   useEffect(() => {
     async function fetchAnalysisDetail() {
       try {
@@ -106,7 +95,6 @@ export default function AnalysisResultPage() {
     fetchAnalysisDetail();
   }, [parsedAnalysisId]);
 
-  /** 2. sample.xml 악보를 분석하여 선택한 마디 구간의 시작 시간(초)과 지속 시간 계산 */
   useEffect(() => {
     let cancelled = false;
 
@@ -129,7 +117,6 @@ export default function AnalysisResultPage() {
         setSectionDurationSec(Math.max(2, endSec - offsetSec));
         setCurrentMeasureIndex(sIdx);
 
-        // 악보가 이미 로드된 상태라면 진입 시점에 즉시 해당 마디로 점프
         scoreViewerRef.current?.jumpToMeasure(sIdx);
 
         const { bpm: activeBpm, beats } = extractActiveTempoMeterAtMeasure(text, startBar);
@@ -146,7 +133,6 @@ export default function AnalysisResultPage() {
     };
   }, [startBar, endBar, analysisData?.bpm]);
 
-  /** 수동 리와인드 (선택한 구간의 첫 마디로 이동) */
   const handleRewind = useCallback(() => {
     setIsPlaying(false);
     stop();
@@ -158,14 +144,12 @@ export default function AnalysisResultPage() {
     setCurrentMeasureIndex(targetMeasureIndex);
     setBeatInBar(-1);
 
-    // jumpToMeasure를 호출하여 스크롤과 커서를 선택한 구간 첫 마디로 강제 이동
     scoreViewerRef.current?.jumpToMeasure(targetMeasureIndex);
 
     setToastMessage(`선택한 구간(${startBar}마디)의 첫 마디로 되돌아가셨습니다.`);
     setTimeout(() => setToastMessage(null), 3000);
   }, [startBar, measureStartTimes, sectionStartOffsetSec, stop]);
 
-  /** 3. 재생 상태에 따른 메트로놈 및 타이머 제어 */
   useEffect(() => {
     if (isPlaying) {
       start(bpm, beatsPerBar, (time, bib) => {
@@ -178,7 +162,6 @@ export default function AnalysisResultPage() {
     }
   }, [isPlaying, bpm, beatsPerBar, start, pause]);
 
-  /** 4. 실시간 재생 시간에 따른 악보 커서(Cursor) 및 루프 */
   useEffect(() => {
     if (!isPlaying || measureStartTimes.length === 0) return;
 
@@ -238,7 +221,7 @@ export default function AnalysisResultPage() {
   };
 
   return (
-    <div className="box-border flex min-h-screen flex-col items-center overflow-x-hidden bg-gray-950 px-4 py-[76px] text-gray-300 md:px-12 xl:px-[160px]">
+    <div className="box-border flex min-h-screen w-full flex-col items-center overflow-x-hidden bg-gray-950 px-4 py-[60px] text-gray-300 md:px-12 xl:px-16">
       {/* 상단 알림 토스트 메시지 */}
       {toastMessage && (
         <div className="fixed top-[40px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-[12px] rounded-[12px] bg-[#E02424] px-[24px] py-[16px] text-[16px] font-bold text-white shadow-2xl">
@@ -247,7 +230,7 @@ export default function AnalysisResultPage() {
       )}
 
       {/* 상단 헤더 영역 */}
-      <div className="mb-[36px] flex w-full max-w-[1400px] items-start justify-between">
+      <div className="mb-[36px] flex w-full max-w-[1280px] flex-wrap items-start justify-between gap-4">
         <div>
           <button
             onClick={() => navigate(-1)}
@@ -255,7 +238,7 @@ export default function AnalysisResultPage() {
             <span className="text-[12px]">＜</span> 구간 다시 설정
           </button>
           <h1 className="heading-medium-b mb-3 text-white">{analysisData?.title || 'Jazz Standard Practice'}</h1>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="rounded bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">
               {analysisData?.genre ? analysisData.genre.toUpperCase() : 'JAZZ'}
             </span>
@@ -270,8 +253,8 @@ export default function AnalysisResultPage() {
       </div>
 
       {/* 플레이어 컨트롤 및 악보 영역 */}
-      <div className="mb-[36px] flex w-full max-w-[1400px] flex-col">
-        <div className="mb-[36px] flex items-center justify-between">
+      <div className="mb-[36px] flex w-full max-w-[1280px] flex-col">
+        <div className="mb-[36px] flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-[16px]">
             <button
               onClick={handleTogglePlay}
@@ -321,7 +304,6 @@ export default function AnalysisResultPage() {
             className="w-full"
             onReady={() => {
               setIsScoreReady(true);
-              // 악보가 처음 렌더링 완료된 직후 유저가 선택한 시작 마디로 강제 이동
               const sIdx = Math.max(0, startBar - 1);
               setCurrentMeasureIndex(sIdx);
               scoreViewerRef.current?.jumpToMeasure(sIdx);
@@ -330,8 +312,8 @@ export default function AnalysisResultPage() {
         </div>
       </div>
 
-      {/* 하단 AI 연주 분석 리포트 + 멘토 채팅 섹션 */}
-      <div className="mb-[36px] w-full max-w-[1400px]">
+      {/* 하단 AI 연주 분석 리포트 + 멘토 채팅 섹션 (w-full max-w-[1280px]로 찌그러짐 방지) */}
+      <div className="mb-[36px] w-full max-w-[1280px]">
         <AnalysisChatSection
           analysisId={parsedAnalysisId}
           analysisData={
@@ -347,14 +329,14 @@ export default function AnalysisResultPage() {
       </div>
 
       {/* 최하단 네비게이션 액션 버튼 그룹 */}
-      <div className="flex w-full max-w-[1400px] items-center justify-between pt-2">
+      <div className="flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-4 pt-2">
         <button
-          onClick={() => navigate(`/practice/${practiceId}/analysis/select`)}
+          onClick={() => navigate(`/practice/${parsedAnalysisId}/play`)}
           className="cursor-pointer rounded-xl bg-gray-800 px-8 py-4 text-base font-medium text-gray-300 shadow-md transition-colors hover:bg-gray-700">
           다시 연주하기
         </button>
         <button
-          onClick={() => navigate('/learn')}
+          onClick={() => navigate('/practice')}
           className="bg-primary-400 cursor-pointer rounded-xl px-8 py-4 text-base font-semibold text-gray-950 shadow-lg transition-opacity hover:opacity-90">
           추가 연습하기
         </button>

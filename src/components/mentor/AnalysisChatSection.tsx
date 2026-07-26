@@ -1,8 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 
-// ==========================================
-// 1. 타입 정의 (TypeScript Interfaces)
-// ==========================================
 interface AnalysisReportData {
   analysisId?: number;
   summary?: string;
@@ -24,9 +21,6 @@ interface ChatMessage {
   text: string;
 }
 
-// ==========================================
-// 2. Mock Data
-// ==========================================
 const MOCK_ANALYSIS_RESPONSE: AnalysisReportData = {
   analysisId: 10,
   summary: '긴장감을 오래 유지하는 흐름이 많았어요.',
@@ -52,7 +46,6 @@ export default function AnalysisChatSection({
   reportContent,
   analysisData = MOCK_ANALYSIS_RESPONSE,
 }: AnalysisChatSectionProps) {
-  // 상태 관리 (채팅 메시지, 입력값, 스트리밍 여부, 상단 스크롤 버튼 표시 여부)
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -60,14 +53,10 @@ export default function AnalysisChatSection({
 
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
 
-  // 데이터 우선순위 적용
   const resolvedSummary = summaryTitle || analysisData?.summary || '긴장감을 오래 유지하는 흐름이 많았어요.';
   const resolvedContent = reportContent || analysisData?.report?.content || MOCK_ANALYSIS_RESPONSE.report!.content!;
   const resolvedAnalysisId = analysisId || analysisData?.analysisId || 10;
 
-  // ==========================================
-  // 3. 마크다운 파싱 함수
-  // ==========================================
   const parseMarkdownContent = (content: string) => {
     const parts = content.split('### ').filter(Boolean);
     let mainDesc = '';
@@ -97,7 +86,6 @@ export default function AnalysisChatSection({
 
   const { mainDesc, sections } = parseMarkdownContent(resolvedContent);
 
-  // 스크롤 위치 감지
   const handleScroll = () => {
     if (chatScrollRef.current) {
       const { scrollTop } = chatScrollRef.current;
@@ -109,23 +97,18 @@ export default function AnalysisChatSection({
     }
   };
 
-  // 새 메시지 추가 시 자동 스크롤 하단 고정
   useEffect(() => {
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
   }, [messages, isStreaming]);
 
-  // 분석 결과 영역 최상단으로 부드럽게 스크롤 이동
   const handleScrollToTop = () => {
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  // ==========================================
-  // 4. 질문 전송 및 AI 응답 핸들러
-  // ==========================================
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || isStreaming) return;
@@ -175,8 +158,7 @@ export default function AnalysisChatSection({
   };
 
   return (
-    <div className="flex w-full max-w-[1400px] flex-col">
-      {/* 스타일 태그: 애니메이션 키프레임 주입 */}
+    <div className="flex w-full max-w-[1280px] flex-col">
       <style>{`
         @keyframes kf_3261_36497_translate_0 {
           0% {
@@ -189,13 +171,13 @@ export default function AnalysisChatSection({
         }
       `}</style>
 
-      {/* 전체 채팅 및 분석 결과 박스 컨테이너  */}
+      {/* 전체 채팅 및 분석 결과 박스 컨테이너 */}
       <div
         className="relative flex w-full flex-col rounded-[6px_6px_0_0]"
         style={{
           display: 'flex',
           height: '630px',
-          padding: '0px', // 패딩을 스크롤 내부로 위임하여 스크롤바가 상단 끝까지 닿게 함
+          padding: '0px',
           flexDirection: 'column',
           alignItems: 'flex-start',
           alignSelf: 'stretch',
@@ -203,17 +185,17 @@ export default function AnalysisChatSection({
           background: 'var(--Color-Gray-Scale-900, #1B1E27)',
           overflow: 'hidden',
         }}>
-        {/* 상단 분석 결과 및 채팅 스크롤 영역  */}
+        {/* 상단 분석 결과 및 채팅 스크롤 영역 */}
         <div
           ref={chatScrollRef}
           onScroll={handleScroll}
-          className="absolute inset-0 overflow-y-auto px-[40px] pt-[50px] [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#55585E] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-[#2B2E36]"
+          className="absolute inset-0 overflow-y-auto px-6 pt-[50px] sm:px-10 [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#55585E] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-[#2B2E36]"
           style={{ paddingBottom: '50px' }}>
           {/* 분석 결과 영역 */}
           <div className="flex w-full flex-col">
             {/* 요약 타이틀 및 메인 콘텐츠 */}
-            <div className="mb-[52px] flex flex-col" style={{ gap: '16px' }}>
-              <div className="flex items-start gap-[16px]">
+            <div className="mb-[52px] flex w-full flex-col gap-4">
+              <div className="flex items-start gap-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="36"
@@ -227,31 +209,16 @@ export default function AnalysisChatSection({
                   />
                 </svg>
                 <h2
-                  style={{
-                    color: 'var(--Color-Primary-300, #9CFFD6)',
-                    fontFamily: 'Pretendard',
-                    fontSize: '32px',
-                    fontStyle: 'normal',
-                    fontWeight: 600,
-                    lineHeight: '44px',
-                    letterSpacing: '-0.64px',
-                  }}>
+                  className="text-2xl leading-snug font-semibold tracking-[-0.64px] sm:text-[32px] sm:leading-[44px]"
+                  style={{ color: 'var(--Color-Primary-300, #9CFFD6)', fontFamily: 'Pretendard' }}>
                   {resolvedSummary}
                 </h2>
               </div>
 
-              {/* 메인 설명 텍스트 */}
+              {/* 메인 설명 텍스트  */}
               <p
-                style={{
-                  color: 'var(--Color-Gray-Scale-200, #F0F1F1)',
-                  fontFamily: 'Pretendard',
-                  fontSize: '20px',
-                  fontStyle: 'normal',
-                  fontWeight: 400,
-                  lineHeight: '30px',
-                  letterSpacing: '-0.4px',
-                }}
-                className="pl-[52px] whitespace-pre-line">
+                className="pl-0 text-lg leading-relaxed font-normal tracking-[-0.4px] whitespace-pre-line sm:pl-[52px] sm:text-[20px] sm:leading-[30px]"
+                style={{ color: 'var(--Color-Gray-Scale-200, #F0F1F1)', fontFamily: 'Pretendard' }}>
                 {mainDesc}
               </p>
             </div>
@@ -260,34 +227,15 @@ export default function AnalysisChatSection({
             {sections.map((sec, idx) => (
               <div
                 key={idx}
-                className={`flex flex-col gap-2 ${idx === sections.length - 1 ? 'mb-0' : 'mb-[52px]'}`}
-                style={{ alignSelf: 'stretch' }}>
+                className={`flex w-full flex-col gap-2 ${idx === sections.length - 1 ? 'mb-0' : 'mb-[52px]'}`}>
                 <h4
-                  style={{
-                    color: 'var(--Color-Gray-Scale-200, #F0F1F1)',
-                    fontFamily: 'Pretendard',
-                    fontSize: '22px',
-                    fontStyle: 'normal',
-                    fontWeight: 600,
-                    lineHeight: '32px',
-                    letterSpacing: '-0.44px',
-                    alignSelf: 'stretch',
-                    paddingLeft: '52px',
-                  }}>
+                  className="pl-0 text-xl leading-snug font-semibold tracking-[-0.44px] sm:pl-[52px] sm:text-[22px] sm:leading-[32px]"
+                  style={{ color: 'var(--Color-Gray-Scale-200, #F0F1F1)', fontFamily: 'Pretendard' }}>
                   {sec.title}
                 </h4>
-                {/* 상세 분석 본문 텍스트 */}
                 <p
-                  style={{
-                    color: 'var(--Color-Gray-Scale-200, #F0F1F1)',
-                    fontFamily: 'Pretendard',
-                    fontSize: '18px',
-                    fontStyle: 'normal',
-                    fontWeight: 400,
-                    lineHeight: '30px',
-                    letterSpacing: '-0.36px',
-                  }}
-                  className="pl-[52px] whitespace-pre-line">
+                  className="pl-0 text-base leading-relaxed font-normal tracking-[-0.36px] whitespace-pre-line sm:pl-[52px] sm:text-[18px] sm:leading-[30px]"
+                  style={{ color: 'var(--Color-Gray-Scale-200, #F0F1F1)', fontFamily: 'Pretendard' }}>
                   {sec.text}
                 </p>
               </div>
@@ -300,25 +248,14 @@ export default function AnalysisChatSection({
               key={msg.id}
               className={`mt-[52px] flex w-full flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
               {msg.sender === 'user' ? (
-                /* 유저 질문 메시지 (Typography/Body/Medium 스펙 적용) */
                 <div
-                  className="max-w-[75%] rounded-[12px] bg-[#6712D1] px-5 py-3.5 shadow-md"
-                  style={{
-                    color: 'var(--Color-Secondary-100, #FAF2FF)',
-                    fontFamily: 'Pretendard',
-                    fontSize: '20px',
-                    fontStyle: 'normal',
-                    fontWeight: 400,
-                    lineHeight: '30px',
-                    letterSpacing: '-0.4px',
-                  }}>
+                  className="max-w-[85%] rounded-[12px] bg-[#6712D1] px-5 py-3.5 text-lg leading-relaxed font-normal tracking-[-0.4px] shadow-md sm:max-w-[75%] sm:text-[20px] sm:leading-[30px]"
+                  style={{ color: 'var(--Color-Secondary-100, #FAF2FF)', fontFamily: 'Pretendard' }}>
                   {msg.text}
                 </div>
               ) : (
-                /* AI 멘토 답장 영역 */
-                <div className="flex w-full max-w-[85%] flex-col pl-[52px]">
+                <div className="flex w-full max-w-[90%] flex-col pl-0 sm:max-w-[85%] sm:pl-[52px]">
                   {isStreaming && msg.text === '' ? (
-                    /* AI 멘토 로딩 중 점 3개 애니메이션 SVG  */
                     <div className="py-1">
                       <svg xmlns="http://www.w3.org/2000/svg" width="90" height="40" viewBox="0 0 90 40" fill="none">
                         <circle
@@ -354,22 +291,12 @@ export default function AnalysisChatSection({
                       </svg>
                     </div>
                   ) : (
-                    /* AI 멘토 실제 답변 텍스트 및 커서 바 수직 정렬 */
                     <div className="relative inline-flex flex-wrap items-center py-1">
                       <span
-                        style={{
-                          color: 'var(--Color-Primary-200, #D0FFEB)',
-                          fontFamily: 'Pretendard',
-                          fontSize: '22px',
-                          fontStyle: 'normal',
-                          fontWeight: 500,
-                          lineHeight: '32px',
-                          letterSpacing: '-0.44px',
-                          whiteSpace: 'pre-wrap',
-                        }}>
+                        className="text-xl leading-snug font-medium tracking-[-0.44px] whitespace-pre-wrap sm:text-[22px] sm:leading-[32px]"
+                        style={{ color: 'var(--Color-Primary-200, #D0FFEB)', fontFamily: 'Pretendard' }}>
                         {msg.text}
                       </span>
-                      {/* 스트리밍 중일 때 텍스트와 나란히 정렬되는 커서 바 */}
                       {isStreaming && msg.id === messages[messages.length - 1].id && (
                         <span className="ml-1 inline-flex items-center" style={{ width: '2px', height: '24px' }}>
                           <svg xmlns="http://www.w3.org/2000/svg" width="2" height="24" viewBox="0 0 2 24" fill="none">
@@ -391,8 +318,8 @@ export default function AnalysisChatSection({
             onClick={handleScrollToTop}
             className="absolute z-10 cursor-pointer transition-all hover:scale-105 active:scale-95"
             style={{
-              right: '36px',
-              bottom: '30px',
+              right: '24px',
+              bottom: '24px',
               width: '48px',
               height: '48px',
               background: 'transparent',
@@ -414,12 +341,11 @@ export default function AnalysisChatSection({
         )}
       </div>
 
-      {/* 최하단 채팅 입력 폼 */}
+      {/* 최하단 채팅 입력 폼*/}
       <div
-        className="w-full shrink-0"
+        className="w-full shrink-0 px-6 py-5 sm:px-10"
         style={{
           display: 'flex',
-          padding: '20px 40px',
           flexDirection: 'column',
           alignItems: 'flex-start',
           gap: '20px',
@@ -435,16 +361,10 @@ export default function AnalysisChatSection({
             onChange={(e) => setInputText(e.target.value)}
             disabled={isStreaming}
             placeholder="질문 내용을 입력해 주세요."
-            className="w-full bg-transparent pr-12 focus:outline-none disabled:opacity-50"
+            className="w-full bg-transparent pr-12 text-sm leading-6 font-medium tracking-[-0.32px] focus:outline-none disabled:opacity-50 sm:text-base"
             style={{
               color: 'var(--color-gray-scale-300-text, #E7E7E8)',
               fontFamily: 'Pretendard',
-              fontSize: '16px',
-              fontStyle: 'normal',
-              fontWeight: 500,
-              lineHeight: '24px',
-              letterSpacing: '-0.32px',
-              flex: '1 0 0',
             }}
           />
           <button
