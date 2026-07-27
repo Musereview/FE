@@ -114,10 +114,9 @@ export default function HistoryDetailPage() {
         }
 
         const sIdx = 0;
-        const eIdx = timings.measureStartTimes.length - 1;
 
         const offsetSec = timings.measureStartTimes[sIdx] ?? 0;
-        const endSec = timings.measureStartTimes[eIdx] ?? timings.totalDuration;
+        const endSec = timings.totalDuration;
 
         setSectionStartOffsetSec(offsetSec);
         playbackTimeRef.current = offsetSec;

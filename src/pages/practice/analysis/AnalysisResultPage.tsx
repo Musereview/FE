@@ -107,10 +107,13 @@ export default function AnalysisResultPage() {
         setMeasureStartTimes(timings.measureStartTimes);
 
         const sIdx = Math.max(0, startBar - 1);
-        const eIdx = Math.min(timings.measureStartTimes.length - 1, endBar);
 
         const offsetSec = timings.measureStartTimes[sIdx] ?? 0;
-        const endSec = timings.measureStartTimes[eIdx] ?? timings.totalDuration;
+
+        const endSec =
+          endBar >= timings.measureStartTimes.length
+            ? timings.totalDuration
+            : (timings.measureStartTimes[endBar] ?? timings.totalDuration);
 
         setSectionStartOffsetSec(offsetSec);
         playbackTimeRef.current = offsetSec;
