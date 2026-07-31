@@ -18,7 +18,7 @@ export async function exchangeToken(code: string): Promise<AuthResult> {
   return data.data;
 }
 
-// accessToken -> refreshToken 재발급
+// refreshToken -> accessToken 재발급
 export async function reissueToken(refreshToken: string): Promise<ReissueResponse> {
   const body: ReissueRequest = { refreshToken };
 
