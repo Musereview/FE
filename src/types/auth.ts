@@ -25,6 +25,11 @@ export interface ReissueRequest {
   refreshToken: string;
 }
 
+// 로그아웃 요청 (refreshToken을 서버에서 만료 처리)
+export interface LogoutRequest {
+  refreshToken: string;
+}
+
 export type ReissueResponse = TokenInfo;
 
 export type OAuthErrorCode =

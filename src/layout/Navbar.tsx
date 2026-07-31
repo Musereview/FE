@@ -12,6 +12,8 @@ import MoreIcon from '@/assets/layout/more.svg?react';
 import type { NotiItem } from '@/types/notification';
 import WithdrawModal from '@/components/common/WithdrawModal';
 import { useClickOutside } from '@/hooks/useClickOutside';
+import { clearTokens, getRefreshToken } from '@/utils/authStorage';
+import { logout } from '@/apis/auth';
 
 interface NavItem {
   Icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
@@ -56,9 +58,18 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isMoreOpen]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
+  const handleLogout = async () => {
     setIsMoreOpen(false);
+
+    const refreshToken = getRefreshToken();
+
+    try {
+      if (refreshToken) await logout(refreshToken);
+    } catch {
+      // 서버 로그아웃에 실패해도 로컬 토큰 반드시 정리
+    }
+
+    clearTokens();
     navigate('/login');
   };
 
@@ -71,7 +82,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
     setIsWithdrawOpen(false);
     // 회원탈퇴 API
     // 탈퇴 완료 후: 토큰 제거 + 로그인 페이지 이동
-    localStorage.removeItem('accessToken');
+    clearTokens();
     navigate('/login');
   };
 
