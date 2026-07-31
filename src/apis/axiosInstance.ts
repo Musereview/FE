@@ -7,6 +7,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const axiosInstance = axios.create({
   baseURL: BASE_URL,
+  timeout: 10000,
   headers: {
     'content-type': 'application/json',
   },
@@ -38,6 +39,7 @@ async function reissue() {
 
   const body: ReissueRequest = { refreshToken };
   const { data } = await axios.post<ApiResponse<ReissueResponse>>(`${BASE_URL}/api/auth/reissue`, body, {
+    timeout: 10000,
     headers: { 'content-type': 'application/json' },
   });
 
