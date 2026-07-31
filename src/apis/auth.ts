@@ -2,7 +2,7 @@ import type { AuthResult, ExchangeCodeRequest, ReissueRequest, ReissueResponse, 
 import { axiosInstance } from './axiosInstance';
 import type { ApiResponse } from '@/types/api';
 
-const OAUTH_CALLBACK_PATH = '/auth/callback';
+const OAUTH_CALLBACK_PATH = '/oauth/callback';
 
 // 소셜 로그인 시작 URL
 export function getSocialLoginUrl(SocialType: SocialType): string {

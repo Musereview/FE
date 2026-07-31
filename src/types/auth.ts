@@ -26,3 +26,6 @@ export interface ReissueRequest {
 }
 
 export type ReissueResponse = TokenInfo;
+
+export type OAuthErrorCode =
+  'access_denied' | 'invalid_state' | 'invalid_auth_request' | 'oauth_failed' | 'authentication_failed';
