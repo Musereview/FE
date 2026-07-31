@@ -1,4 +1,4 @@
-export type SocialTyle = 'KAKAO' | 'GOOGLE';
+export type SocialType = 'KAKAO' | 'GOOGLE';
 
 export interface SocialLoginRequest {
   accessToken: string;
