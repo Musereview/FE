@@ -1,3 +1,4 @@
+import { getAccessToken } from '@/utils/authStorage';
 import axios from 'axios';
 
 export const axiosInstance = axios.create({
@@ -9,22 +10,13 @@ export const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    const accessToken = localStorage.getItem('accessToken');
+    const accessToken = getAccessToken();
 
     if (accessToken) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
-
     return config;
   },
   (error) => Promise.reject(error),
 );
-
-export function setAuthorizationHeader(accessToken: string) {
-  axiosInstance.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
-}
-
-export function clearAuthorizationHeader() {
-  delete axiosInstance.defaults.headers.common.Authorization;
-}
