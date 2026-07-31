@@ -24,3 +24,8 @@ export async function logout(refreshToken: string): Promise<void> {
 
   await axiosInstance.post<ApiResponse<null>>('/api/auth/logout', body);
 }
+
+// 회원 탈퇴
+export async function withdraw(): Promise<void> {
+  await axiosInstance.post<ApiResponse<null>>('/api/auth/withdraw');
+}
