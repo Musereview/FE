@@ -1,4 +1,4 @@
-import type { AuthResult, ExchangeCodeRequest, ReissueRequest, ReissueResponse, SocialType } from '@/types/auth';
+import type { AuthResult, ExchangeCodeRequest, SocialType } from '@/types/auth';
 import { axiosInstance } from './axiosInstance';
 import type { ApiResponse } from '@/types/api';
 
@@ -15,13 +15,5 @@ export async function exchangeToken(code: string): Promise<AuthResult> {
   const body: ExchangeCodeRequest = { code };
 
   const { data } = await axiosInstance.post<ApiResponse<AuthResult>>('/api/auth/token/exchange', body);
-  return data.data;
-}
-
-// refreshToken -> accessToken 재발급
-export async function reissueToken(refreshToken: string): Promise<ReissueResponse> {
-  const body: ReissueRequest = { refreshToken };
-
-  const { data } = await axiosInstance.post<ApiResponse<ReissueResponse>>('/api/auth/reissue', body);
   return data.data;
 }
