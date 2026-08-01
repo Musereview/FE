@@ -25,7 +25,13 @@ const LEVELS: {
     subtitle: '코드 반주 가능',
     desc: '기본 코드 진행을 이해합니다.',
   },
-  { key: 'ADVANCED', Icon: MajorIcon, title: '전공', subtitle: '텐션/모드 정복', desc: '고급 화성학 이론을 활용합니다.' },
+  {
+    key: 'ADVANCED',
+    Icon: MajorIcon,
+    title: '전공',
+    subtitle: '텐션/모드 정복',
+    desc: '고급 화성학 이론을 활용합니다.',
+  },
 ];
 
 const NEXT_PATH = '/onboarding/student/plan';
@@ -48,8 +54,8 @@ function StudentProfileSetupPage() {
         onSuccess: () => navigate(NEXT_PATH),
         onError: (error) => {
           if (!isAxiosError<{ code?: string }>(error) || error.response?.status !== 409) return;
-          // 이미 등록된 사용자(PROFILE_409_02)는 다음 단계로, 닉네임 중복(PROFILE_409_01)은 재입력 유도
-          if (error.response.data?.code === 'PROFILE_409_02') {
+          // 이미 등록된 사용자(USER_409_02)는 다음 단계로, 닉네임 중복(USER_409_01)은 재입력 유도
+          if (error.response.data?.code === 'USER_409_02') {
             navigate(NEXT_PATH);
           } else {
             markDuplicate();

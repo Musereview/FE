@@ -54,8 +54,8 @@ function ProfileEditForm({ profile }: { profile: Profile }) {
       {
         onSuccess: () => navigate('/profile'),
         onError: (error) => {
-          // 중복확인을 통과했어도 최종 저장 시 다른 사용자가 선점하면 409
-          if (isAxiosError(error) && error.response?.status === 409) {
+          // 중복 확인을 통과했어도 최종 저장 시 다른 사용자가 선점하면 409 USER_409_01
+          if (isAxiosError<{ code?: string }>(error) && error.response?.data?.code === 'USER_409_01') {
             markDuplicate();
             return;
           }
