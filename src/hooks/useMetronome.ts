@@ -19,7 +19,7 @@ export function useMetronome() {
     };
   }, []);
   const start = useCallback(
-    (bpm: number, beatsPerBar: number, onBeat: (time: number, beatInBar: number) => void) =>
+    (bpm: number, beatsPerBar: number, onBeat: (time: number, beatInBar: number) => boolean | void) =>
       getMetronome().start(bpm, beatsPerBar, onBeat),
     [getMetronome],
   );

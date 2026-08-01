@@ -153,10 +153,10 @@ function StepLearningPlayPage() {
       const pbeat = totalBeatRef.current; // 곡 시작 기준 현재 박(언랩)
       // 악보 한 바퀴(totalCells 박)를 모두 지나면 루프 대신 정지 (mock: 백킹트랙·악보 모두 8마디)
       if (pbeat >= totalCells) {
-        if (endedRef.current) return; // 중복 예약 방지
+        if (endedRef.current) return false; // 중복 예약 방지
         endedRef.current = true;
         Tone.getDraw().schedule(() => finishPlayback(), time); // 진행 위치 유지하고 정지만
-        return;
+        return false; // 마지막 박 클릭음 재생 방지
       }
       const beat = pbeat % totalCells;
       const measure = Math.floor(beat / beatsPerBar); // 백킹 루프와 같은 주기 — 악보 슬라이드가 백킹과 어긋나지 않게
