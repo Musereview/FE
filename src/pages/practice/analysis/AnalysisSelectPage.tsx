@@ -5,6 +5,9 @@ import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreVie
 import { useScoreCursorSync } from '@/hooks/music/useScoreCursorSync';
 import { computeMeasureTimings } from '@/utils/musicXmlTiming';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
+import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
+import { usePracticeResultStore } from '@/stores/practiceResultStore';
+import { ALL_TRACKS, RECOMMENDED_TRACKS } from '@/pages/practice/mockTracks';
 import LoadingPage from '@/pages/common/LoadingPage';
 import PlayIcon from '@/assets/practice/play.svg?react';
 
@@ -27,6 +30,8 @@ export default function AnalysisSelectPage() {
 
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const { recording, trackId } = usePracticeResultStore();
+
   // 언마운트 시 토스트 타이머 정리
   useEffect(() => {
     return () => {
@@ -34,26 +39,30 @@ export default function AnalysisSelectPage() {
     };
   }, []);
 
-  // 1) 전체 MusicXML은 최초 1회만 fetch
+  // 1) 연주 화면에서 저장된 recording을 MusicXML로 변환해 악보를 그린다 (하드코딩된 sample.xml 대체)
   useEffect(() => {
-    let cancelled = false;
-    fetch('/sample.xml')
-      .then((r) => r.text())
-      .then((text) => {
-        if (cancelled) return;
-        setXmlContent(text);
-        const timings = computeMeasureTimings(text);
-        setMeasureStartTimes(timings.measureStartTimes);
-        if (timings.measureStartTimes.length > 0) {
-          const measuresCount = timings.measureStartTimes.length;
-          setTotalMeasures(measuresCount);
-          setEndMeasure(`${measuresCount}마디`);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    const track =
+      [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((t) => t.id === (trackId ?? practiceId)) ?? RECOMMENDED_TRACKS[0];
+    const [beatsPerBar, beatType] = track.timeSignature.split('/').map(Number);
+
+    const text = buildMusicXmlFromRecording(recording, {
+      bpm: track.bpm,
+      beatsPerBar,
+      beatType,
+      key: track.key,
+      mode: track.mode,
+      title: track.title,
+    });
+
+    setXmlContent(text);
+    const timings = computeMeasureTimings(text);
+    setMeasureStartTimes(timings.measureStartTimes);
+    if (timings.measureStartTimes.length > 0) {
+      const measuresCount = timings.measureStartTimes.length;
+      setTotalMeasures(measuresCount);
+      setEndMeasure(`${measuresCount}마디`);
+    }
+  }, [recording, trackId, practiceId]);
 
   // 2) 오디오 엘리먼트 (페이지 진입 시 프리로드 적용으로 재생 딜레이 방지)
   useEffect(() => {
