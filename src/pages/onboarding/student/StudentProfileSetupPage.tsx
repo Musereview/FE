@@ -107,7 +107,7 @@ function StudentProfileSetupPage() {
                 type="button"
                 onClick={checkDuplicate}
                 disabled={!nickname || isPending}
-                className={`button-medium shrink-0 rounded px-4 py-2 ${
+                className={`button-medium shrink-0 cursor-pointer rounded px-4 py-2 disabled:cursor-not-allowed ${
                   nickname ? 'bg-primary-400 text-gray-950' : 'border-[0.5px] border-gray-300 text-gray-300'
                 }`}>
                 중복확인
@@ -127,7 +127,7 @@ function StudentProfileSetupPage() {
                     type="button"
                     onClick={() => setLevel(key)}
                     aria-pressed={selected}
-                    className={`flex size-[348px] flex-col items-center justify-center gap-10 rounded-md px-6 py-10 text-center drop-shadow-[0px_4px_2px_rgba(0,0,0,0.25)] transition-colors ${
+                    className={`flex size-[348px] cursor-pointer flex-col items-center justify-center gap-10 rounded-md px-6 py-10 text-center drop-shadow-[0px_4px_2px_rgba(0,0,0,0.25)] transition-colors ${
                       selected ? 'border-primary-400 border bg-gray-900' : 'border-[0.5px] border-gray-600 bg-gray-950'
                     }`}>
                     <Icon className="size-14 shrink-0 text-gray-400" />
@@ -150,7 +150,7 @@ function StudentProfileSetupPage() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="button-large1 flex h-[76px] w-[388px] items-center justify-center rounded-md border-[0.5px] border-gray-600 text-gray-300">
+            className="button-large1 flex h-[76px] w-[388px] cursor-pointer items-center justify-center rounded-md border-[0.5px] border-gray-600 text-gray-300">
             이전
           </button>
           {canSubmit && (
@@ -158,7 +158,7 @@ function StudentProfileSetupPage() {
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="button-large1 bg-primary-400 flex h-[76px] w-[388px] items-center justify-center rounded-md text-gray-950 disabled:opacity-50">
+              className="button-large1 bg-primary-400 flex h-[76px] w-[388px] cursor-pointer items-center justify-center rounded-md text-gray-950 disabled:cursor-not-allowed disabled:opacity-50">
               다음
             </button>
           )}
