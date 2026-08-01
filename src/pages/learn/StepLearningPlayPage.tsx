@@ -274,7 +274,9 @@ function StepLearningPlayPage() {
   return (
     <div className="flex h-full flex-col bg-gray-950">
       {/* 헤더 */}
-      <header className="flex h-[154px] w-full items-center justify-between bg-gray-900 px-[160px] py-[28px]">
+      <header className="relative flex h-[154px] w-full items-center justify-between bg-gray-900 px-[160px] py-[28px]">
+        {/* 카운트다운/START 중 배경 블러 + 클릭 차단 */}
+        {(countdown !== null || showStart) && <div className="absolute inset-0 z-20 bg-gray-900/60 backdrop-blur-md" />}
         {/* 재생 버튼(좌) + 제목/칩 컬럼 — 칩은 제목 아래(진행률 + BPM) */}
         <div className="flex w-[403px] items-start gap-4">
           <button
@@ -315,14 +317,15 @@ function StepLearningPlayPage() {
           </div>
         </div>
 
-        {/* 재생 전 카운트다운(4,3,2,1) → START (본문 기준 고정) */}
+        {/* 재생 전 카운트다운(4,3,2,1) → START: 배경 블러 + 숫자/문구 (본문 기준 고정) */}
+        {(countdown !== null || showStart) && <div className="absolute inset-0 z-20 bg-gray-950/60 backdrop-blur-md" />}
         {countdown !== null && (
-          <span className="display-large absolute top-[158px] left-1/2 -translate-x-1/2 text-center text-gray-700">
+          <span className="display-large absolute top-[158px] left-1/2 z-20 -translate-x-1/2 text-center text-gray-700">
             {countdown}
           </span>
         )}
         {showStart && (
-          <span className="display-large absolute top-[158px] left-1/2 -translate-x-1/2 text-center text-gray-700">
+          <span className="display-large absolute top-[158px] left-1/2 z-20 -translate-x-1/2 text-center text-gray-700">
             START
           </span>
         )}
