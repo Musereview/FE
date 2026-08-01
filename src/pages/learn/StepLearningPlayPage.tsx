@@ -67,6 +67,7 @@ function StepLearningPlayPage() {
   const recordingRef = useRef<PlayedNote[]>([]); // 연주 녹음 — 채점(다음 단계)에서 정답 음과 비교
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 진입 시 자동재생 예약
+  const finishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 곡 끝 → 점수 화면 이동 예약
   const scoreRef = useRef<LearningScoreHandle>(null); // 악보 판정·색칠 핸들
   const endedRef = useRef(false); // 곡 끝 정지 중복 예약 방지
   // 진입 자동재생(마운트 시점 클로저)이 stale bpm으로 시작하지 않도록 최신 bpm을 ref로 유지
@@ -110,8 +111,10 @@ function StepLearningPlayPage() {
   const cancelPendingStarts = () => {
     if (startTimerRef.current) clearTimeout(startTimerRef.current);
     if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+    if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
     startTimerRef.current = null;
     restartTimerRef.current = null;
+    finishTimerRef.current = null;
   };
 
   const stopPlayback = () => {
@@ -133,6 +136,7 @@ function StepLearningPlayPage() {
     Tone.getDraw().cancel();
     setIsPlaying(false);
     // beatInBar/currentBeat/measureIndex/색칠 모두 유지 (끝 지점 상태 그대로)
+    finishTimerRef.current = setTimeout(() => goToScore(), 2000); // 1초 후 채점 결과 화면으로 이동
   };
 
   const startPlayback = async () => {
@@ -188,11 +192,10 @@ function StepLearningPlayPage() {
     restartTimerRef.current = setTimeout(() => startPlayback(), 80); // 연속 stop→start 글리치 방지
   };
 
-  // 분석하기: 지금까지의 판정을 집계해 점수 스토어에 담고 점수 화면으로 이동
-  const handleAnalyze = () => {
+  // 지금까지의 판정을 집계해 점수 스토어에 담고 점수 화면으로 이동
+  const goToScore = () => {
     const result = scoreRef.current?.getScore();
     if (result) setScore(result);
-    stopPlayback();
     navigate(`/learn/curriculum/${curriculumId}/score`);
   };
 
@@ -260,12 +263,6 @@ function StepLearningPlayPage() {
             className="button-large2 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
             재시작
             <RefreshIcon className="h-6 w-6" />
-          </button>
-          <button
-            type="button"
-            onClick={handleAnalyze}
-            className="button-large2 bg-primary-400 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] px-3 py-[6px] text-gray-950">
-            분석하기
           </button>
         </div>
       </header>
