@@ -54,6 +54,7 @@ function PracticePlayPage() {
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 진입 시 자동재생 예약
   const pauseStartRef = useRef(performance.now()); // 정지 시각 (노트바 얼림 기준 + 재개 시 보정)
   const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
+  const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
 
   // 친 음: 소리 재생 + 노트바 생성(성장 시작) → 뗄 때 소리·길이 확정 후 위로 사라짐
   const handleNoteOn = (note: number, velocity = 100) => {
@@ -135,6 +136,7 @@ function PracticePlayPage() {
     setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
     countdownEndedRef.current = false;
     await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능)
+    if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
     let cbeat = 0;
     start(track.bpm, beatsPerBar, (time, bib) => {
       if (cbeat >= COUNTDOWN_BEATS) {
@@ -164,6 +166,7 @@ function PracticePlayPage() {
     setShowStart(false); // 수동 재생/자동재생 모두 START 숨김
     setCountdown(null);
     await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능)
+    if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
     totalBeatRef.current = 0;
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
     setIsPlaying(true);
@@ -242,8 +245,12 @@ function PracticePlayPage() {
 
   // 진입 시 카운트다운(4,3,2,1) → START 1초 표시 → 자동 재생
   useEffect(() => {
+    isMountedRef.current = true;
     runCountdown();
-    return () => cancelAutoStart();
+    return () => {
+      isMountedRef.current = false;
+      cancelAutoStart();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

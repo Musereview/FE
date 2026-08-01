@@ -73,6 +73,7 @@ function StepLearningPlayPage() {
   const scoreRef = useRef<LearningScoreHandle>(null); // 악보 판정·색칠 핸들
   const endedRef = useRef(false); // 곡 끝 정지 중복 예약 방지
   const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
+  const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
   // 진입 자동재생(마운트 시점 클로저)이 stale bpm으로 시작하지 않도록 최신 bpm을 ref로 유지
   const bpmRef = useRef(bpm);
   useEffect(() => {
@@ -151,6 +152,7 @@ function StepLearningPlayPage() {
     setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
     countdownEndedRef.current = false;
     await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
+    if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
     let cbeat = 0;
     start(bpmRef.current, beatsPerBar, (time, bib) => {
       if (cbeat >= COUNTDOWN_BEATS) {
@@ -252,8 +254,12 @@ function StepLearningPlayPage() {
 
   // 진입 시 카운트다운(4,3,2,1) → START 1초 표시 → 자동 재생
   useEffect(() => {
+    isMountedRef.current = true;
     runCountdown();
-    return () => cancelPendingStarts();
+    return () => {
+      isMountedRef.current = false;
+      cancelPendingStarts();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
