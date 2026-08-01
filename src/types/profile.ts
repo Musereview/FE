@@ -1,6 +1,8 @@
-// 닉네임 중복확인 응답 타입
+// GET /api/users/verify-nickname 응답 data
 export interface CheckNicknameResponse {
-  available: boolean;
+  nickname: string; // 검증한 닉네임
+  available: boolean; // 사용 가능 여부
+  message: string; // 화면에 바로 표시할 안내 문구
 }
 
 // 화성학 숙련도

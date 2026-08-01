@@ -9,11 +9,10 @@ import type {
   UpdateProfileResponse,
 } from '@/types/profile';
 
-// TODO: 백엔드 스펙 확정 시 이 경로만 수정
-const CHECK_NICKNAME_ENDPOINT = '/members/nickname/check';
+const CHECK_NICKNAME_ENDPOINT = '/api/users/verify-nickname';
 const PROFILE_ENDPOINT = '/api/users/me/profile';
 
-// 닉네임 중복 여부를 조회한다.
+// 닉네임 중복/형식 검증
 export async function checkNicknameDuplicate(nickname: string): Promise<CheckNicknameResponse> {
   const { data } = await axiosInstance.get<ApiResponse<CheckNicknameResponse>>(CHECK_NICKNAME_ENDPOINT, {
     params: { nickname },
