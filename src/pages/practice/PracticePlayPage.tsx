@@ -24,6 +24,7 @@ import SettingsIcon from '@/assets/setting.svg?react';
 import DeviceDisconnectedModal from '@/components/common/DeviceDisconnectedModal';
 
 const PX_PER_BEAT = 120; // 노트바 길이 환산: 1박 = 120px
+const COUNTDOWN_BEATS = 4; // 재생 전 카운트다운 박 수 (4,3,2,1)
 
 function PracticePlayPage() {
   const navigate = useNavigate();
@@ -42,7 +43,8 @@ function PracticePlayPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [beatInBar, setBeatInBar] = useState(-1); // 진행점 (마디 내 0-based)
   const [currentBeat, setCurrentBeat] = useState(-1); // 백킹트랙 전체 진행 박
-  const [showStart, setShowStart] = useState(true); // 진입 시 START 안내 (1초)
+  const [showStart, setShowStart] = useState(false); // 카운트다운 후 START 안내 (1초)
+  const [countdown, setCountdown] = useState<number | null>(null); // 재생 전 카운트다운(4→1), null이면 비표시
   const [noteBars, setNoteBars] = useState<LiveNoteBar[]>([]); // 연습 노트바 (가변 길이)
   const totalBeatRef = useRef(0);
   const barIdRef = useRef(0);
@@ -51,6 +53,7 @@ function PracticePlayPage() {
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 진입 시 자동재생 예약
   const pauseStartRef = useRef(performance.now()); // 정지 시각 (노트바 얼림 기준 + 재개 시 보정)
+  const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
 
   // 친 음: 소리 재생 + 노트바 생성(성장 시작) → 뗄 때 소리·길이 확정 후 위로 사라짐
   const handleNoteOn = (note: number, velocity = 100) => {
@@ -121,11 +124,45 @@ function PracticePlayPage() {
     setIsPlaying(false);
     setBeatInBar(-1);
     setCurrentBeat(-1);
+    setShowStart(false);
+    setCountdown(null); // 카운트다운 도중 정지 시 화면에 숫자가 멈춰 남지 않도록
+  };
+
+  // 카운트다운(4,3,2,1): 메트로놈 박에 맞춰 숫자를 표시하고, 끝나면 START 안내 후 실제 재생 시작
+  const runCountdown = async () => {
+    cancelAutoStart(); // 대기 중인 자동재생 취소 (중복 시작 방지)
+    setShowStart(false);
+    setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
+    countdownEndedRef.current = false;
+    await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능)
+    let cbeat = 0;
+    start(track.bpm, beatsPerBar, (time, bib) => {
+      if (cbeat >= COUNTDOWN_BEATS) {
+        if (countdownEndedRef.current) return false; // 중복 예약 방지
+        countdownEndedRef.current = true;
+        Tone.getDraw().schedule(() => {
+          stop();
+          Tone.getDraw().cancel();
+          setBeatInBar(-1);
+          setCountdown(null);
+          setShowStart(true);
+          startTimerRef.current = setTimeout(() => startPlayback(), 1000); // START 1초 표시 후 실제 재생
+        }, time);
+        return false; // 카운트다운 종료 틱은 클릭 재생 안 함
+      }
+      const current = cbeat;
+      Tone.getDraw().schedule(() => {
+        setBeatInBar(bib);
+        setCountdown(COUNTDOWN_BEATS - current);
+      }, time);
+      cbeat += 1;
+    });
   };
 
   const startPlayback = async () => {
     cancelAutoStart(); // 대기 중인 자동재생 취소 (중복 시작 방지)
     setShowStart(false); // 수동 재생/자동재생 모두 START 숨김
+    setCountdown(null);
     await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능)
     totalBeatRef.current = 0;
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
@@ -176,7 +213,7 @@ function PracticePlayPage() {
     heldRef.current.clear();
     // transport 정지가 반영된 뒤 재시작 (연속 stop→start 글리치 방지)
     if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-    restartTimerRef.current = setTimeout(() => startPlayback(), 80);
+    restartTimerRef.current = setTimeout(() => runCountdown(), 80);
   };
 
   // 분석: 녹음 + 레이턴시 보정값을 스토어에 저장하고 분석 화면으로 이동
@@ -203,9 +240,9 @@ function PracticePlayPage() {
     };
   }, [stop]);
 
-  // 진입 시 START 1초 표시 후 자동 재생 (startPlayback이 START 숨김·중복 취소 처리)
+  // 진입 시 카운트다운(4,3,2,1) → START 1초 표시 → 자동 재생
   useEffect(() => {
-    startTimerRef.current = setTimeout(() => startPlayback(), 1000);
+    runCountdown();
     return () => cancelAutoStart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -271,7 +308,12 @@ function PracticePlayPage() {
           </div>
         </div>
 
-        {/* 진입 시 START (본문 기준 고정) */}
+        {/* 재생 전 카운트다운(4,3,2,1) → START (본문 기준 고정) */}
+        {countdown !== null && (
+          <span className="display-large absolute top-[158px] left-1/2 -translate-x-1/2 text-center text-gray-700">
+            {countdown}
+          </span>
+        )}
         {showStart && (
           <span className="display-large absolute top-[158px] left-1/2 -translate-x-1/2 text-center text-gray-700">
             START
