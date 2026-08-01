@@ -194,7 +194,16 @@ export const router = createBrowserRouter([
           },
           {
             path: ':historyId',
-            element: <HistoryDetailPage />,
+            children: [
+              {
+                index: true,
+                element: <HistoryDetailPage />,
+              },
+              {
+                path: 'analysis/result',
+                element: <AnalysisResultPage />,
+              },
+            ],
           },
         ],
       },
