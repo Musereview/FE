@@ -76,6 +76,8 @@ const DURATION_STEPS: { ticks: number; type: string; dot: boolean }[] = [
   { ticks: 1, type: '16th', dot: false },
 ];
 
+const escapeXml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 function midiToPitch(midi: number) {
   const pc = ((midi % 12) + 12) % 12;
   const octave = Math.floor(midi / 12) - 1;
@@ -245,7 +247,7 @@ export function buildMusicXmlFromRecording(recording: PlayedNote[], options: Bui
     '<?xml version="1.0" encoding="UTF-8"?>' +
     '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">' +
     '<score-partwise version="3.1">' +
-    `<work><work-title>${title}</work-title></work>` +
+    `<work><work-title>${escapeXml(title)}</work-title></work>` +
     '<part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>' +
     `<part id="P1">${measuresXml}</part>` +
     '</score-partwise>'
