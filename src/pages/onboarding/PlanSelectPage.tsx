@@ -22,7 +22,7 @@ const PLANS: Plan[] = [
     name: 'Standard',
     price: '00,000₩',
     tagline: '꾸준한 성장을 위한 플랜',
-    features: ['일일 10회 연주 분석', '분석 결과당 AI 책봇 질문 3회'],
+    features: ['일일 10회 연주 분석', '분석 결과당 AI 챗봇 질문 3회'],
   },
   {
     name: 'Pro',
