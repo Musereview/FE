@@ -23,12 +23,27 @@ export interface HistoryListData {
 export type HistoryListResponse = ApiResponse<HistoryListData>;
 
 // 히스토리 상세보기 조회
+export type MidiEventType = 'NOTE_ON' | 'NOTE_OFF';
+
 export interface MidiEventsData {
   sequence: number;
-  type: string;
+  type: MidiEventType;
   pitch: number;
   velocity: number;
   timestampMs: number;
+}
+
+export type AnalysisStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+export interface HistoryAnalysisItem {
+  analysisId: number;
+  startBar: number;
+  endBar: number;
+  title: string;
+  oneLineSummary: string;
+  status: AnalysisStatus;
+  estimatedSeconds: number | null;
+  createdAt: string;
 }
 
 export interface HistoryDetailData {
@@ -42,6 +57,9 @@ export interface HistoryDetailData {
   durationMinutes: number;
   durationSec: number;
   midiEvents: MidiEventsData[];
+  backingTrackMidiData: Record<string, unknown>;
+  totalBars: number | null;
+  analyses: HistoryAnalysisItem[];
 }
 
 export type HistoryDetailResponse = ApiResponse<HistoryDetailData>;
