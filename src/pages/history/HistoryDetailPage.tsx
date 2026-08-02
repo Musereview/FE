@@ -10,6 +10,7 @@ import {
   extractActiveTempoMeterAtMeasure,
 } from '@/utils/musicXmlTiming';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
+import { isValidHistoryId } from '@/utils/historyId';
 import { useMetronome } from '@/hooks/useMetronome';
 import { useHistoryDetail } from '@/hooks/useHistory';
 import LoadingPage from '@/pages/common/LoadingPage';
@@ -24,10 +25,10 @@ export default function HistoryDetailPage() {
   const navigate = useNavigate();
   const { historyId } = useParams<{ historyId: string }>();
   const parsedHistoryId = Number(historyId);
-  const isValidHistoryId = Number.isSafeInteger(parsedHistoryId) && parsedHistoryId >= 1;
+  const isValidId = isValidHistoryId(parsedHistoryId);
 
   // 히스토리 상세보기 조회
-  const { data: historyData, isPending, isError, error } = useHistoryDetail(isValidHistoryId ? parsedHistoryId : 0);
+  const { data: historyData, isPending, isError, error } = useHistoryDetail(isValidId ? parsedHistoryId : 0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isScoreReady, setIsScoreReady] = useState(false);
@@ -236,7 +237,7 @@ export default function HistoryDetailPage() {
   };
 
   // 잘못된 id는 조회를 시도 X -> 로딩보다 먼저 처리
-  if (!isValidHistoryId) {
+  if (!isValidId) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center text-gray-500">
         연주 히스토리가 없습니다.

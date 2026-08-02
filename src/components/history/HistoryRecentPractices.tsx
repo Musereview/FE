@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import ClickableCard from '@/components/common/ClickableCard';
+import { isValidHistoryId } from '@/utils/historyId';
 import type { HistoryListItem } from '@/types/history';
 
 interface HistoryRecentPracticesProps {
@@ -17,6 +18,7 @@ export default function HistoryRecentPractices({ data = [] }: HistoryRecentPract
           item.scoreChange === null || item.scoreChange === 0 ? 'neutral' : item.scoreChange > 0 ? 'up' : 'down';
 
         const handleClick = () => {
+          if (!isValidHistoryId(item.playingId)) return;
           navigate(`/history/${item.playingId}`);
         };
 
