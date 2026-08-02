@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import * as Tone from 'tone';
 
 import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
@@ -23,9 +24,10 @@ export default function HistoryDetailPage() {
   const navigate = useNavigate();
   const { historyId } = useParams<{ historyId: string }>();
   const parsedHistoryId = Number(historyId);
+  const isValidHistoryId = Number.isSafeInteger(parsedHistoryId) && parsedHistoryId >= 1;
 
   // 히스토리 상세보기 조회
-  const { data: historyData, isPending, isError } = useHistoryDetail(parsedHistoryId);
+  const { data: historyData, isPending, isError, error } = useHistoryDetail(isValidHistoryId ? parsedHistoryId : 0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isScoreReady, setIsScoreReady] = useState(false);
@@ -233,14 +235,24 @@ export default function HistoryDetailPage() {
     }, 2000);
   };
 
+  // 잘못된 id는 조회를 시도 X -> 로딩보다 먼저 처리
+  if (!isValidHistoryId) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center text-gray-500">
+        연주 히스토리가 없습니다.
+      </div>
+    );
+  }
+
   if (isPending) {
-    return <LoadingPage />;
+    return null;
   }
 
   if (isError) {
+    const isNotFound = isAxiosError(error) && error.response?.status === 404;
     return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-gray-950 text-gray-500">
-        연주 기록을 불러오지 못했습니다.
+      <div className="flex min-h-screen w-full items-center justify-center text-gray-500">
+        {isNotFound ? '연주 히스토리가 없습니다.' : '연주 히스토리를 불러오지 못했습니다.'}
       </div>
     );
   }

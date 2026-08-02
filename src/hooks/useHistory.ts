@@ -1,5 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 import { historyDetail, historyList, historyStatistics } from '@/apis/history';
+
+function retryExceptClientError(failureCount: number, error: Error) {
+  const status = isAxiosError(error) ? error.response?.status : undefined;
+  if (status && status >= 400 && status < 500) return false;
+  return failureCount < 3;
+}
 
 export const HISTORY_LIST_QUERY_KEY = ['history', 'list'] as const;
 export const HISTORY_STATISTICS_QUERY_KEY = ['history', 'statistics'] as const;
@@ -19,6 +26,7 @@ export function useHistoryDetail(playingId: number) {
     queryKey: historyDetailQueryKey(playingId),
     queryFn: () => historyDetail(playingId),
     enabled: playingId >= 1,
+    retry: retryExceptClientError,
   });
 }
 
