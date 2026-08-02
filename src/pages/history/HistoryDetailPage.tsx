@@ -46,7 +46,9 @@ export default function HistoryDetailPage() {
   const [currentMeasureIndex, setCurrentMeasureIndex] = useState(0);
   const [beatInBar, setBeatInBar] = useState(-1);
   const [beatsPerBar, setBeatsPerBar] = useState(4);
-  const [bpm, setBpm] = useState(120);
+
+  const [xmlBpm, setXmlBpm] = useState(0);
+  const bpm = historyData?.bpm || xmlBpm || 120;
 
   const scoreViewerRef = useRef<ScoreViewerHandle>(null);
   const playbackTimeRef = useRef(0);
@@ -92,7 +94,7 @@ export default function HistoryDetailPage() {
         setCurrentMeasureIndex(sIdx);
 
         const { bpm: activeBpm, beats } = extractActiveTempoMeterAtMeasure(text, 1);
-        setBpm(historyData?.bpm || activeBpm);
+        setXmlBpm(activeBpm);
         setBeatsPerBar(beats);
       } catch (e) {
         console.error('MusicXML 분석 실패:', e);
@@ -103,7 +105,7 @@ export default function HistoryDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [historyData?.bpm]);
+  }, []);
 
   useEffect(() => {
     if (isPlaying) {
