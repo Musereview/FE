@@ -47,7 +47,7 @@ function LoginPage() {
           <button
             type="button"
             onClick={() => handleSocialLogin('KAKAO')}
-            className="heading-small-m flex w-full items-center justify-center gap-3 rounded-full bg-[#ffe812] px-6 py-3 text-gray-950">
+            className="heading-small-m flex w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-[#ffe812] px-6 py-3 text-gray-950">
             <span className="flex size-[52px] items-center justify-center">
               <KakaoIcon className="size-7" />
             </span>
@@ -58,7 +58,7 @@ function LoginPage() {
           <button
             type="button"
             onClick={() => handleSocialLogin('GOOGLE')}
-            className="heading-small-m flex w-full items-center justify-center gap-3 rounded-full bg-white px-6 py-3 text-gray-950">
+            className="heading-small-m flex w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-white px-6 py-3 text-gray-950">
             <span className="flex size-[52px] items-center justify-center">
               <GoogleIcon className="size-8" />
             </span>
