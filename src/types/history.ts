@@ -63,3 +63,41 @@ export interface HistoryDetailData {
 }
 
 export type HistoryDetailResponse = ApiResponse<HistoryDetailData>;
+
+// 히스토리 통계 조회 (이번주 요약 / 영역별 성장 / 최근 4주 추이)
+export interface WeeklySummary {
+  accuracy: number;
+  practiceMinutes: number;
+  completedSessionCount: number;
+  accuracyDiff: number;
+  practiceMinutesDiff: number;
+  completedSessionCountDiff: number;
+}
+
+export type GrowthDomain = 'SCALE' | 'TENSION' | 'PROGRESSION' | 'VOICE_LEADING';
+
+export interface DomainGrowthItem {
+  domain: GrowthDomain;
+  label: string;
+  currentScore: number;
+  previousScore: number;
+  diff: number;
+}
+
+export interface WeeklyTrendItem {
+  label: string;
+  averageScore: number;
+}
+
+export interface WeeklyTrendData {
+  diffFromPreviousWeek: number;
+  items: WeeklyTrendItem[];
+}
+
+export interface HistoryStatisticsData {
+  weeklySummary: WeeklySummary;
+  domainGrowth: DomainGrowthItem[];
+  weeklyTrend: WeeklyTrendData;
+}
+
+export type HistoryStatisticsResponse = ApiResponse<HistoryStatisticsData>;
