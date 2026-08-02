@@ -2,10 +2,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Track, KeyMode } from '@/types/track';
-import { RECOMMENDED_TRACKS, GENRES } from './mockTracks';
-import { mapListItemToTrack, mapDetailToTrack } from './trackDisplay';
+import { GENRES } from './mockTracks';
+import { mapListItemToTrack, mapDetailToTrack, mapRecommendedItemToTrack } from './trackDisplay';
 import { useBackingTracks } from '@/hooks/useBackingTracks';
 import { useBackingTrackDetail } from '@/hooks/useBackingTrackDetail';
+import { useRecommendedBackingTracks } from '@/hooks/useRecommendedBackingTracks';
 import TrackCard from '@/components/practice/TrackCard';
 import RecommendedTrackCarousel from '@/components/practice/RecommendedTrackCarousel';
 import SelectDropdown from '@/components/practice/SelectDropdown';
@@ -49,13 +50,11 @@ function PracticePage() {
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useBackingTracks();
+  const { data: recommendedData } = useRecommendedBackingTracks();
 
-  const recommendedTrack = selectedTrackId
-    ? RECOMMENDED_TRACKS.find((track) => track.id === selectedTrackId)
-    : undefined;
-  const listTrackDetailId = selectedTrackId && !recommendedTrack ? Number(selectedTrackId) : null;
-  const { data: trackDetail } = useBackingTrackDetail(listTrackDetailId);
-  const selectedTrack: Track | null = recommendedTrack ?? (trackDetail ? mapDetailToTrack(trackDetail) : null);
+  const detailId = selectedTrackId ? Number(selectedTrackId) : null;
+  const { data: trackDetail } = useBackingTrackDetail(detailId);
+  const selectedTrack: Track | null = trackDetail ? mapDetailToTrack(trackDetail) : null;
 
   useEffect(() => {
     const reopenTrackId = (location.state as { reopenTrackId?: string } | null)?.reopenTrackId;
@@ -68,6 +67,7 @@ function PracticePage() {
   useClickOutside(filterRowRef, () => setOpenFilter(null));
 
   const tracks = useMemo(() => data?.pages.flatMap((page) => page.tracks.map(mapListItemToTrack)) ?? [], [data]);
+  const recommendedTracks = useMemo(() => recommendedData?.map(mapRecommendedItemToTrack) ?? [], [recommendedData]);
 
   const filteredTracks = useMemo(() => {
     const filtered = tracks.filter((track) => {
@@ -144,7 +144,7 @@ function PracticePage() {
     <div className="mx-auto flex w-full max-w-[1128px] flex-col px-6">
       <section className="border-b border-gray-700 py-[76px]">
         <h2 className="body-medium text-primary-300 mb-5">김뮤즈 님을 위한 추천 트랙</h2>
-        <RecommendedTrackCarousel tracks={RECOMMENDED_TRACKS} onSelectTrack={handleSelectTrack} />
+        <RecommendedTrackCarousel tracks={recommendedTracks} onSelectTrack={handleSelectTrack} />
       </section>
 
       <section className="flex flex-col gap-9 py-[76px]">

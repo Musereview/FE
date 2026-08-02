@@ -46,6 +46,11 @@ export interface BackingTrackListResponse {
   hasNext: boolean;
 }
 
+// GET /api/backing-tracks/recommended 응답 data
+export interface RecommendedBackingTracksResponse {
+  recommendedTracks: RecommendedBackingTrackItem[];
+}
+
 // GET /api/backing-tracks/recommended 응답 항목
 export interface RecommendedBackingTrackItem {
   backingTrackId: number;

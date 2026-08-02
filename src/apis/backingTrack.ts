@@ -1,6 +1,11 @@
 import { axiosInstance } from './axiosInstance';
 import type { ApiResponse } from '@/types/api';
-import type { BackingTrackDetail, BackingTrackListResponse, RecommendedBackingTrackItem } from '@/types/track';
+import type {
+  BackingTrackDetail,
+  BackingTrackListResponse,
+  RecommendedBackingTrackItem,
+  RecommendedBackingTracksResponse,
+} from '@/types/track';
 
 const BACKING_TRACKS_ENDPOINT = '/api/backing-tracks';
 const RECOMMENDED_BACKING_TRACKS_ENDPOINT = '/api/backing-tracks/recommended';
@@ -23,8 +28,8 @@ export async function getBackingTrackDetail(backingTrackId: number): Promise<Bac
 
 // 추천 백킹트랙 목록 조회 (최근 1주일 분석 완료, 재생수 TOP3) — GET /api/backing-tracks/recommended
 export async function getRecommendedBackingTracks(): Promise<RecommendedBackingTrackItem[]> {
-  const { data } = await axiosInstance.get<ApiResponse<RecommendedBackingTrackItem[]>>(
+  const { data } = await axiosInstance.get<ApiResponse<RecommendedBackingTracksResponse>>(
     RECOMMENDED_BACKING_TRACKS_ENDPOINT,
   );
-  return data.data;
+  return data.data.recommendedTracks;
 }
