@@ -17,6 +17,7 @@ export function useHistoryList() {
   return useQuery({
     queryKey: HISTORY_LIST_QUERY_KEY,
     queryFn: () => historyList(),
+    retry: retryExceptClientError,
   });
 }
 
@@ -35,5 +36,6 @@ export function useHistoryStatistics() {
   return useQuery({
     queryKey: HISTORY_STATISTICS_QUERY_KEY,
     queryFn: () => historyStatistics(),
+    retry: retryExceptClientError,
   });
 }
