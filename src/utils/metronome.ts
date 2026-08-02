@@ -8,7 +8,7 @@ export function createMetronome() {
   const loBuffer = new Tone.ToneAudioBuffer('/sounds/click2.mp3');
 
   return {
-    start(bpm: number, beatsPerBar: number, onBeat: (time: number, beatInBar: number) => void) {
+    start(bpm: number, beatsPerBar: number, onBeat: (time: number, beatInBar: number) => boolean | void) {
       transport.stop();
       transport.cancel();
 
@@ -16,15 +16,18 @@ export function createMetronome() {
       transport.bpm.value = bpm;
       transport.scheduleRepeat((time) => {
         const beatInBar = beat % beatsPerBar;
-        const buffer = beatInBar === 0 ? hiBuffer : loBuffer;
+        // onBeat이 false를 반환하면(곡이 끝난 박) 클릭 소리를 재생하지 않음
+        const shouldClick = onBeat(time, beatInBar) !== false;
 
-        if (buffer.loaded) {
-          // 매 박마다 새 Player 생성 → 겹침 없음, 재생 후 자동 정리
-          const player = new Tone.Player(buffer).toDestination();
-          player.start(time);
-          player.onstop = () => player.dispose();
+        if (shouldClick) {
+          const buffer = beatInBar === 0 ? hiBuffer : loBuffer;
+          if (buffer.loaded) {
+            // 매 박마다 새 Player 생성 → 겹침 없음, 재생 후 자동 정리
+            const player = new Tone.Player(buffer).toDestination();
+            player.start(time);
+            player.onstop = () => player.dispose();
+          }
         }
-        onBeat(time, beatInBar);
         beat += 1;
       }, '4n');
       transport.start();
