@@ -41,44 +41,22 @@ export default function RecentPractices({ data }: RecentPracticesProps) {
             <div
               key={item.practiceId}
               onClick={() => navigate(`/practice/${item.practiceId}`)}
-              className="cursor-pointer text-white transition-colors select-none hover:opacity-90"
-              style={{
-                display: 'flex',
-                width: '100%',
-                height: '86px',
-                padding: '12px 24px',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                alignSelf: 'stretch',
-                borderRadius: '4px',
-                background: '#1B1E27',
-                borderTop: '0.3px solid rgba(255, 255, 255, 0.05)',
-                borderBottom: '0.3px solid rgba(255, 255, 255, 0.05)',
-              }}>
+              className="flex h-[86px] w-full cursor-pointer items-center justify-between self-stretch rounded-[4px] border-y-[0.3px] border-y-white/[0.05] bg-[#1B1E27] px-6 py-3 text-white transition-colors select-none hover:opacity-90">
               {/* ── 1) [좌측 구역]: 정지/재생 아이콘 + 곡 타이틀 ── */}
               <div className="mr-4 flex w-0 flex-1 items-center gap-4">
                 <button
+                  type="button"
                   onClick={(e) => handlePlayToggle(e, item.practiceId)}
-                  className="flex shrink-0 items-center justify-center transition-transform active:scale-95"
-                  style={{
-                    width: '28px',
-                    height: '28px',
-                    background: 'transparent',
-                    border: 'none',
-                    padding: 0,
-                    cursor: 'pointer',
-                  }}
+                  className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center border-none bg-transparent p-0 transition-transform active:scale-95"
                   aria-label={isCurrentlyPlaying ? '정지하기' : '재생하기'}>
                   {isCurrentlyPlaying ? (
-                    // 재생 중(isCurrentlyPlaying === true)일 때는 일시정지(⏸️) 아이콘을 렌더링합니다.
-                    <div
-                      className="flex shrink-0 items-center justify-center gap-[4px]"
-                      style={{ width: '28px', height: '28px' }}>
+                    // 재생 중(isCurrentlyPlaying === true)일 때는 일시정지 아이콘을 렌더링합니다.
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center gap-[4px]">
                       <div className="h-[18px] w-[4px] rounded-sm bg-[#69FFC0]" />
                       <div className="h-[18px] w-[4px] rounded-sm bg-[#69FFC0]" />
                     </div>
                   ) : (
-                    // 정지 상태(isCurrentlyPlaying === false)일 때는 재생(▶️) 아이콘을 렌더링합니다.
+                    // 정지 상태(isCurrentlyPlaying === false)일 때는 재생 아이콘을 렌더링합니다.
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="20"
@@ -94,35 +72,17 @@ export default function RecentPractices({ data }: RecentPracticesProps) {
                   )}
                 </button>
 
-                <span
-                  className="truncate font-sans"
-                  style={{
-                    fontFamily: 'Pretendard',
-                    fontSize: '18px',
-                    fontWeight: 500,
-                    lineHeight: '30px',
-                    letterSpacing: '-0.36px',
-                    color: '#FFFFFF',
-                  }}>
+                <span className="truncate font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-white">
                   {item.title}
                 </span>
               </div>
 
               {/* ── 2) [우측 구역]: 메타 정보 & 화살표 ── */}
               <div className="flex shrink-0 items-center gap-8">
-                <div
-                  className="flex items-center text-[#AEB1B6]"
-                  style={{
-                    fontFamily: 'Pretendard',
-                    fontSize: '14px',
-                    fontWeight: 400,
-                    lineHeight: '22px',
-                    letterSpacing: '-0.28px',
-                  }}>
+                <div className="flex items-center font-sans text-[14px] leading-[22px] font-normal tracking-[-0.28px] text-[#AEB1B6]">
                   <span className="w-[50px] shrink-0 text-left font-medium text-gray-500 uppercase">{item.genre}</span>
                   <span className="w-[70px] shrink-0 text-left whitespace-nowrap">{item.keySignature}</span>
                   <span className="w-[75px] shrink-0 text-left whitespace-nowrap">{item.bpm}BPM</span>
-
                   <span className="w-[100px] shrink-0 text-right whitespace-nowrap">{item.timeLabel}</span>
                 </div>
 

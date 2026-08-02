@@ -1,4 +1,3 @@
-
 interface AttendanceDay {
   dayOfWeek: string;
   label: string;
@@ -21,42 +20,24 @@ export default function AttendanceSection({ data }: AttendanceSectionProps) {
   const todayIndex = todayItem ? dayOrder.indexOf(todayItem.dayOfWeek) : -1;
 
   return (
-    <div className="w-full" style={{ background: 'linear-gradient(0deg, #1B1E27 0%, #0B0F19 100%)' }}>
-      <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-16 py-11 font-sans tracking-tight text-white select-none">
+    <div className="w-full bg-gradient-to-b from-[#1B1E27] to-[#0B0F19]">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-8 px-10 py-11 font-sans tracking-tight text-white select-none lg:flex-row lg:items-center lg:justify-between lg:gap-12">
         {/* 좌측 영역: 타이틀 + 일주일 출석 현황 */}
-        <div className="flex shrink-0 flex-col gap-5">
+        <div className="flex flex-col gap-5">
           <div className="flex flex-col">
             {/* user.nickname 파트 */}
-            <h2
-              style={{
-                color: '#E7E7E8',
-                fontFamily: 'Pretendard, sans-serif',
-                fontSize: '32px',
-                fontStyle: 'normal',
-                fontWeight: 600,
-                lineHeight: '44px',
-                letterSpacing: '-0.64px',
-              }}>
+            <h2 className="text-[32px] leading-[44px] font-semibold tracking-[-0.64px] text-[#E7E7E8]">
               {user.nickname} 님,
             </h2>
 
-            {/* 연속 학습 문구 파트 미세 분기 컬러 */}
-            <h2
-              style={{
-                color: '#F0F1F1',
-                fontFamily: 'Pretendard, sans-serif',
-                fontSize: '32px',
-                fontStyle: 'normal',
-                fontWeight: 600,
-                lineHeight: '44px',
-                letterSpacing: '-0.64px',
-              }}>
+            {/* 연속 학습 문구 파트 */}
+            <h2 className="text-[32px] leading-[44px] font-semibold tracking-[-0.64px] text-[#F0F1F1]">
               {streak.currentDays}일 연속 학습 중이에요!
             </h2>
           </div>
 
           {/* 일주일 출석 현황 아이콘 리스트 */}
-          <div className="flex shrink-0 items-center gap-3.5">
+          <div className="flex flex-wrap items-center gap-3.5">
             {streak.weeklyAttendance.map((item, index) => {
               const isAttended = item.status === 'COMPLETED' || item.status === 'TODAY_COMPLETED';
               const isToday = item.status === 'TODAY_COMPLETED';
@@ -65,7 +46,7 @@ export default function AttendanceSection({ data }: AttendanceSectionProps) {
               const isMissed = !isAttended && todayIndex !== -1 && currentIndex !== -1 && currentIndex < todayIndex;
 
               return (
-                <div key={index} className="flex shrink-0 flex-col items-center gap-2">
+                <div key={index} className="flex flex-col items-center gap-2">
                   <div className="flex aspect-square h-10 w-10 shrink-0 items-center justify-center">
                     {isAttended ? (
                       <svg
@@ -128,38 +109,34 @@ export default function AttendanceSection({ data }: AttendanceSectionProps) {
           </div>
         </div>
 
-        {/* 우측 영역: 연습 시간 정보 보드*/}
-        <div className="flex w-[320px] min-w-[320px] shrink-0 flex-col">
+        {/* 우측 영역: 연습 시간 정보 보드  */}
+        <div className="flex w-full max-w-[420px] flex-col lg:w-[320px] lg:min-w-[320px]">
           {/* 상단: 주간 연습 시간 */}
           <div className="flex items-center justify-between gap-4 pb-3">
-            <span className="shrink-0 font-sans text-[22px] leading-[32px] font-medium tracking-[-0.02em] text-[#69FFC0]">
+            <span className="text-[22px] leading-[32px] font-medium tracking-[-0.02em] text-[#69FFC0]">
               주간 연습 시간
             </span>
             <div className="flex items-baseline gap-0.5">
-              <span className="font-sans text-[52px] leading-[74px] font-semibold tracking-[-0.02em] text-[#69FFC0]">
+              <span className="text-[52px] leading-[74px] font-semibold tracking-[-0.02em] text-[#69FFC0]">
                 {practiceSummary.weeklyPracticeHours}
               </span>
-              <span className="font-sans text-[32px] leading-[44px] font-semibold tracking-[-0.02em] text-[#69FFC0]">
-                h
-              </span>
+              <span className="text-[32px] leading-[44px] font-semibold tracking-[-0.02em] text-[#69FFC0]">h</span>
             </div>
           </div>
 
           {/* 구분선 */}
-          <div className="h-[1px] w-full shrink-0 bg-gray-800" />
+          <div className="h-[1px] w-full bg-gray-800" />
 
           {/* 하단: 월 누적 연습 시간 */}
           <div className="flex items-center justify-between gap-4 pt-3">
-            <span className="shrink-0 font-sans text-[22px] leading-[32px] font-medium tracking-[-0.02em] text-gray-300">
+            <span className="text-[22px] leading-[32px] font-medium tracking-[-0.02em] text-gray-300">
               {practiceSummary.monthLabel} 누적 연습 시간
             </span>
             <div className="flex items-baseline gap-0.5">
-              <span className="font-sans text-[32px] leading-[44px] font-semibold tracking-[-0.02em] text-gray-300">
+              <span className="text-[32px] leading-[44px] font-semibold tracking-[-0.02em] text-gray-300">
                 {practiceSummary.monthlyPracticeHours}
               </span>
-              <span className="font-sans text-[22px] leading-[32px] font-medium tracking-[-0.02em] text-gray-300">
-                h
-              </span>
+              <span className="text-[22px] leading-[32px] font-medium tracking-[-0.02em] text-gray-300">h</span>
             </div>
           </div>
         </div>

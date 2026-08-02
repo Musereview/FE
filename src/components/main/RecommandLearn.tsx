@@ -1,4 +1,3 @@
-// src/pages/main/components/RecommandLearn.tsx
 import { useNavigate } from 'react-router-dom';
 
 interface RecommendationItem {
@@ -25,72 +24,29 @@ export default function RecommendedLearnings({ data }: RecommendedLearningsProps
             <div
               key={item.learningId}
               onClick={() => navigate(`/learn/curriculum/${item.learningId}`)}
-
-              className="cursor-pointer text-left transition-colors select-none hover:opacity-90"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                flex: '1',
-                height: '198px',
-                padding: '32px',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                borderRadius: '6px',
-                background: '#2B2E36',
-              }}>
+              className="flex h-[198px] flex-1 cursor-pointer flex-col items-start justify-between rounded-[6px] bg-[#2B2E36] p-8 text-left transition-colors select-none hover:opacity-90">
               {/* ── 1) 상단 레이어: 노래 제목 & 난이도 뱃지  ── */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
-                <span
-                  style={{
-                    color: '#FFFFFF',
-                    fontFamily: 'Pretendard',
-                    fontSize: '24px',
-                    fontStyle: 'normal',
-                    fontWeight: 600,
-                    lineHeight: '36px',
-                    letterSpacing: '-0.48px',
-                  }}>
+              <div className="flex w-full items-center gap-[6px]">
+                <span className="font-sans text-[24px] leading-[36px] font-semibold tracking-[-0.48px] text-white">
                   {item.title}
                 </span>
 
                 {/* 난이도 뱃지 스타일 */}
                 <div
-                  style={{
-                    display: 'flex',
-                    width: '40px',
-                    padding: '4px 6px',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '10px',
-                    borderRadius: '999px',
-                    border: isAdvanced ? '0.5px solid #F0ABFF' : '0.5px solid #A2ACFF',
-                    background: '#1B1E27',
-                  }}
-                  className="shrink-0">
+                  className={`flex w-[40px] shrink-0 items-center justify-center gap-[10px] rounded-full border-[0.5px] bg-[#1B1E27] px-[6px] py-1 ${
+                    isAdvanced ? 'border-[#F0ABFF]' : 'border-[#A2ACFF]'
+                  }`}>
                   <span
-                    style={{
-                      fontFamily: 'Pretendard',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      color: isAdvanced ? '#F0ABFF' : '#A2ACFF',
-                    }}>
+                    className={`font-['Pretendard'] text-[12px] font-semibold ${
+                      isAdvanced ? 'text-[#F0ABFF]' : 'text-[#A2ACFF]'
+                    }`}>
                     {isAdvanced ? '고급' : '중급'}
                   </span>
                 </div>
               </div>
 
               {/* ── 2) 하단 레이어: 설명 텍스트  ── */}
-              <p
-                className="w-full text-left whitespace-pre-line"
-                style={{
-                  color: '#E7E7E8',
-                  fontFamily: 'Pretendard',
-                  fontSize: '20px',
-                  fontStyle: 'normal',
-                  fontWeight: 400,
-                  lineHeight: '30px',
-                  letterSpacing: '-0.4px',
-                }}>
+              <p className="w-full font-['Pretendard'] text-[20px] leading-[30px] font-normal tracking-[-0.4px] whitespace-pre-line text-[#E7E7E8]">
                 {item.description}
               </p>
             </div>

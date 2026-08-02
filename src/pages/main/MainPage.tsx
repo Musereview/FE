@@ -1,4 +1,3 @@
-// src/pages/main/MainPage.tsx
 import { useOutletContext } from 'react-router-dom';
 import AttendanceSection from '@/components/main/AttendanceSection';
 import LearningBanner from '@/components/main/LearningBanner';
@@ -90,8 +89,8 @@ export default function MainPage() {
   };
 
   return (
-    <div className="flex w-full min-w-[1280px] flex-col overflow-x-auto bg-[#090A0F] pb-[44px]">
-      {/* 1. 상단 출석 현황판 섹션 */}
+    <div className="flex w-full flex-col bg-[#090A0F] pb-[44px]">
+      {/* 1. 상단 출석 현황판 섹션  */}
       <AttendanceSection data={mockDashboardData} />
 
       {/* 2. 중간 블록: 진행 중인 학습 / 추천 학습 */}
