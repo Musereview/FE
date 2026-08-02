@@ -28,8 +28,8 @@ export function useNicknameCheck(initialNickname = '') {
   const [status, setStatus] = useState<NicknameStatus>('idle');
   // 서버가 내려준 안내 문구
   const [serverText, setServerText] = useState<string | null>(null);
-  const latestNicknameRef = useRef(nickname);
-  latestNicknameRef.current = nickname;
+  // 최신 요청 식별용 순번 (입력 변경/요청 시작마다 증가)
+  const requestSeqRef = useRef(0);
 
   const { mutate: checkNickname, isPending } = useCheckNickname();
 
@@ -38,8 +38,9 @@ export function useNicknameCheck(initialNickname = '') {
     setServerText(text);
   };
 
-  // 닉네임 수정 시 이전 검증 결과 초기화
+  // 닉네임 수정 시 이전 검증 결과 초기화 + 진행 중인 요청 무효화
   const handleNicknameChange = (value: string) => {
+    requestSeqRef.current += 1;
     setNickname(value);
     applyStatus('idle');
   };
@@ -56,15 +57,16 @@ export function useNicknameCheck(initialNickname = '') {
 
   // 중복확인
   const checkDuplicate = () => {
+    // 이전 요청의 늦은 응답이 최신 상태를 덮어쓰지 않도록 순번을 올린다
+    const seq = (requestSeqRef.current += 1);
     if (!validateFormat()) return;
-    const requested = nickname;
-    checkNickname(requested, {
+    checkNickname(nickname, {
       onSuccess: (data) => {
-        if (requested !== latestNicknameRef.current) return;
+        if (seq !== requestSeqRef.current) return;
         applyStatus(data.available ? 'available' : 'duplicate', data.message);
       },
       onError: (error) => {
-        if (requested !== latestNicknameRef.current) return;
+        if (seq !== requestSeqRef.current) return;
         const data = isAxiosError<ApiResponse<null>>(error) ? error.response?.data : undefined;
         const mapped = data?.code ? ERROR_CODE_STATUS[data.code] : undefined;
         applyStatus(mapped ?? 'error', mapped ? (data?.message ?? null) : null);
@@ -73,7 +75,11 @@ export function useNicknameCheck(initialNickname = '') {
   };
 
   // 최종 저장 시점에 서버가 중복(409)을 반환하면 중복 상태로 표시
-  const markDuplicate = () => applyStatus('duplicate');
+  // 진행 중인 중복확인 응답이 이 결과를 덮어쓰지 않도록 순번 증가
+  const markDuplicate = () => {
+    requestSeqRef.current += 1;
+    applyStatus('duplicate');
+  };
 
   const message =
     status === 'idle' ? null : { ...NICKNAME_MESSAGE[status], text: serverText ?? NICKNAME_MESSAGE[status].text };
