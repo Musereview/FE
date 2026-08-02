@@ -12,7 +12,7 @@ interface SummaryCardProps {
 // 1. 이번주 요약 카드 공통 컴포넌트
 function SummaryCard({ icon, title, value, diff, unit }: SummaryCardProps) {
   return (
-    <div className="box-border flex h-[160px] flex-1 flex-col items-start justify-between rounded-[6px] border border-gray-800 bg-gray-900 p-[24px]">
+    <div className="box-border flex flex-1 flex-col items-start gap-[20px] rounded-[6px] border border-gray-800 bg-gray-900 p-[24px]">
       <div className="flex w-full items-center justify-between">
         <div className="flex items-center gap-[12px]">
           {icon}
@@ -20,16 +20,17 @@ function SummaryCard({ icon, title, value, diff, unit }: SummaryCardProps) {
         </div>
         <span className="text-primary-300 text-[32px] leading-[44px] font-semibold tracking-[-0.64px]">{value}</span>
       </div>
-      <div className="text-[15px] font-normal text-gray-600">
+
+      <div className="flex min-h-[54px] w-full items-center border-t-[0.5px] border-gray-500 pt-[24px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300">
         {diff !== null && (
-          <>
+          <p>
             전 주보다{' '}
             <span className="text-primary-300">
               {Math.abs(diff)}
               {unit} {diff >= 0 ? '증가' : '감소'}
             </span>
             했어요
-          </>
+          </p>
         )}
       </div>
     </div>
