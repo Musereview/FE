@@ -234,11 +234,7 @@ export default function HistoryDetailPage() {
   };
 
   if (isPending) {
-    return (
-      <div className="min-h-screen w-full bg-gray-950">
-        <LoadingPage />
-      </div>
-    );
+    return <LoadingPage />;
   }
 
   if (isError) {
@@ -252,8 +248,11 @@ export default function HistoryDetailPage() {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-gray-950 pt-[68px] pb-[100px] font-sans text-gray-100 select-none">
       {isLoading && (
-        <div className="fixed inset-0 z-50 bg-gray-950">
-          <LoadingPage />
+        <div className="absolute inset-0 z-50 bg-gray-950">
+          {/* 페이지가 뷰포트보다 길어도 로딩 화면은 화면 중앙에 고정 */}
+          <div className="sticky top-0 h-screen">
+            <LoadingPage />
+          </div>
         </div>
       )}
 
