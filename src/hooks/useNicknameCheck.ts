@@ -63,7 +63,7 @@ export function useNicknameCheck(initialNickname = '') {
     checkNickname(nickname, {
       onSuccess: (data) => {
         if (seq !== requestSeqRef.current) return;
-        applyStatus(data.available ? 'available' : 'duplicate', data.message);
+        applyStatus(data.isAvailable ? 'available' : 'duplicate', data.message);
       },
       onError: (error) => {
         if (seq !== requestSeqRef.current) return;

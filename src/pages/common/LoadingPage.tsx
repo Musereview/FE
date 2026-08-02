@@ -1,6 +1,5 @@
-// 로딩 페이지
+// 로딩 화면 (Navbar는 AppLayout이 담당)
 import { useEffect, useRef } from 'react';
-import Navbar from '@/layout/Navbar';
 
 const BAR_HEIGHTS = [
   75, 88, 97, 60, 85, 97, 120, 77, 97, 60, 30, 61, 97, 154, 184, 146, 221, 184, 161, 194, 208, 161, 120, 85, 48, 60, 85,
@@ -45,31 +44,27 @@ function LoadingPage() {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-950 text-gray-300">
-      <Navbar onOpenNotification={() => {}} notiList={[]} />
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex h-full min-h-screen w-full min-w-0 flex-col items-center justify-center gap-[140px] overflow-hidden bg-gray-950 px-6 text-gray-300">
+      <p className="heading-medium-m text-center text-gray-300">김뮤즈 님의 연습 결과를 분석 중입니다..</p>
 
-      <main
-        role="status"
-        aria-live="polite"
-        className="flex min-w-0 flex-1 flex-col items-center justify-center gap-[140px] px-6">
-        <p className="heading-medium-m text-center text-gray-300">김뮤즈 님의 연습 결과를 분석 중입니다..</p>
-
-        <div
-          aria-hidden="true"
-          className="flex w-full max-w-[1050px] items-end justify-between"
-          style={{ height: FRAME_HEIGHT }}>
-          {BAR_HEIGHTS.map((h, i) => (
-            <span
-              key={i}
-              ref={(el) => {
-                barsRef.current[i] = el;
-              }}
-              className="bg-primary-400 w-[4px] shrink-0 rounded-full"
-              style={{ height: h }}
-            />
-          ))}
-        </div>
-      </main>
+      <div
+        aria-hidden="true"
+        className="flex w-full max-w-[1050px] items-end justify-between"
+        style={{ height: FRAME_HEIGHT }}>
+        {BAR_HEIGHTS.map((h, i) => (
+          <span
+            key={i}
+            ref={(el) => {
+              barsRef.current[i] = el;
+            }}
+            className="bg-primary-400 w-[4px] shrink-0 rounded-full"
+            style={{ height: h }}
+          />
+        ))}
+      </div>
     </div>
   );
 }

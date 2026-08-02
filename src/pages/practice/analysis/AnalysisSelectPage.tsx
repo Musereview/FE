@@ -173,8 +173,10 @@ export default function AnalysisSelectPage() {
   return (
     <div className="relative min-h-screen w-full min-w-[1280px] bg-gray-950 px-4 py-[60px] font-sans text-gray-100 select-none md:px-16 xl:px-[120px]">
       {isLoading && (
-        <div className="fixed inset-0 z-50 bg-gray-950">
-          <LoadingPage />
+        <div className="absolute inset-0 z-50 bg-gray-950">
+          <div className="sticky top-0 h-screen">
+            <LoadingPage />
+          </div>
         </div>
       )}
 

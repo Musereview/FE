@@ -1,7 +1,7 @@
 // GET /api/users/verify-nickname 응답 data
 export interface CheckNicknameResponse {
   nickname: string; // 검증한 닉네임
-  available: boolean; // 사용 가능 여부
+  isAvailable: boolean; // 사용 가능 여부
   message: string; // 화면에 바로 표시할 안내 문구
 }
 
