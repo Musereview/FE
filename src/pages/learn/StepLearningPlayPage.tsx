@@ -45,7 +45,7 @@ function StepLearningPlayPage() {
   // 실습 데이터(bpm/keySignature/midiData) — '이 이론으로 실습하기'에서 조회. 지금은 mock.
   // TODO: midiData를 채점 정답 데이터로 사용(현재는 악보(OSMD)에서 추출). keySignature도 필요 시 활용.
   const { learningId, learningStepId } = getLearningIds(curriculumId);
-  const { data: practiceData } = usePracticeData(learningId, learningStepId);
+  const { data: practiceData, isLoading: isPracticeDataLoading } = usePracticeData(learningId, learningStepId);
   const bpm = practiceData?.bpm ?? curriculum.bpm; // 실습 데이터 우선, 로딩 중엔 커리큘럼 값
 
   // 입력 레이턴시 보정값 (레이턴시 체크에서 측정한 값). 미측정/실패면 0
@@ -254,7 +254,9 @@ function StepLearningPlayPage() {
   }, [stop]);
 
   // 진입 시 카운트다운(4,3,2,1) → START 1초 표시 → 자동 재생
+  // bpm 확정(실습 데이터 로딩 완료) 후 시작 — 로딩 중 fallback bpm으로 카운트다운이 시작되는 것 방지
   useEffect(() => {
+    if (isPracticeDataLoading) return;
     isMountedRef.current = true;
     runCountdown();
     return () => {
@@ -262,7 +264,7 @@ function StepLearningPlayPage() {
       cancelPendingStarts();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isPracticeDataLoading]);
 
   // 악보 현재 음 하이라이트를 소수 박 해상도로 갱신 (정박 아닌 8·16분음표도 정확히 현재 음이 되도록).
   // state 갱신 없이 imperative tick 호출 → 리렌더 없음. 박 = transport ticks/PPQ (tempo 독립, onBeat 단위와 일치)
