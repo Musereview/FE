@@ -6,6 +6,7 @@ import type {
   BackingTrackDetail,
   BackingTrackChordEntry,
   BackingTrackLevel,
+  RecommendedBackingTrackItem,
 } from '@/types/track';
 import type { Difficulty } from '@/constants/difficulty';
 import { getChordsPerMeasure } from '@/components/practice/create/chordGrid';
@@ -78,6 +79,24 @@ export function mapListItemToTrack(item: BackingTrackListItem): Track {
     difficulty: LEVEL_MAP[item.level],
     duration: formatDuration(item.playtimeSec),
     popularity: 0,
+    createdAt: '',
+    creator: '',
+  };
+}
+
+export function mapRecommendedItemToTrack(item: RecommendedBackingTrackItem): Track {
+  return {
+    id: String(item.backingTrackId),
+    title: item.title,
+    key: item.keySignature,
+    mode: item.scaleType.toLowerCase() as KeyMode,
+    timeSignature: item.timeSignature,
+    chords: item.chordProgression,
+    genre: item.genre,
+    bpm: item.bpm,
+    difficulty: LEVEL_MAP[item.level],
+    duration: formatDuration(item.playtimeSec),
+    popularity: item.playCount,
     createdAt: '',
     creator: '',
   };
