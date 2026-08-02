@@ -139,7 +139,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
             type="button"
             aria-label="알림"
             onClick={onOpenNotification}
-            className="relative flex items-center justify-center transition-opacity hover:opacity-80">
+            className="relative flex cursor-pointer items-center justify-center transition-opacity hover:opacity-80">
             <NotificationIcon className="size-7" />
             {hasUnread && (
               <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#10B981] ring-2 ring-gray-950" />
@@ -165,7 +165,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
             aria-haspopup="menu"
             aria-expanded={isMoreOpen}
             onClick={() => setIsMoreOpen((v) => !v)}
-            className={`transition-colors hover:opacity-80 ${isMoreOpen ? 'text-primary-400' : ''}`}>
+            className={`cursor-pointer transition-colors hover:opacity-80 ${isMoreOpen ? 'text-primary-400' : ''}`}>
             <MoreIcon className="size-9" />
           </button>
 
@@ -178,14 +178,14 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
                 type="button"
                 role="menuitem"
                 onClick={handleLogout}
-                className="body-medium flex w-full items-center justify-center px-6 py-1 whitespace-nowrap text-gray-300 transition-opacity hover:opacity-80">
+                className="body-medium flex w-full cursor-pointer items-center justify-center px-6 py-1 whitespace-nowrap text-gray-300 transition-opacity hover:opacity-80">
                 로그아웃
               </button>
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleWithdraw}
-                className="body-medium text-error flex w-full items-center justify-center px-6 py-1 whitespace-nowrap transition-opacity hover:opacity-80">
+                className="body-medium text-error flex w-full cursor-pointer items-center justify-center px-6 py-1 whitespace-nowrap transition-opacity hover:opacity-80">
                 회원탈퇴
               </button>
             </div>
