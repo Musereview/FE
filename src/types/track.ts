@@ -41,7 +41,7 @@ export interface BackingTrackListItem {
 
 // GET /api/backing-tracks 응답 data
 export interface BackingTrackListResponse {
-  trackInfos: BackingTrackListItem[];
+  tracks: BackingTrackListItem[];
   nextCursor: number | null;
   hasNext: boolean;
 }
