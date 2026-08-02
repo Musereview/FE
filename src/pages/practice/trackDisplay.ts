@@ -35,7 +35,7 @@ export const LEVEL_MAP: Record<BackingTrackLevel, Difficulty> = {
   ADVANCED: 'advanced',
 };
 
-// 목록 API 응답엔 박자 정보가 없어 카드 표시용 임시 고정값 사용
+// 목록 API 응답에 박자 정보가 없는 트랙의 카드 표시용 기본값
 const DEFAULT_TIME_SIGNATURE = '4/4';
 
 export function formatDuration(playtimeSec: number): string {
@@ -72,7 +72,7 @@ export function mapListItemToTrack(item: BackingTrackListItem): Track {
     title: item.title,
     key: item.keySignature,
     mode: item.scaleType.toLowerCase() as KeyMode,
-    timeSignature: DEFAULT_TIME_SIGNATURE,
+    timeSignature: item.timeSignature ?? DEFAULT_TIME_SIGNATURE,
     chords: item.chordProgression,
     genre: item.genre,
     bpm: item.bpm,
