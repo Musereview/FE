@@ -1,45 +1,28 @@
 import { useNavigate } from 'react-router-dom';
 import ClickableCard from '@/components/common/ClickableCard';
-
-export interface HistoryPracticeItem {
-  practiceId?: number;
-  playingId?: number;
-  title: string;
-  scoreChange: string | number;
-  scoreType: 'up' | 'down' | 'neutral';
-  description?: string;
-  summary?: string;
-  timeLabel?: string;
-  durationMinutes?: number;
-  date?: string;
-  relativeDate?: string;
-}
+import type { HistoryItem } from '@/types/history';
 
 interface HistoryRecentPracticesProps {
-  data?: HistoryPracticeItem[];
+  data?: HistoryItem[];
 }
 
-export default function HistoryRecentPractices({ data }: HistoryRecentPracticesProps) {
+export default function HistoryRecentPractices({ data = [] }: HistoryRecentPracticesProps) {
   const navigate = useNavigate();
-  const practiceList = data ?? [];
 
   return (
     <div className="flex w-full flex-col gap-[12px]">
-      {practiceList.map((item, index) => {
-        const targetId = item.practiceId ?? item.playingId;
-        const desc = item.description ?? item.summary ?? '';
-        const time = item.timeLabel ?? (item.durationMinutes ? `소요시간 ${item.durationMinutes}분` : '');
-        const when = item.date ?? item.relativeDate ?? '';
+      {data.map((item) => {
+        // 점수 변화가 없거나(null) 0이면 중립 처리
+        const scoreType =
+          item.scoreChange === null || item.scoreChange === 0 ? 'neutral' : item.scoreChange > 0 ? 'up' : 'down';
 
         const handleClick = () => {
-          if (targetId) {
-            navigate(`/history/${targetId}`);
-          }
+          navigate(`/history/${item.playingId}`);
         };
 
         return (
           <ClickableCard
-            key={index}
+            key={item.playingId}
             onClick={handleClick}
             className="box-border flex w-full max-w-[1196px] items-center justify-between rounded-[6px] border border-gray-800 bg-gray-900 p-[24px] text-white transition-colors select-none hover:border-gray-700">
             {/* 좌측 구역 */}
@@ -52,7 +35,7 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
 
                 {/* 점수 변화 아이콘 및 텍스트 영역 */}
                 <div className="ml-[24px] flex items-center gap-[4px]">
-                  {item.scoreType === 'down' ? (
+                  {scoreType === 'down' ? (
                     <>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -66,9 +49,10 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
                           fill="#FF5D6B"
                         />
                       </svg>
+
                       <span className="text-[14px] leading-[20px] font-medium text-[#FF5D6B]">{item.scoreChange}</span>
                     </>
-                  ) : item.scoreType === 'up' ? (
+                  ) : scoreType === 'up' ? (
                     <>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -82,8 +66,9 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
                           fill="#69FFC0"
                         />
                       </svg>
+
                       <span className="text-primary-400 text-[14px] leading-[20px] font-medium">
-                        {item.scoreChange}
+                        +{item.scoreChange}
                       </span>
                     </>
                   ) : (
@@ -103,7 +88,7 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
 
               {/* 상세 설명 */}
               <p className="m-0 text-[18px] leading-[30px] font-medium tracking-[-0.36px] whitespace-pre-line text-gray-500">
-                {desc}
+                {item.summary}
               </p>
             </div>
 
@@ -121,12 +106,13 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
                   <circle cx="8" cy="8" r="6.5" stroke="#AEB1B6" strokeWidth="1.2" />
                   <path d="M8 4.5V8H11" stroke="#AEB1B6" strokeWidth="1.2" strokeLinecap="round" />
                 </svg>
-                <span>{time}</span>
+
+                <span>소요시간 {item.durationMinutes}분</span>
               </div>
 
               {/* 날짜 */}
               <div className="mr-[24px] w-[90px] text-right text-[14px] leading-[20px] font-normal text-gray-500">
-                {when}
+                {item.relativeDate}
               </div>
 
               {/* 우측 단일 화살표 아이콘 */}

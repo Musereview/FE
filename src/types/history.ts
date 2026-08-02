@@ -5,7 +5,7 @@ export interface HistoryItem {
   latestAnalysisId: number;
   title: string;
   summary: string;
-  scoreChange: number;
+  scoreChange: number | null;
   durationMinutes: number;
   durationSec: number;
   playedAt: string;
@@ -15,7 +15,7 @@ export interface HistoryItem {
 export interface HistoryData {
   page: number;
   size: number;
-  haseNext: boolean;
+  hasNext: boolean;
   items: HistoryItem[];
 }
 
