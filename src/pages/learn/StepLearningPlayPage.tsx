@@ -182,6 +182,7 @@ function StepLearningPlayPage() {
     setShowStart(false);
     setCountdown(null);
     await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
+    if (!isMountedRef.current) return;
     totalBeatRef.current = 0;
     endedRef.current = false; // 재생 시작 시 끝 가드 해제 (재시작/재생 시 다시 정지 가능하도록)
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
