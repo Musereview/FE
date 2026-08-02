@@ -45,7 +45,7 @@ function StepLearningPlayPage() {
   // 실습 데이터(bpm/keySignature/midiData) — '이 이론으로 실습하기'에서 조회. 지금은 mock.
   // TODO: midiData를 채점 정답 데이터로 사용(현재는 악보(OSMD)에서 추출). keySignature도 필요 시 활용.
   const { learningId, learningStepId } = getLearningIds(curriculumId);
-  const { data: practiceData } = usePracticeData(learningId, learningStepId);
+  const { data: practiceData, isLoading: isPracticeDataLoading } = usePracticeData(learningId, learningStepId);
   const bpm = practiceData?.bpm ?? curriculum.bpm; // 실습 데이터 우선, 로딩 중엔 커리큘럼 값
 
   // 입력 레이턴시 보정값 (레이턴시 체크에서 측정한 값). 미측정/실패면 0
@@ -73,6 +73,7 @@ function StepLearningPlayPage() {
   const scoreRef = useRef<LearningScoreHandle>(null); // 악보 판정·색칠 핸들
   const endedRef = useRef(false); // 곡 끝 정지 중복 예약 방지
   const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
+  const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
   // 진입 자동재생(마운트 시점 클로저)이 stale bpm으로 시작하지 않도록 최신 bpm을 ref로 유지
   const bpmRef = useRef(bpm);
   useEffect(() => {
@@ -151,6 +152,7 @@ function StepLearningPlayPage() {
     setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
     countdownEndedRef.current = false;
     await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
+    if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
     let cbeat = 0;
     start(bpmRef.current, beatsPerBar, (time, bib) => {
       if (cbeat >= COUNTDOWN_BEATS) {
@@ -180,6 +182,7 @@ function StepLearningPlayPage() {
     setShowStart(false);
     setCountdown(null);
     await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
+    if (!isMountedRef.current) return;
     totalBeatRef.current = 0;
     endedRef.current = false; // 재생 시작 시 끝 가드 해제 (재시작/재생 시 다시 정지 가능하도록)
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
@@ -251,11 +254,17 @@ function StepLearningPlayPage() {
   }, [stop]);
 
   // 진입 시 카운트다운(4,3,2,1) → START 1초 표시 → 자동 재생
+  // bpm 확정(실습 데이터 로딩 완료) 후 시작 — 로딩 중 fallback bpm으로 카운트다운이 시작되는 것 방지
   useEffect(() => {
+    if (isPracticeDataLoading) return;
+    isMountedRef.current = true;
     runCountdown();
-    return () => cancelPendingStarts();
+    return () => {
+      isMountedRef.current = false;
+      cancelPendingStarts();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isPracticeDataLoading]);
 
   // 악보 현재 음 하이라이트를 소수 박 해상도로 갱신 (정박 아닌 8·16분음표도 정확히 현재 음이 되도록).
   // state 갱신 없이 imperative tick 호출 → 리렌더 없음. 박 = transport ticks/PPQ (tempo 독립, onBeat 단위와 일치)

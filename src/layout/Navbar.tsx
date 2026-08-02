@@ -12,6 +12,9 @@ import MoreIcon from '@/assets/layout/more.svg?react';
 import type { NotiItem } from '@/types/notification';
 import WithdrawModal from '@/components/common/WithdrawModal';
 import { useClickOutside } from '@/hooks/useClickOutside';
+import { clearTokens, getRefreshToken } from '@/utils/authStorage';
+import { logout, withdraw } from '@/apis/auth';
+import { isAxiosError } from 'axios';
 
 interface NavItem {
   Icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
@@ -40,6 +43,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
 
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
   const moreRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(moreRef, () => setIsMoreOpen(false), isMoreOpen);
@@ -56,22 +60,40 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isMoreOpen]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
+  const handleLogout = async () => {
     setIsMoreOpen(false);
+
+    const refreshToken = getRefreshToken();
+
+    try {
+      if (refreshToken) await logout(refreshToken);
+    } catch {
+      // 서버 로그아웃에 실패해도 로컬 토큰 반드시 정리
+    }
+
+    clearTokens();
     navigate('/login');
   };
 
   const handleWithdraw = () => {
     setIsMoreOpen(false);
+    setWithdrawError(null);
     setIsWithdrawOpen(true);
   };
 
-  const handleConfirmWithdraw = () => {
+  const handleConfirmWithdraw = async () => {
+    try {
+      await withdraw();
+    } catch (error) {
+      // 404는 이미 탈퇴 처리된 계정
+      if (!isAxiosError(error) || error.response?.status !== 404) {
+        setWithdrawError('탈퇴에 실패했어요. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
+    }
+
     setIsWithdrawOpen(false);
-    // 회원탈퇴 API
-    // 탈퇴 완료 후: 토큰 제거 + 로그인 페이지 이동
-    localStorage.removeItem('accessToken');
+    clearTokens();
     navigate('/login');
   };
 
@@ -172,7 +194,13 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
       </div>
 
       {/* 회원탈퇴 확인 모달 */}
-      {isWithdrawOpen && <WithdrawModal onCancel={() => setIsWithdrawOpen(false)} onConfirm={handleConfirmWithdraw} />}
+      {isWithdrawOpen && (
+        <WithdrawModal
+          onCancel={() => setIsWithdrawOpen(false)}
+          onConfirm={handleConfirmWithdraw}
+          errorMessage={withdrawError}
+        />
+      )}
     </div>
   );
 }
