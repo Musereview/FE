@@ -136,6 +136,12 @@ export function buildMusicXmlFromRecording(recording: PlayedNote[], options: Bui
     }
   }
 
+  // 겹치는 노트(다음 그룹이 이전 그룹 duration 안에서 시작) 클리핑 — 단선율 유지, 마디 duration 초과 방지
+  for (let i = 0; i < groups.length - 1; i++) {
+    const maxTicks = groups[i + 1].startTick - groups[i].startTick;
+    groups[i].durationTicks = Math.max(1, Math.min(groups[i].durationTicks, maxTicks));
+  }
+
   const measures: NoteFragment[][] = [];
   const ensureMeasure = (idx: number) => {
     while (measures.length <= idx) measures.push([]);
