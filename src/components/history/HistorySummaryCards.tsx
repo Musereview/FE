@@ -1,16 +1,18 @@
 import React from 'react';
+import type { WeeklySummary } from '@/types/history';
 
 interface SummaryCardProps {
   icon: React.ReactNode;
   title: string;
   value: string;
-  deltaText: string;
+  diff: number | null;
+  unit: string;
 }
 
 // 1. 이번주 요약 카드 공통 컴포넌트
-function SummaryCard({ icon, title, value, deltaText }: SummaryCardProps) {
+function SummaryCard({ icon, title, value, diff, unit }: SummaryCardProps) {
   return (
-    <div className="box-border flex h-[160px] flex-1 flex-col items-start justify-between rounded-[6px] border border-gray-800 bg-gray-900 p-[24px]">
+    <div className="box-border flex flex-1 flex-col items-start gap-[20px] rounded-[6px] border border-gray-800 bg-gray-900 p-[24px]">
       <div className="flex w-full items-center justify-between">
         <div className="flex items-center gap-[12px]">
           {icon}
@@ -18,20 +20,35 @@ function SummaryCard({ icon, title, value, deltaText }: SummaryCardProps) {
         </div>
         <span className="text-primary-300 text-[32px] leading-[44px] font-semibold tracking-[-0.64px]">{value}</span>
       </div>
-      <div className="text-[15px] font-normal text-gray-600">
-        전 주보다 <span className="text-primary-300">{deltaText}</span>했어요
+
+      <div className="flex min-h-[54px] w-full items-center border-t-[0.5px] border-gray-500 pt-[24px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300">
+        {diff !== null && (
+          <p>
+            전 주보다{' '}
+            <span className="text-primary-300">
+              {Math.abs(diff)}
+              {unit} {diff >= 0 ? '증가' : '감소'}
+            </span>
+            했어요
+          </p>
+        )}
       </div>
     </div>
   );
 }
 
+interface HistorySummaryCardsProps {
+  data?: WeeklySummary;
+}
+
 // 2. 메인 컴포넌트
-export default function HistorySummaryCards() {
+export default function HistorySummaryCards({ data }: HistorySummaryCardsProps) {
   const cards = [
     {
       title: '정확도',
-      value: '91%',
-      deltaText: '4% 증가',
+      value: data ? `${data.accuracy}%` : '-',
+      diff: data?.accuracyDiff ?? null,
+      unit: '%',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="aspect-square">
           <path
@@ -43,8 +60,9 @@ export default function HistorySummaryCards() {
     },
     {
       title: '연습 시간',
-      value: '65분',
-      deltaText: '18분 증가',
+      value: data ? `${data.practiceMinutes}분` : '-',
+      diff: data?.practiceMinutesDiff ?? null,
+      unit: '분',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="aspect-square">
           <path
@@ -56,8 +74,9 @@ export default function HistorySummaryCards() {
     },
     {
       title: '완료 세션',
-      value: '6개',
-      deltaText: '2개 증가',
+      value: data ? `${data.completedSessionCount}개` : '-',
+      diff: data?.completedSessionCountDiff ?? null,
+      unit: '개',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="aspect-square">
           <path

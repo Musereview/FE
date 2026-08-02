@@ -225,11 +225,11 @@ export const router = createBrowserRouter([
           },
         ],
       },
+      {
+        path: '/loading',
+        element: <LoadingPage />,
+      },
     ],
-  },
-  {
-    path: '/loading',
-    element: <LoadingPage />,
   },
   {
     path: '/admin',

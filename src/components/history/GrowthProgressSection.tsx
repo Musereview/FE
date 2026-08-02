@@ -1,3 +1,5 @@
+import type { DomainGrowthItem } from '@/types/history';
+
 interface GrowthMetric {
   label: string;
   delta: string;
@@ -5,12 +7,18 @@ interface GrowthMetric {
   widthPercent: number;
 }
 
-const METRICS: GrowthMetric[] = [
-  { label: '스케일', delta: '+8', direction: 'positive', widthPercent: 42 },
-  { label: '텐션', delta: '+6', direction: 'positive', widthPercent: 35 },
-  { label: '진행', delta: '+4', direction: 'positive', widthPercent: 25 },
-  { label: '코드 연결', delta: '-10', direction: 'negative', widthPercent: 50 },
-];
+// 막대 절반(50%)이 최대치. 1점당 5% 씩 채우고 10점 이상이면 가득 참
+const PERCENT_PER_POINT = 5;
+const MAX_WIDTH_PERCENT = 50;
+
+function toMetric({ label, diff }: DomainGrowthItem): GrowthMetric {
+  return {
+    label,
+    delta: `${diff > 0 ? '+' : ''}${diff}`,
+    direction: diff >= 0 ? 'positive' : 'negative',
+    widthPercent: Math.min(Math.abs(diff) * PERCENT_PER_POINT, MAX_WIDTH_PERCENT),
+  };
+}
 
 function GrowthBar({ label, delta, direction, widthPercent }: GrowthMetric) {
   const isPositive = direction === 'positive';
@@ -41,13 +49,17 @@ function GrowthBar({ label, delta, direction, widthPercent }: GrowthMetric) {
   );
 }
 
-export default function GrowthProgressSection() {
+interface GrowthProgressSectionProps {
+  data?: DomainGrowthItem[];
+}
+
+export default function GrowthProgressSection({ data = [] }: GrowthProgressSectionProps) {
   return (
     <div className="flex w-[1196px] flex-col rounded-[6px] border border-gray-800 bg-gray-900 p-[40px]">
       {/* 그래프 및 라벨 리스트 영역  */}
       <div className="flex flex-col gap-[32px]">
-        {METRICS.map((metric) => (
-          <GrowthBar key={metric.label} {...metric} />
+        {data.map((item) => (
+          <GrowthBar key={item.domain} {...toMetric(item)} />
         ))}
       </div>
     </div>
