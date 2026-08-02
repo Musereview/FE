@@ -46,6 +46,21 @@ export interface BackingTrackListResponse {
   hasNext: boolean;
 }
 
+// GET /api/backing-tracks/recommended 응답 항목
+export interface RecommendedBackingTrackItem {
+  backingTrackId: number;
+  title: string;
+  genre: BackingTrackGenre;
+  keySignature: string;
+  scaleType: BackingTrackScaleType;
+  timeSignature: string;
+  chordProgression: string[];
+  bpm: number;
+  level: BackingTrackLevel;
+  playtimeSec: number;
+  playCount: number;
+}
+
 export interface BackingTrackChordEntry {
   measureNo: number;
   sequenceNo: number;
