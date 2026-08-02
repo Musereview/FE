@@ -2,7 +2,7 @@ import HistorySummaryCards from '@/components/history/HistorySummaryCards';
 import GrowthProgressSection from '@/components/history/GrowthProgressSection';
 import WeeklyTrendChart from '@/components/history/WeeklyTrendChart';
 import HistoryRecentPractices from '@/components/history/HistoryRecentPractices';
-import { useHistoryList } from '@/hooks/useHistory';
+import { useHistoryList, useHistoryStatistics } from '@/hooks/useHistory';
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
@@ -17,6 +17,7 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
 
 export default function HistoryPage() {
   const { data } = useHistoryList();
+  const { data: statistics } = useHistoryStatistics();
 
   return (
     <div className="flex min-h-screen w-full justify-center bg-gray-950 pt-[76px] pb-[100px] text-white">
@@ -33,19 +34,19 @@ export default function HistoryPage() {
         {/* 2. 이번주 연주 요약 섹션 */}
         <div className="mb-[80px] flex w-[1196px] flex-col">
           <SectionHeader title="이번주 연주 요약" />
-          <HistorySummaryCards />
+          <HistorySummaryCards data={statistics?.weeklySummary} />
         </div>
 
         {/* 3. 영역별 성장 변화 섹션 */}
         <div className="mb-[80px] flex w-[1196px] flex-col">
           <SectionHeader title="영역별 성장 변화" subtitle="지난주 대비 영역별 평균 점수 변화를 보여드려요." />
-          <GrowthProgressSection />
+          <GrowthProgressSection data={statistics?.domainGrowth} />
         </div>
 
         {/* 4. 최근 4주 학습 추이 섹션 */}
         <div className="mb-[80px] flex w-[1196px] flex-col">
           <SectionHeader title="최근 4주 학습 추이" subtitle="최근 4주간 평균 점수 변화를 보여드려요." />
-          <WeeklyTrendChart />
+          <WeeklyTrendChart data={statistics?.weeklyTrend} />
         </div>
 
         {/* 5. 최근 연주 리스트 */}
