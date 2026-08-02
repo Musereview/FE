@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import ClickableCard from '@/components/common/ClickableCard';
-import type { HistoryItem } from '@/types/history';
+import type { HistoryListItem } from '@/types/history';
 
 interface HistoryRecentPracticesProps {
-  data?: HistoryItem[];
+  data?: HistoryListItem[];
 }
 
 export default function HistoryRecentPractices({ data = [] }: HistoryRecentPracticesProps) {
