@@ -9,11 +9,10 @@ import type {
   UpdateProfileResponse,
 } from '@/types/profile';
 
-// TODO: 백엔드 스펙 확정 시 이 경로만 수정
-const CHECK_NICKNAME_ENDPOINT = '/members/nickname/check';
+const CHECK_NICKNAME_ENDPOINT = '/api/users/verify-nickname';
 const PROFILE_ENDPOINT = '/api/users/me/profile';
 
-// 닉네임 중복 여부를 조회한다.
+// 닉네임 중복/형식 검증
 export async function checkNicknameDuplicate(nickname: string): Promise<CheckNicknameResponse> {
   const { data } = await axiosInstance.get<ApiResponse<CheckNicknameResponse>>(CHECK_NICKNAME_ENDPOINT, {
     params: { nickname },
@@ -27,13 +26,13 @@ export async function getProfile(): Promise<Profile> {
   return data.data;
 }
 
-// 프로필 수정 (닉네임/숙련도) — 409 시 닉네임 중복
+// 프로필 수정
 export async function updateProfile(body: UpdateProfileRequest): Promise<UpdateProfileResponse> {
   const { data } = await axiosInstance.patch<ApiResponse<UpdateProfileResponse>>(PROFILE_ENDPOINT, body);
   return data.data;
 }
 
-// 프로필 최초 등록 (온보딩) — 409 시 닉네임 중복 또는 이미 등록된 사용자
+// 프로필 최초 등록
 export async function registerProfile(body: RegisterProfileRequest): Promise<RegisterProfileResponse> {
   const { data } = await axiosInstance.post<ApiResponse<RegisterProfileResponse>>(PROFILE_ENDPOINT, body);
   return data.data;

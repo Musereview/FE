@@ -1,4 +1,3 @@
-//경로 : C:\project\MuseReview\FE\src\components\score\ScoreViewer.tsx
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import type { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
 
@@ -9,6 +8,8 @@ import { moveCursorToMeasure } from '@/utils/osmdCursor';
 export interface ScoreViewerHandle {
   /** 커서와 스크롤을 모두 맨 처음(0번째 마디)으로 되돌린다. */
   reset: () => void;
+  /** 특정 마디 인덱스로 커서와 스크롤을 즉시 이동시킨다. */
+  jumpToMeasure: (measureIndex: number) => void;
 }
 
 export interface ScoreViewerProps {
@@ -70,8 +71,15 @@ const ScoreViewer = forwardRef<ScoreViewerHandle, ScoreViewerProps>(function Sco
         osmdRef.current?.cursor.reset();
         forceScrollTo(0, 'smooth');
       },
+      jumpToMeasure: (measureIndex: number) => {
+        const osmd = osmdRef.current;
+        if (!osmd) return;
+        moveCursorToMeasure(osmd, measureIndex);
+        const targetX = measureXPositions[measureIndex] ?? 0;
+        forceScrollTo(targetX, 'auto');
+      },
     }),
-    [osmdRef, forceScrollTo],
+    [osmdRef, forceScrollTo, measureXPositions],
   );
 
   return (
@@ -86,7 +94,6 @@ const ScoreViewer = forwardRef<ScoreViewerHandle, ScoreViewerProps>(function Sco
       {/* 가로 스크롤 뷰포트. 자동 줄바꿈 대신 여기서 좌우로만 이동한다. */}
       <div
         ref={scrollRef}
-
         className="overflow-x-auto overflow-y-hidden px-0 py-7 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#3A3D4A] [&::-webkit-scrollbar-track]:bg-transparent"
         style={{ height }}>
         {/* renderSingleHorizontalStaffline: true 로 렌더링된, 줄바꿈 없는 단일 라인 악보 */}

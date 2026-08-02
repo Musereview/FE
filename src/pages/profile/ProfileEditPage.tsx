@@ -25,7 +25,7 @@ function ProfileEditPage() {
         <button
           type="button"
           onClick={() => refetch()}
-          className="button-small bg-primary-400 rounded-[6px] px-4 py-2 text-gray-950">
+          className="button-small bg-primary-400 cursor-pointer rounded-[6px] px-4 py-2 text-gray-950">
           다시 시도
         </button>
       </div>
@@ -54,8 +54,8 @@ function ProfileEditForm({ profile }: { profile: Profile }) {
       {
         onSuccess: () => navigate('/profile'),
         onError: (error) => {
-          // 중복확인을 통과했어도 최종 저장 시 다른 사용자가 선점하면 409
-          if (isAxiosError(error) && error.response?.status === 409) {
+          // 중복 확인을 통과했어도 최종 저장 시 다른 사용자가 선점하면 409 USER_409_01
+          if (isAxiosError<{ code?: string }>(error) && error.response?.data?.code === 'USER_409_01') {
             markDuplicate();
             return;
           }
@@ -102,7 +102,7 @@ function ProfileEditForm({ profile }: { profile: Profile }) {
               type="button"
               onClick={checkDuplicate}
               disabled={!nickname || isPending}
-              className={`button-medium shrink-0 rounded px-4 py-2 ${
+              className={`button-medium shrink-0 cursor-pointer rounded px-4 py-2 disabled:cursor-not-allowed ${
                 nickname ? 'bg-primary-400 text-gray-950' : 'border-[0.5px] border-gray-300 text-gray-300'
               }`}>
               중복확인
@@ -149,7 +149,7 @@ function ProfileEditForm({ profile }: { profile: Profile }) {
                       setLevel(option);
                       setLevelOpen(false);
                     }}
-                    className={`button-large2 hover:bg-primary-300 flex h-[76px] w-full items-center px-5 text-left hover:text-gray-900 ${
+                    className={`button-large2 hover:bg-primary-300 flex h-[76px] w-full cursor-pointer items-center px-5 text-left hover:text-gray-900 ${
                       selected ? 'bg-primary-500 text-gray-950' : 'bg-gray-700 text-gray-300'
                     }`}>
                     {SKILL_LEVEL_LABEL[option]}
@@ -169,14 +169,14 @@ function ProfileEditForm({ profile }: { profile: Profile }) {
         <button
           type="button"
           onClick={() => navigate('/profile')}
-          className="button-large1 flex h-[76px] flex-1 items-center justify-center rounded-[6px] border-[0.5px] border-gray-600 text-gray-300">
+          className="button-large1 flex h-[76px] flex-1 cursor-pointer items-center justify-center rounded-[6px] border-[0.5px] border-gray-600 text-gray-300">
           뒤로 가기
         </button>
         <button
           type="button"
           onClick={handleSubmit}
           disabled={!nickname || isSaving}
-          className="button-large1 bg-primary-400 flex h-[76px] flex-1 items-center justify-center rounded-[4px] text-gray-950 disabled:opacity-50">
+          className="button-large1 bg-primary-400 flex h-[76px] flex-1 cursor-pointer items-center justify-center rounded-[4px] text-gray-950 disabled:cursor-not-allowed disabled:opacity-50">
           수정 완료
         </button>
       </div>

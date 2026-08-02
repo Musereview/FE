@@ -41,6 +41,7 @@ import AdminMyPage from '@/pages/admin/mypage/AdminMyPage';
 import AdminMyPageEditPage from '@/pages/admin/mypage/AdminMyPageEditPage';
 import TeacherMyPageEditPage from '@/pages/admin/mypage/TeacherMyPageEditPage';
 import LatencyCheckPage from '@/pages/latency/LatencyCheckPage';
+import OAuthCallbackPage from '@/pages/auth/OAuthCallbackPage';
 
 export const router = createBrowserRouter([
   {
@@ -50,6 +51,10 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/oauth/callback',
+    element: <OAuthCallbackPage />,
   },
   {
     path: '/onboarding',
@@ -194,7 +199,16 @@ export const router = createBrowserRouter([
           },
           {
             path: ':historyId',
-            element: <HistoryDetailPage />,
+            children: [
+              {
+                index: true,
+                element: <HistoryDetailPage />,
+              },
+              {
+                path: 'analysis/result',
+                element: <AnalysisResultPage />,
+              },
+            ],
           },
         ],
       },

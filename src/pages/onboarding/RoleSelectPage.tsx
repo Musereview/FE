@@ -48,7 +48,7 @@ function RoleSelectPage() {
                 type="button"
                 onClick={() => setRole(key)}
                 aria-pressed={selected}
-                className={`flex min-h-[164px] flex-1 items-center gap-11 rounded-md p-10 text-left transition-colors ${
+                className={`flex min-h-[164px] flex-1 cursor-pointer items-center gap-11 rounded-md p-10 text-left transition-colors ${
                   selected ? 'bg-primary-400 text-gray-950' : 'border-[0.5px] border-gray-600 text-gray-400'
                 }`}>
                 <Icon className={`size-14 shrink-0 ${selected ? 'text-gray-950' : 'text-gray-300'}`} />
@@ -67,7 +67,7 @@ function RoleSelectPage() {
         <button
           type="button"
           onClick={handleNext}
-          className="button-large1 bg-primary-400 flex h-[76px] w-full max-w-[388px] items-center justify-center rounded-md text-gray-950">
+          className="button-large1 bg-primary-400 flex h-[76px] w-full max-w-[388px] cursor-pointer items-center justify-center rounded-md text-gray-950">
           다음
         </button>
       </div>

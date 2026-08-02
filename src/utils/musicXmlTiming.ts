@@ -7,7 +7,6 @@ export interface ScoreTimingMap {
 /**
  * MusicXML 원문에서 <time>(박자), <sound tempo="">(템포) 변화를 추적하며
  * 각 마디의 시작 시각(초)을 계산한다.
- * OSMD 인스턴스에 의존하지 않으므로 XML을 fetch한 직후 바로 계산 가능하다.
  */
 export function computeMeasureTimings(xmlText: string): ScoreTimingMap {
   const parser = new DOMParser();
@@ -33,7 +32,6 @@ export function computeMeasureTimings(xmlText: string): ScoreTimingMap {
       if (bt) beatType = parseInt(bt, 10);
     }
 
-    // <direction><sound tempo="120"/></direction> 형태로 마디 안 어디에나 존재 가능
     const tempoEl = measure.querySelector('sound[tempo]');
     if (tempoEl) {
       const t = tempoEl.getAttribute('tempo');
@@ -65,4 +63,45 @@ export function findMeasureIndexAtTime(measureStartTimes: number[], time: number
     }
   }
   return result;
+}
+
+/**
+ * 특정 마디 번호에서의 활성 템포(BPM) 및 박자 정보를 추출하는 헬퍼 함수
+ */
+export function extractActiveTempoMeterAtMeasure(
+  fullXmlText: string,
+  targetMeasureNumber: number,
+): { bpm: number; beats: number; beatType: number } {
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(fullXmlText, 'application/xml');
+  const part = xml.querySelector('part');
+  if (!part) return { bpm: 120, beats: 4, beatType: 4 };
+
+  const measures = [...part.querySelectorAll('measure')];
+
+  let beats = 4;
+  let beatType = 4;
+  let bpm = 120;
+
+  for (const measure of measures) {
+    const measureNumber = parseInt(measure.getAttribute('number') ?? '0', 10);
+
+    const timeEl = measure.querySelector('attributes > time');
+    if (timeEl) {
+      const b = timeEl.querySelector('beats')?.textContent;
+      const bt = timeEl.querySelector('beat-type')?.textContent;
+      if (b) beats = parseInt(b, 10);
+      if (bt) beatType = parseInt(bt, 10);
+    }
+
+    const tempoEl = measure.querySelector('sound[tempo]');
+    if (tempoEl) {
+      const t = tempoEl.getAttribute('tempo');
+      if (t) bpm = parseFloat(t);
+    }
+
+    if (measureNumber >= targetMeasureNumber) break;
+  }
+
+  return { bpm, beats, beatType };
 }

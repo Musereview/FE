@@ -1,5 +1,13 @@
-// 백엔드 공통 응답 래퍼
+// 공통 API 성공 응답
 export interface ApiResponse<T> {
+  isSuccess: boolean;
+  code: string;
+  message: string;
+  data: T;
+}
+
+// 공통 API 에러 응답
+export interface ApiErrorResponse<T = null> {
   isSuccess: boolean;
   code: string;
   message: string;

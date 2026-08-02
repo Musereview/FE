@@ -4,9 +4,10 @@ import ConfirmModal from './ConfirmModal';
 interface WithdrawModalProps {
   onCancel: () => void;
   onConfirm: () => void;
+  errorMessage?: string | null;
 }
 
-export function WithdrawModal({ onCancel, onConfirm }: WithdrawModalProps) {
+export function WithdrawModal({ onCancel, onConfirm, errorMessage }: WithdrawModalProps) {
   return (
     <ConfirmModal
       title="정말 탈퇴하시겠습니까?"
@@ -15,6 +16,7 @@ export function WithdrawModal({ onCancel, onConfirm }: WithdrawModalProps) {
           회원 탈퇴 시 개인정보는 삭제되지만,
           <br />
           연주 기록은 삭제되지 않습니다.
+          {errorMessage && <span className="text-error mt-3 block">{errorMessage}</span>}
         </>
       }
       cancelLabel="취소"
