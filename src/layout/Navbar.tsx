@@ -9,7 +9,6 @@ import LogoIcon from '@/assets/layout/logo.svg?react';
 import NotificationIcon from '@/assets/layout/notification.svg?react';
 import ProfileIcon from '@/assets/layout/profile.svg?react';
 import MoreIcon from '@/assets/layout/more.svg?react';
-import type { NotiItem } from '@/types/notification';
 import WithdrawModal from '@/components/common/WithdrawModal';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import { clearTokens, getRefreshToken } from '@/utils/authStorage';
@@ -25,7 +24,7 @@ interface NavItem {
 
 interface NavbarProps {
   onOpenNotification: () => void;
-  notiList: NotiItem[];
+  hasUnread: boolean;
 }
 
 const STUDENT_MENU: NavItem[] = [
@@ -34,10 +33,9 @@ const STUDENT_MENU: NavItem[] = [
   { Icon: HistoryIcon, label: '히스토리', to: '/history' },
 ];
 
-function Navbar({ onOpenNotification, notiList }: NavbarProps) {
+function Navbar({ onOpenNotification, hasUnread }: NavbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const hasUnread = notiList.some((item) => !item.isRead);
   const latencyCheckFrom =
     location.pathname === '/latency-check' ? new URLSearchParams(location.search).get('from') : null;
 

@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import { notificationList, readAllNotifications, readNotification } from '@/apis/notification';
+import {
+  notificationList,
+  notificationUnreadStatus,
+  readAllNotifications,
+  readNotification,
+} from '@/apis/notification';
 import type { NotiItem, NotificationItem } from '@/types/notification';
 import { formatRelativeTime } from '@/utils/relativeTime';
 
@@ -12,6 +17,7 @@ function retryExceptClientError(failureCount: number, error: Error) {
 
 export const NOTIFICATION_QUERY_KEY = ['notification'] as const;
 export const notificationListQueryKey = (page: number, size: number) => ['notification', 'list', page, size] as const;
+export const NOTIFICATION_UNREAD_STATUS_QUERY_KEY = ['notification', 'unreadStatus'] as const;
 
 function toNotiItem(item: NotificationItem): NotiItem {
   return {
@@ -52,5 +58,14 @@ export function useReadAllNotifications() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: NOTIFICATION_QUERY_KEY });
     },
+  });
+}
+
+// 읽지 않은 알림 여부 확인
+export function useNotificationUnreadStatus() {
+  return useQuery({
+    queryKey: NOTIFICATION_UNREAD_STATUS_QUERY_KEY,
+    queryFn: notificationUnreadStatus,
+    retry: retryExceptClientError,
   });
 }
