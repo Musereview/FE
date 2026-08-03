@@ -41,7 +41,10 @@ export default function AttendanceSection({ data }: AttendanceSectionProps) {
 
               const isMissed =
                 item.status === 'MISSED' ||
-                (!isAttended && todayIndex !== -1 && dayOrder.indexOf(item.dayOfWeek) < todayIndex);
+                (!isAttended &&
+                  todayIndex !== -1 &&
+                  dayOrder.indexOf(item.dayOfWeek) !== -1 &&
+                  dayOrder.indexOf(item.dayOfWeek) < todayIndex);
 
               return (
                 <div key={index} className="flex flex-col items-center gap-2">
