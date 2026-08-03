@@ -33,7 +33,7 @@ export default function AppLayout() {
 
   const contextValue = useMemo(
     () => ({
-      onOpenNotification: handleToggleNotification,
+      onToggleNotification: handleToggleNotification,
       notiList,
       onReadItem: handleReadItem,
     }),
@@ -43,7 +43,7 @@ export default function AppLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-950 text-gray-300">
       <Navbar
-        onOpenNotification={handleToggleNotification}
+        onToggleNotification={handleToggleNotification}
         notiList={notiList}
         onCloseNoti={() => setIsNotiOpen(false)}
         isOpen={isNotiOpen}

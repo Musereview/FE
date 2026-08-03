@@ -24,7 +24,7 @@ interface NavItem {
 }
 
 interface NavbarProps {
-  onOpenNotification: () => void;
+  onToggleNotification: () => void;
   notiList: NotiItem[];
   onCloseNoti: () => void;
   isOpen: boolean;
@@ -36,7 +36,7 @@ const STUDENT_MENU: NavItem[] = [
   { Icon: HistoryIcon, label: '히스토리', to: '/history' },
 ];
 
-function Navbar({ onOpenNotification, notiList, onCloseNoti, isOpen }: NavbarProps) {
+function Navbar({ onToggleNotification, notiList, onCloseNoti, isOpen }: NavbarProps) {
   const navigate = useNavigate();
 
   const handleMenuClick = (path: string) => {
@@ -111,7 +111,7 @@ function Navbar({ onOpenNotification, notiList, onCloseNoti, isOpen }: NavbarPro
         {/* 로고 */}
         <NavLink
           to="/main"
-          onClick={onOpenNotification} //홈으로 갈때 알림창 닫기
+          onClick={onToggleNotification} //홈으로 갈때 알림창 닫기
           className={({ isActive }) =>
             `flex h-[54px] items-center justify-center p-1.5 transition-colors ${
               isActive ? 'text-primary-400' : 'text-gray-400'
@@ -147,7 +147,7 @@ function Navbar({ onOpenNotification, notiList, onCloseNoti, isOpen }: NavbarPro
           <button
             type="button"
             aria-label="알림"
-            onClick={onOpenNotification}
+            onClick={onToggleNotification}
             className="relative flex cursor-pointer items-center justify-center transition-opacity hover:opacity-80">
             <NotificationIcon className={`size-7 transition-colors ${isOpen ? 'text-[#69FFC0]' : 'text-gray-400'}`} />
             {hasUnread && (
