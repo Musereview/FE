@@ -39,9 +39,8 @@ const STUDENT_MENU: NavItem[] = [
 function Navbar({ onToggleNotification, notiList, onCloseNoti, isOpen }: NavbarProps) {
   const navigate = useNavigate();
 
-  const handleMenuClick = (path: string) => {
+  const handleMenuClick = () => {
     onCloseNoti();
-    navigate(path);
   };
   const location = useLocation();
   const hasUnread = notiList.some((item) => !item.isRead);
@@ -111,7 +110,7 @@ function Navbar({ onToggleNotification, notiList, onCloseNoti, isOpen }: NavbarP
         {/* 로고 */}
         <NavLink
           to="/main"
-          onClick={onToggleNotification} //홈으로 갈때 알림창 닫기
+          onClick={onCloseNoti} //홈으로 갈때 알림창 닫기
           className={({ isActive }) =>
             `flex h-[54px] items-center justify-center p-1.5 transition-colors ${
               isActive ? 'text-primary-400' : 'text-gray-400'
@@ -127,7 +126,7 @@ function Navbar({ onToggleNotification, notiList, onCloseNoti, isOpen }: NavbarP
             <NavLink
               key={to}
               to={to}
-              onClick={() => handleMenuClick(to)} //각 메뉴 이동할 때 알림창 닫기
+              onClick={handleMenuClick} //각 메뉴 이동할 때 알림창 닫기
               className={({ isActive }) =>
                 `button-label2 flex flex-col items-center gap-1 transition-colors ${
                   isActive || (matchFrom && latencyCheckFrom === matchFrom) ? 'text-primary-400' : 'text-gray-300'
