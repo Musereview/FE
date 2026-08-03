@@ -24,15 +24,15 @@ export default function HistoryHeader({ title, genre, keySig, bpm, playedAt }: H
           {title || 'Jazz Standard Practice'}
         </h1>
 
-        {/* 장르 및 BPM 뱃지 영역 (인라인 스타일 -> 테일윈드 전환) */}
-        <div className="mt-4 flex w-fit items-center gap-6 rounded-[4px] bg-[#CECFD1] px-3 py-1">
-          <span className="text-center text-[14px] font-normal tracking-[-0.28px] text-[#1B1E27]">
+        {/* 장르 및 BPM 뱃지 영역  */}
+        <div className="mt-4 flex w-fit items-center gap-6 rounded-[4px] bg-gray-400 px-3 py-1">
+          <span className="text-center text-[14px] font-normal tracking-[-0.28px] text-gray-900">
             {genre ? genre.toUpperCase() : 'JAZZ'}
           </span>
-          <span className="text-center text-[14px] font-normal tracking-[-0.28px] text-[#1B1E27]">
+          <span className="text-center text-[14px] font-normal tracking-[-0.28px] text-gray-900">
             {keySig || 'C Major'}
           </span>
-          <span className="text-center text-[14px] font-normal tracking-[-0.28px] text-[#1B1E27]">{bpm}BPM</span>
+          <span className="text-center text-[14px] font-normal tracking-[-0.28px] text-gray-900">{bpm}BPM</span>
         </div>
       </div>
 

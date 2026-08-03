@@ -45,28 +45,28 @@ export default function MainPage() {
   //로딩 중일 때
   if (isLoading || !dashboardData) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-[#090A0F] text-white">
+      <div className="flex h-screen w-full items-center justify-center bg-gray-950 text-white">
         <p className="animate-pulse">로딩 중...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex w-full flex-col bg-[#090A0F] pb-[44px]">
+    <div className="flex w-full flex-col bg-gray-950 pb-[44px]">
       {/* 1. 상단 출석 현황판 섹션 */}
       <AttendanceSection data={dashboardData} />
 
       {/* 2. 중간 블록: 진행 중인 학습 / 추천 학습 */}
       <div className="mx-auto mt-[54px] grid w-full max-w-[1400px] grid-cols-2 gap-6 px-10">
         <div className="flex w-full flex-col">
-          <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
+          <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300">
             진행 중인 학습
           </h3>
           <LearningBanner data={dashboardData.currentLearning} />
         </div>
 
         <div className="flex w-full flex-col">
-          <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
+          <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300">
             추천 학습
           </h3>
           <RecommendedLearnings data={dashboardData.recommendedLearnings} />
@@ -76,7 +76,7 @@ export default function MainPage() {
       {/* 3. 하단 블록: 최근 연습 / 알림 */}
       <div className="mx-auto mt-[98px] grid w-full max-w-[1400px] grid-cols-2 gap-6 px-10">
         <div className="flex w-full flex-col">
-          <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
+          <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300">
             최근 연습
           </h3>
           <RecentPractices data={dashboardData.recentPlayings} />
@@ -84,7 +84,7 @@ export default function MainPage() {
 
         <div className="flex w-full flex-col">
           <div className="mb-3 flex w-full items-center justify-between">
-            <h3 className="flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
+            <h3 className="flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300">
               알림
             </h3>
 

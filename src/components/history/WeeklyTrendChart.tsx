@@ -33,7 +33,6 @@ export default function WeeklyTrendChart({ data }: WeeklyTrendChartProps) {
   const diff = data?.diffFromPreviousWeek;
 
   return (
-
     <div className="flex w-[1196px] flex-col">
       {/* 전 주 대비 점수 변화 텍스트 */}
       <div className="mb-[12px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-500">
@@ -43,7 +42,6 @@ export default function WeeklyTrendChart({ data }: WeeklyTrendChartProps) {
             {diff >= 0 ? '향상' : '하락'}
           </>
         )}
-
       </div>
 
       {/* 차트 메인 박스  */}
@@ -62,10 +60,10 @@ export default function WeeklyTrendChart({ data }: WeeklyTrendChartProps) {
           <div className="relative mr-5 ml-16 h-full flex-1">
             {/* 점선 4개 */}
             <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[156px] flex-col justify-between">
-              <div className="w-full border-b-[0.5px] border-dashed border-[#3A3F4A]" />
-              <div className="w-full border-b-[0.5px] border-dashed border-[#3A3F4A]" />
-              <div className="w-full border-b-[0.5px] border-dashed border-[#3A3F4A]" />
-              <div className="w-full border-b-[0.5px] border-dashed border-[#3A3F4A]" />
+              <div className="w-full border-b-[0.5px] border-dashed border-gray-700" />
+              <div className="w-full border-b-[0.5px] border-dashed border-gray-700" />
+              <div className="w-full border-b-[0.5px] border-dashed border-gray-700" />
+              <div className="w-full border-b-[0.5px] border-dashed border-gray-700" />
             </div>
 
             {/* X축 기준 실선  */}
@@ -79,7 +77,7 @@ export default function WeeklyTrendChart({ data }: WeeklyTrendChartProps) {
                 preserveAspectRatio="none">
                 <path
                   d={pathString}
-                  stroke="#69FFC0"
+                  className="stroke-primary-400"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"

@@ -47,7 +47,7 @@ export default function RecentPractices({ data }: RecentPracticesProps) {
             <div
               key={item.playingId}
               onClick={() => navigate(`/practice/${item.playingId}`)}
-              className="flex h-[86px] w-full cursor-pointer items-center justify-between self-stretch rounded-[4px] border-y-[0.3px] border-y-white/[0.05] bg-[#1B1E27] px-6 py-3 text-white transition-colors select-none hover:opacity-90">
+              className="flex h-[86px] w-full cursor-pointer items-center justify-between self-stretch rounded-[4px] border-y-[0.3px] border-y-white/[0.05] bg-gray-900 px-6 py-3 text-white transition-colors select-none hover:opacity-90">
               <div className="mr-4 flex w-0 flex-1 items-center gap-4">
                 <button
                   type="button"
@@ -56,8 +56,8 @@ export default function RecentPractices({ data }: RecentPracticesProps) {
                   aria-label={isCurrentlyPlaying ? '정지하기' : '재생하기'}>
                   {isCurrentlyPlaying ? (
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center gap-[4px]">
-                      <div className="h-[18px] w-[4px] rounded-sm bg-[#69FFC0]" />
-                      <div className="h-[18px] w-[4px] rounded-sm bg-[#69FFC0]" />
+                      <div className="bg-primary-400 h-[18px] w-[4px] rounded-sm" />
+                      <div className="bg-primary-400 h-[18px] w-[4px] rounded-sm" />
                     </div>
                   ) : (
                     <svg
@@ -65,8 +65,8 @@ export default function RecentPractices({ data }: RecentPracticesProps) {
                       width="20"
                       height="20"
                       viewBox="0 0 24 24"
-                      fill="#69FFC0"
-                      stroke="#69FFC0"
+                      className="fill-primary-400 stroke-primary-400"
+
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round">
@@ -80,7 +80,7 @@ export default function RecentPractices({ data }: RecentPracticesProps) {
               </div>
 
               <div className="flex shrink-0 items-center gap-8">
-                <div className="flex items-center font-sans text-[14px] leading-[22px] font-normal tracking-[-0.28px] text-[#AEB1B6]">
+                <div className="flex items-center font-sans text-[14px] leading-[22px] font-normal tracking-[-0.28px] text-gray-500">
                   <span className="w-[50px] shrink-0 text-left font-medium text-gray-500 uppercase">
                     {item.genre || 'ETC'}
                   </span>

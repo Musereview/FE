@@ -38,12 +38,12 @@ function GrowthBar({ label, delta, direction, widthPercent }: GrowthMetric) {
         <div className="absolute top-0 left-1/2 z-10 h-full w-[1px] bg-gray-800" />
         {isPositive ? (
           <div
-            className="to-primary-400 absolute top-0 left-1/2 h-full rounded-r-full bg-gradient-to-r from-[#008751]"
+            className="to-primary-400 from-primary-700 absolute top-0 left-1/2 h-full rounded-r-full bg-gradient-to-r"
             style={{ width: `${widthPercent}%` }}
           />
         ) : (
           <div
-            className="absolute top-0 right-1/2 h-full rounded-l-full bg-gradient-to-l from-[#4C1D95] to-purple-500"
+            className="absolute top-0 right-1/2 h-full rounded-l-full bg-gradient-to-l from-purple-900 to-purple-500"
             style={{ width: `${widthPercent}%` }}
           />
         )}
@@ -58,13 +58,11 @@ interface GrowthProgressSectionProps {
 
 export default function GrowthProgressSection({ data = [] }: GrowthProgressSectionProps) {
   return (
-
-    <div className="flex w-[1196px] flex-col rounded-[6px] border border-gray-800 bg-gray-900 p-[40px]">
+    <div className="flex w-full max-w-[1196px] flex-col rounded-[6px] border border-gray-800 bg-gray-900 p-[40px]">
       {/* 그래프 및 라벨 리스트 영역  */}
       <div className="flex flex-col gap-[32px]">
         {data.map((item) => (
           <GrowthBar key={item.domain} {...toMetric(item)} />
-
         ))}
       </div>
     </div>

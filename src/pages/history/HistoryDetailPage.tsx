@@ -37,7 +37,6 @@ export default function HistoryDetailPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-
   const [xmlContent, setXmlContent] = useState('');
   const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
   const [sectionStartOffsetSec, setSectionStartOffsetSec] = useState(0);
@@ -291,7 +290,7 @@ export default function HistoryDetailPage() {
             className="aspect-square shrink-0">
             <path
               d="M16 19.5L7 12L16 4.5"
-              stroke="#CECFD1"
+              className="stroke-gray-400"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -345,7 +344,7 @@ export default function HistoryDetailPage() {
       {/* 분석 파트 설정 및 리포트 카드 컴포넌트 */}
       <div className="mx-auto mt-[76px] flex w-full max-w-[1280px] flex-col px-6 md:px-12 xl:px-0">
         {/* 인라인 스타일 제거 및 테일윈드 적용 */}
-        <h2 className="w-full text-[24px] leading-[36px] font-medium tracking-[-0.6px] text-[#E7E7E8]">
+        <h2 className="w-full text-[24px] leading-[36px] font-medium tracking-[-0.6px] text-gray-300">
           분석 파트 설정
         </h2>
 
