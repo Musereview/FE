@@ -57,7 +57,7 @@ export async function fetchDashboardData(): Promise<DashboardData> {
           nextStepId: 13,
         },
         {
-          learningId: 5,
+          learningId: 6,
           title: 'Pentatonic Scale',
           subtitle: '5음 음계로 블루스, 록, 팝에서 사용',
           level: 'INTERMEDIATE',
