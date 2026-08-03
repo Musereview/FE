@@ -200,9 +200,6 @@ export default function HistoryDetailPage() {
     setBeatInBar(-1);
 
     scoreViewerRef.current?.jumpToMeasure(0);
-
-    setToastMessage('처음 마디로 되돌아가셨습니다.');
-    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
   }, [sectionStartOffsetSec, stop]);
 
   const handleRewindClick = () => {

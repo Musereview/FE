@@ -10,9 +10,9 @@ interface SummaryCardProps {
 // 1. 이번주 요약 카드 공통 컴포넌트
 function SummaryCard({ icon, title, value, deltaText }: SummaryCardProps) {
   return (
-    <div className="box-border flex h-[160px] flex-1 flex-col items-start justify-between rounded-[6px] border border-gray-800 bg-gray-900 p-[24px]">
+    <div className="box-border flex h-[160px] w-full flex-col items-start justify-between rounded-[6px] border border-gray-800 bg-gray-900 p-6">
       <div className="flex w-full items-center justify-between">
-        <div className="flex items-center gap-[12px]">
+        <div className="flex items-center gap-3">
           {icon}
           <span className="text-[22px] leading-[32px] font-medium tracking-[-0.44px] text-gray-300">{title}</span>
         </div>
@@ -72,7 +72,7 @@ export default function HistorySummaryCards() {
   ];
 
   return (
-    <div className="flex w-[1196px] gap-[16px]">
+    <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-3">
       {cards.map((card) => (
         <SummaryCard key={card.title} {...card} />
       ))}

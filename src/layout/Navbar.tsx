@@ -27,6 +27,7 @@ interface NavbarProps {
   onOpenNotification: () => void;
   notiList: NotiItem[];
   onCloseNoti: () => void;
+  isOpen: boolean;
 }
 
 const STUDENT_MENU: NavItem[] = [
@@ -35,7 +36,7 @@ const STUDENT_MENU: NavItem[] = [
   { Icon: HistoryIcon, label: '히스토리', to: '/history' },
 ];
 
-function Navbar({ onOpenNotification, notiList, onCloseNoti }: NavbarProps) {
+function Navbar({ onOpenNotification, notiList, onCloseNoti, isOpen }: NavbarProps) {
   const navigate = useNavigate();
 
   const handleMenuClick = (path: string) => {
@@ -148,7 +149,7 @@ function Navbar({ onOpenNotification, notiList, onCloseNoti }: NavbarProps) {
             aria-label="알림"
             onClick={onOpenNotification}
             className="relative flex cursor-pointer items-center justify-center transition-opacity hover:opacity-80">
-            <NotificationIcon className="size-7" />
+            <NotificationIcon className={`size-7 transition-colors ${isOpen ? 'text-[#69FFC0]' : 'text-gray-400'}`} />
             {hasUnread && (
               <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#10B981] ring-2 ring-gray-950" />
             )}

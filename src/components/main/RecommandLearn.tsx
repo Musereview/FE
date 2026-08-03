@@ -26,7 +26,7 @@ export default function RecommendedLearnings({ data }: RecommendedLearningsProps
               key={item.learningId}
               onClick={() => navigate(`/learn/curriculum/${item.learningId}?step=${item.nextStepId}`)}
               className="flex h-[198px] flex-1 cursor-pointer flex-col items-start rounded-[6px] bg-[#2B2E36] p-8 text-left transition-colors select-none hover:opacity-90">
-              {/* ── 상단: 제목과 뱃지 (간격 12px) ── */}
+              {/* ── 상단: 제목과 뱃지 ── */}
               <div className="flex w-full items-center gap-[12px]">
                 <span className="font-['Pretendard'] text-[24px] leading-[36px] font-semibold tracking-[-0.02em] text-white">
                   {item.title}
@@ -41,7 +41,7 @@ export default function RecommendedLearnings({ data }: RecommendedLearningsProps
                 </div>
               </div>
 
-              {/* ── 하단: 설명 텍스트 (제목과 내용 사이 간격 38px) ── */}
+              {/* ── 하단: 설명 텍스트  ── */}
               <p className="mt-[38px] w-full font-['Pretendard'] text-[20px] leading-[30px] font-normal tracking-[-0.02em] whitespace-pre-line text-[#AEB1B6]">
                 {item.subtitle}
               </p>

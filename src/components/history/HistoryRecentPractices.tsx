@@ -24,7 +24,7 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
   const practiceList = data ?? [];
 
   return (
-    <div className="flex w-full flex-col gap-[12px]">
+    <div className="flex w-full flex-col gap-3">
       {practiceList.map((item, index) => {
         const targetId = item.practiceId ?? item.playingId;
         const desc = item.description ?? item.summary ?? '';
@@ -41,17 +41,16 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
           <ClickableCard
             key={index}
             onClick={handleClick}
-            className="box-border flex w-full max-w-[1196px] items-center justify-between rounded-[6px] border border-gray-800 bg-gray-900 p-[24px] text-white transition-colors select-none hover:border-gray-700">
+
+            className="box-border flex w-full cursor-pointer flex-col gap-4 rounded-[6px] border border-gray-800 bg-gray-900 p-6 text-white transition-colors select-none hover:border-gray-700 md:flex-row md:items-center md:justify-between md:gap-0">
             {/* 좌측 구역 */}
-            <div className="flex flex-1 flex-col gap-[8px] pr-[24px]">
-              <div className="flex items-center">
+            <div className="flex flex-1 flex-col gap-2 md:pr-6">
+              <div className="flex flex-wrap items-center gap-3">
                 {/* 곡명 */}
-                <span className="text-[20px] leading-[30px] font-normal tracking-[-0.4px] text-white">
-                  {item.title}
-                </span>
+                <span className="text-xl font-normal tracking-tight text-white">{item.title}</span>
 
                 {/* 점수 변화 아이콘 및 텍스트 영역 */}
-                <div className="ml-[24px] flex items-center gap-[4px]">
+                <div className="flex items-center gap-1">
                   {item.scoreType === 'down' ? (
                     <>
                       <svg
@@ -66,7 +65,7 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
                           fill="#FF5D6B"
                         />
                       </svg>
-                      <span className="text-[14px] leading-[20px] font-medium text-[#FF5D6B]">{item.scoreChange}</span>
+                      <span className="text-sm font-medium text-[#FF5D6B]">{item.scoreChange}</span>
                     </>
                   ) : item.scoreType === 'up' ? (
                     <>
@@ -82,12 +81,9 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
                           fill="#69FFC0"
                         />
                       </svg>
-                      <span className="text-primary-400 text-[14px] leading-[20px] font-medium">
-                        {item.scoreChange}
-                      </span>
+                      <span className="text-primary-400 text-sm font-medium">{item.scoreChange}</span>
                     </>
                   ) : (
-                    /* neutral(중립)일 때는 수평 바 SVG 아이콘 출력 */
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -102,15 +98,13 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
               </div>
 
               {/* 상세 설명 */}
-              <p className="m-0 text-[18px] leading-[30px] font-medium tracking-[-0.36px] whitespace-pre-line text-gray-500">
-                {desc}
-              </p>
+              <p className="m-0 text-lg font-medium tracking-tight whitespace-pre-line text-gray-500">{desc}</p>
             </div>
 
             {/* 우측 구역 */}
-            <div className="flex shrink-0 items-center">
+            <div className="flex shrink-0 items-center justify-between gap-4 md:justify-end md:gap-6">
               {/* 소요 시간 */}
-              <div className="flex w-[120px] items-center gap-[6px] text-[14px] leading-[20px] font-normal text-gray-500">
+              <div className="flex items-center gap-1.5 text-sm font-normal text-gray-500 md:w-[120px]">
                 <svg
                   width="16"
                   height="16"
@@ -125,9 +119,7 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
               </div>
 
               {/* 날짜 */}
-              <div className="mr-[24px] w-[90px] text-right text-[14px] leading-[20px] font-normal text-gray-500">
-                {when}
-              </div>
+              <div className="text-right text-sm font-normal text-gray-500 md:w-[90px] md:pr-6">{when}</div>
 
               {/* 우측 단일 화살표 아이콘 */}
               <svg
