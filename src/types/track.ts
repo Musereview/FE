@@ -33,8 +33,7 @@ export interface BackingTrackListItem {
   genre: BackingTrackGenre;
   keySignature: string;
   scaleType: BackingTrackScaleType;
-  /** 아직 응답에 없는 트랙도 있어 optional (없으면 기본값 폴백) */
-  timeSignature?: string;
+  timeSignature: string;
   chordProgression: string[];
   bpm: number;
   level: BackingTrackLevel;
