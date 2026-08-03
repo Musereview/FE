@@ -315,7 +315,7 @@ export default function AnalysisResultPage() {
         </div>
       </div>
 
-      {/* 하단 AI 연주 분석 리포트 + 멘토 채팅 섹션 (w-full max-w-[1280px]로 찌그러짐 방지) */}
+      {/* 하단 AI 연주 분석 리포트 + 멘토 채팅 섹션  */}
       <div className="mb-[36px] w-full max-w-[1280px]">
         <AnalysisChatSection
           analysisId={parsedAnalysisId}

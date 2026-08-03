@@ -24,7 +24,7 @@ export default function RecentPractices({ data }: RecentPracticesProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="flwx-col flex h-[198px] w-full items-center justify-center self-stretch rounded-[6px] bg-[#1C1E24] p-8 text-center select-none">
+      <div className="flex h-[356px] w-full flex-col items-center justify-center self-stretch rounded-[6px] bg-gray-800 p-[32px] text-center select-none">
         <p className="font-['Pretendard'] text-[24px] leading-[36px] font-semibold tracking-[-0.02em] text-white">
           최근 진행한 연주가 없습니다
         </p>

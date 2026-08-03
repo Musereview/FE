@@ -13,7 +13,7 @@ export default function DashboardNoti({ data, onReadItem }: DashboardNotiProps) 
   //알림 데이터가 없을떄 초기 상태
   if (!data || data.length === 0) {
     return (
-      <div className="flex h-[198px] w-full flex-col items-center justify-center self-stretch rounded-[6px] bg-[#1C1E24] p-8 text-center select-none">
+      <div className="flex h-[356px] w-full flex-col items-center justify-center self-stretch rounded-[6px] bg-gray-800 p-[32px] text-center select-none">
         <p className="font-['Pretendard'] text-[24px] leading-[36px] font-semibold tracking-[-0.02em] text-white">
           새로운 알림이 없습니다.
         </p>

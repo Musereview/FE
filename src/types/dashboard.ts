@@ -1,15 +1,15 @@
-export interface AttendanceDay {
-  dayOfWeek: string;
-  label: string;
-  status: 'COMPLETED' | 'TODAY_COMPLETED' | 'MISSED' | 'EMPTY';
-}
-
 export interface UserInfo {
   userId: number;
   nickname: string;
-  profileImgUrl: string | null;
+  profileImgUrl: string;
   skillLevel: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | null;
   instrumentType: string | null;
+}
+
+export interface AttendanceDay {
+  dayOfWeek: 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN';
+  label: string;
+  status: 'COMPLETED' | 'TODAY_COMPLETED' | 'MISSED' | 'EMPTY';
 }
 
 export interface StreakInfo {
@@ -33,7 +33,7 @@ export interface CurrentLearning {
   nextStepId: number;
 }
 
-export interface RecommendedLearningItem {
+export interface RecommendedLearning {
   learningId: number;
   title: string;
   subtitle: string;
@@ -41,7 +41,7 @@ export interface RecommendedLearningItem {
   nextStepId: number;
 }
 
-export interface RecentPlayingItem {
+export interface RecentPlaying {
   playingId: number;
   title: string;
   genre: string | null;
@@ -52,11 +52,18 @@ export interface RecentPlayingItem {
   durationMinutes: number;
 }
 
-export interface DashboardResponse {
+export interface DashboardData {
   user: UserInfo;
   streak: StreakInfo;
   practiceSummary: PracticeSummary;
   currentLearning: CurrentLearning | null;
-  recommendedLearnings: RecommendedLearningItem[];
-  recentPlayings: RecentPlayingItem[];
+  recommendedLearnings: RecommendedLearning[];
+  recentPlayings: RecentPlaying[];
+}
+
+export interface DashboardResponse {
+  isSuccess: boolean;
+  code: string;
+  message: string;
+  data: DashboardData;
 }
