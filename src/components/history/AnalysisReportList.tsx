@@ -20,50 +20,19 @@ export default function AnalysisReportList({ analyses, onSelectReport }: Analysi
   }
 
   return (
-    <div className="flex flex-col gap-[16px]">
+    <div className="flex flex-col gap-4">
       {analyses.map((analysis) => (
         <div
           key={analysis.analysisId}
-          style={{
-            display: 'flex',
-            height: '152px',
-            padding: '24px 40px',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            alignSelf: 'stretch',
-            borderRadius: '6px',
-            background: '#2B2E36',
-          }}>
+          className="flex h-[152px] w-full items-center justify-between rounded-[6px] bg-[#2B2E36] px-10 py-6">
           {/* 왼쪽 정보 영역 */}
-          <div className="flex flex-col gap-[8px]">
-            <span
-              style={{
-                alignSelf: 'stretch',
-                color: '#FFF',
-                fontFamily: 'Pretendard',
-                fontSize: '20px',
-                fontStyle: 'normal',
-                fontWeight: 400,
-                lineHeight: '30px',
-                letterSpacing: '-0.4px',
-              }}>
+          <div className="flex flex-col gap-2">
+            <span className="text-[20px] leading-[30px] font-normal tracking-[-0.4px] text-white">
               {analysis.title}
             </span>
-            <div className="flex items-center gap-[16px]">
-              <span
-                style={{
-                  alignSelf: 'stretch',
-                  color: '#868A91',
-                  fontFamily: 'Pretendard',
-                  fontSize: '18px',
-                  fontStyle: 'normal',
-                  fontWeight: 500,
-                  lineHeight: '30px',
-                  letterSpacing: '-0.36px',
-                }}>
-                1줄 정리
-              </span>
-              <div className="flex items-center gap-[4px]">
+            <div className="flex items-center gap-4">
+              <span className="text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#868A91]">1줄 정리</span>
+              <div className="flex items-center gap-1">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
@@ -76,16 +45,7 @@ export default function AnalysisReportList({ analyses, onSelectReport }: Analysi
                     fill="#AEB1B6"
                   />
                 </svg>
-                <span
-                  style={{
-                    color: '#AEB1B6',
-                    fontFamily: 'Pretendard',
-                    fontSize: '14px',
-                    fontStyle: 'normal',
-                    fontWeight: 500,
-                    lineHeight: '22px',
-                    letterSpacing: '-0.28px',
-                  }}>
+                <span className="text-[14px] leading-[22px] font-medium tracking-[-0.28px] text-[#AEB1B6]">
                   {analysis.oneLineSummary || '분석 요약 내용이 없습니다.'}
                 </span>
               </div>
@@ -93,38 +53,15 @@ export default function AnalysisReportList({ analyses, onSelectReport }: Analysi
           </div>
 
           {/* 오른쪽 영역 (마디 표기와 리포트 보기 버튼) */}
-          <div className="flex items-center gap-[32px]">
-            <span
-              style={{
-                color: '#868A91',
-                textAlign: 'center',
-                fontFamily: 'Pretendard',
-                fontSize: '22px',
-                fontStyle: 'normal',
-                fontWeight: 500,
-                lineHeight: '32px',
-                letterSpacing: '-0.44px',
-              }}>
+          <div className="flex items-center gap-8">
+            <span className="text-center text-[22px] leading-[32px] font-medium tracking-[-0.44px] text-[#868A91]">
               {analysis.startBar}마디-{analysis.endBar}마디
             </span>
 
             <button
               type="button"
               onClick={() => onSelectReport(analysis.startBar, analysis.endBar, analysis.analysisId)}
-              style={{
-                display: 'flex',
-                width: '193px',
-                height: '60px',
-                padding: '6px 12px 6px 14px',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '8px',
-                flexShrink: 0,
-                borderRadius: '6px',
-                border: '0.5px solid #69FFC0',
-                background: 'transparent',
-              }}
-              className="cursor-pointer transition-all hover:bg-white/5 active:scale-[0.98]">
+              className="flex h-[60px] w-[193px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] border-[0.5px] border-[#69FFC0] bg-transparent px-[14px] py-[6px] transition-all hover:bg-white/5 active:scale-[0.98]">
               <span className="text-center text-[16px] leading-[28px] font-medium tracking-[-0.32px] text-[#69FFC0]">
                 리포트보기
               </span>

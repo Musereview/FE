@@ -23,19 +23,10 @@ export default function MeasureSelectForm({
 }: MeasureSelectFormProps) {
   return (
     <div className="mt-[44px] flex items-end justify-between">
-      <div className="flex items-end gap-[16px]">
-        <div className="flex flex-col gap-[8px]">
-          <label
-            style={{
-              alignSelf: 'stretch',
-              color: '#E7E7E8',
-              fontFamily: 'Pretendard',
-              fontSize: '20px',
-              fontStyle: 'normal',
-              fontWeight: 400,
-              lineHeight: '30px',
-              letterSpacing: '-0.4px',
-            }}>
+      <div className="flex items-end gap-4">
+        {/* 분석 시작 마디 입력 박스 */}
+        <div className="flex flex-col gap-2">
+          <label className="w-full text-[20px] leading-[30px] font-normal tracking-[-0.4px] text-[#E7E7E8]">
             분석 시작 마디
           </label>
           <input
@@ -44,36 +35,13 @@ export default function MeasureSelectForm({
             onFocus={() => onFocus(startMeasure, setStartMeasure)}
             onBlur={() => onBlur(startMeasure, setStartMeasure, '1마디')}
             onChange={(e) => onChange(e.target.value, setStartMeasure)}
-            style={{
-              width: '174px',
-              height: '60px',
-              padding: '0 18px',
-              borderRadius: '6px',
-              background: '#2B2E36',
-              color: '#E7E7E8',
-              fontFamily: 'Pretendard',
-              fontSize: '18px',
-              fontStyle: 'normal',
-              fontWeight: 500,
-              lineHeight: '30px',
-              letterSpacing: '-0.36px',
-            }}
-            className="text-center focus:outline-none"
+            className="h-[60px] w-[174px] rounded-[6px] bg-[#2B2E36] px-[18px] text-center text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8] focus:outline-none"
           />
         </div>
 
-        <div className="flex flex-col gap-[8px]">
-          <label
-            style={{
-              alignSelf: 'stretch',
-              color: '#E7E7E8',
-              fontFamily: 'Pretendard',
-              fontSize: '20px',
-              fontStyle: 'normal',
-              fontWeight: 400,
-              lineHeight: '30px',
-              letterSpacing: '-0.4px',
-            }}>
+        {/* 분석 종료 마디 입력 박스 */}
+        <div className="flex flex-col gap-2">
+          <label className="w-full text-[20px] leading-[30px] font-normal tracking-[-0.4px] text-[#E7E7E8]">
             분석 종료 마디
           </label>
           <input
@@ -82,40 +50,16 @@ export default function MeasureSelectForm({
             onFocus={() => onFocus(endMeasure, setEndMeasure)}
             onBlur={() => onBlur(endMeasure, setEndMeasure, `${totalMeasures}마디`)}
             onChange={(e) => onChange(e.target.value, setEndMeasure)}
-            style={{
-              width: '174px',
-              height: '60px',
-              padding: '0 18px',
-              borderRadius: '6px',
-              background: '#2B2E36',
-              color: '#E7E7E8',
-              fontFamily: 'Pretendard',
-              fontSize: '18px',
-              fontStyle: 'normal',
-              fontWeight: 500,
-              lineHeight: '30px',
-              letterSpacing: '-0.36px',
-            }}
-            className="text-center focus:outline-none"
+            className="h-[60px] w-[174px] rounded-[6px] bg-[#2B2E36] px-[18px] text-center text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8] focus:outline-none"
           />
         </div>
       </div>
 
+      {/* 추가 분석하기 버튼 */}
       <button
         type="button"
         onClick={onSubmit}
-        style={{
-          display: 'flex',
-          width: '366px',
-          height: '60px',
-          padding: '6px 12px 6px 14px',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: '8px',
-          borderRadius: '6px',
-          background: '#69FFC0',
-        }}
-        className="cursor-pointer transition-all hover:opacity-90 active:scale-[0.98]">
+        className="flex h-[60px] w-[366px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-[#69FFC0] px-[14px] py-[6px] transition-all hover:opacity-90 active:scale-[0.98]">
         <span className="text-[16px] font-bold text-[#1B1E27]">추가 분석하기</span>
         <svg
           xmlns="http://www.w3.org/2000/svg"

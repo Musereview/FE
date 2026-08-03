@@ -66,7 +66,6 @@ export default function HistoryDetailPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Mock Data 세팅 (추후 실제 API 연동 시 axios 호출로 교체 가능)
   const [historyData] = useState(MOCK_HISTORY_DETAIL);
 
   const [xmlContent, setXmlContent] = useState('');
@@ -114,7 +113,6 @@ export default function HistoryDetailPage() {
         }
 
         const sIdx = 0;
-
         const offsetSec = timings.measureStartTimes[sIdx] ?? 0;
         const endSec = timings.totalDuration;
 
@@ -281,21 +279,12 @@ export default function HistoryDetailPage() {
         </div>
       )}
 
-      {/* [< 히스토리] 버튼 */}
+      {/* [< 히스토리] 버튼  */}
       <div className="absolute top-[74px] left-[10px] z-10 shrink-0 xl:left-[35px]">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          style={{
-            color: '#CECFD1',
-            fontFamily: 'Pretendard',
-            fontSize: '18px',
-            fontStyle: 'normal',
-            fontWeight: 500,
-            lineHeight: '30px',
-            letterSpacing: '-0.36px',
-          }}
-          className="flex cursor-pointer items-center gap-[8px] transition-colors hover:text-white">
+          className="flex cursor-pointer items-center gap-[8px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300 transition-colors hover:text-white">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -358,17 +347,8 @@ export default function HistoryDetailPage() {
 
       {/* 분석 파트 설정 및 리포트 카드 컴포넌트 */}
       <div className="mx-auto mt-[76px] flex w-full max-w-[1280px] flex-col px-6 md:px-12 xl:px-0">
-        <h2
-          style={{
-            alignSelf: 'stretch',
-            color: '#E7E7E8',
-            fontFamily: 'Pretendard',
-            fontSize: '24px',
-            fontStyle: 'normal',
-            fontWeight: 500,
-            lineHeight: '36px',
-            letterSpacing: '-0.6px',
-          }}>
+        {/* 인라인 스타일 제거 및 테일윈드 적용 */}
+        <h2 className="w-full text-[24px] leading-[36px] font-medium tracking-[-0.6px] text-[#E7E7E8]">
           분석 파트 설정
         </h2>
 
