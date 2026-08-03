@@ -1,4 +1,3 @@
-// src/layout/NotificationDrawer.tsx
 import { useNavigate } from 'react-router-dom';
 
 import type { NotiItem } from '@/types/notification';
