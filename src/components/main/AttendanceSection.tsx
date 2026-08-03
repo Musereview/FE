@@ -1,7 +1,7 @@
 interface AttendanceDay {
   dayOfWeek: string;
   label: string;
-  status: string;
+  status: 'COMPLETED' | 'TODAY_COMPLETED' | 'MISSED' | 'EMPTY';
 }
 
 interface AttendanceSectionProps {
@@ -25,12 +25,9 @@ export default function AttendanceSection({ data }: AttendanceSectionProps) {
         {/* 좌측 영역: 타이틀 + 일주일 출석 현황 */}
         <div className="flex flex-col gap-5">
           <div className="flex flex-col">
-            {/* user.nickname 파트 */}
             <h2 className="text-[32px] leading-[44px] font-semibold tracking-[-0.64px] text-[#E7E7E8]">
               {user.nickname} 님,
             </h2>
-
-            {/* 연속 학습 문구 파트 */}
             <h2 className="text-[32px] leading-[44px] font-semibold tracking-[-0.64px] text-[#F0F1F1]">
               {streak.currentDays}일 연속 학습 중이에요!
             </h2>
@@ -42,8 +39,9 @@ export default function AttendanceSection({ data }: AttendanceSectionProps) {
               const isAttended = item.status === 'COMPLETED' || item.status === 'TODAY_COMPLETED';
               const isToday = item.status === 'TODAY_COMPLETED';
 
-              const currentIndex = dayOrder.indexOf(item.dayOfWeek);
-              const isMissed = !isAttended && todayIndex !== -1 && currentIndex !== -1 && currentIndex < todayIndex;
+              const isMissed =
+                item.status === 'MISSED' ||
+                (!isAttended && todayIndex !== -1 && dayOrder.indexOf(item.dayOfWeek) < todayIndex);
 
               return (
                 <div key={index} className="flex flex-col items-center gap-2">
@@ -109,9 +107,8 @@ export default function AttendanceSection({ data }: AttendanceSectionProps) {
           </div>
         </div>
 
-        {/* 우측 영역: 연습 시간 정보 보드  */}
+        {/* 우측 영역: 연습 시간 정보 보드 */}
         <div className="flex w-full max-w-[420px] flex-col lg:w-[320px] lg:min-w-[320px]">
-          {/* 상단: 주간 연습 시간 */}
           <div className="flex items-center justify-between gap-4 pb-3">
             <span className="text-[22px] leading-[32px] font-medium tracking-[-0.02em] text-[#69FFC0]">
               주간 연습 시간
@@ -123,11 +120,7 @@ export default function AttendanceSection({ data }: AttendanceSectionProps) {
               <span className="text-[32px] leading-[44px] font-semibold tracking-[-0.02em] text-[#69FFC0]">h</span>
             </div>
           </div>
-
-          {/* 구분선 */}
           <div className="h-[1px] w-full bg-gray-800" />
-
-          {/* 하단: 월 누적 연습 시간 */}
           <div className="flex items-center justify-between gap-4 pt-3">
             <span className="text-[22px] leading-[32px] font-medium tracking-[-0.02em] text-gray-300">
               {practiceSummary.monthLabel} 누적 연습 시간

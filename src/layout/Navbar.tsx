@@ -1,5 +1,5 @@
 //사이드바
-// src/layout/Navbar.tsx
+
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import PracticeIcon from '@/assets/layout/practice.svg?react';
@@ -26,6 +26,7 @@ interface NavItem {
 interface NavbarProps {
   onOpenNotification: () => void;
   notiList: NotiItem[];
+  onCloseNoti: () => void;
 }
 
 const STUDENT_MENU: NavItem[] = [
@@ -34,8 +35,13 @@ const STUDENT_MENU: NavItem[] = [
   { Icon: HistoryIcon, label: '히스토리', to: '/history' },
 ];
 
-function Navbar({ onOpenNotification, notiList }: NavbarProps) {
+function Navbar({ onOpenNotification, notiList, onCloseNoti }: NavbarProps) {
   const navigate = useNavigate();
+
+  const handleMenuClick = (path: string) => {
+    onCloseNoti();
+    navigate(path);
+  };
   const location = useLocation();
   const hasUnread = notiList.some((item) => !item.isRead);
   const latencyCheckFrom =
@@ -104,6 +110,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
         {/* 로고 */}
         <NavLink
           to="/main"
+          onClick={onOpenNotification} //홈으로 갈때 알림창 닫기
           className={({ isActive }) =>
             `flex h-[54px] items-center justify-center p-1.5 transition-colors ${
               isActive ? 'text-primary-400' : 'text-gray-400'
@@ -119,6 +126,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
             <NavLink
               key={to}
               to={to}
+              onClick={() => handleMenuClick(to)} //각 메뉴 이동할 때 알림창 닫기
               className={({ isActive }) =>
                 `button-label2 flex flex-col items-center gap-1 transition-colors ${
                   isActive || (matchFrom && latencyCheckFrom === matchFrom) ? 'text-primary-400' : 'text-gray-300'
@@ -150,6 +158,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
         {/* 프로필 */}
         <NavLink
           to="/profile"
+          onClick={onCloseNoti}
           className={({ isActive }) =>
             `flex h-[54px] items-center justify-center ${isActive ? 'text-primary-400' : ''}`
           }
@@ -164,7 +173,10 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
             aria-label="더보기"
             aria-haspopup="menu"
             aria-expanded={isMoreOpen}
-            onClick={() => setIsMoreOpen((v) => !v)}
+            onClick={() => {
+              onCloseNoti();
+              setIsMoreOpen((v) => !v);
+            }}
             className={`cursor-pointer transition-colors hover:opacity-80 ${isMoreOpen ? 'text-primary-400' : ''}`}>
             <MoreIcon className="size-9" />
           </button>
@@ -177,14 +189,20 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
               <button
                 type="button"
                 role="menuitem"
-                onClick={handleLogout}
+                onClick={() => {
+                  onCloseNoti();
+                  handleLogout();
+                }}
                 className="body-medium flex w-full cursor-pointer items-center justify-center px-6 py-1 whitespace-nowrap text-gray-300 transition-opacity hover:opacity-80">
                 로그아웃
               </button>
               <button
                 type="button"
                 role="menuitem"
-                onClick={handleWithdraw}
+                onClick={() => {
+                  onCloseNoti();
+                  handleWithdraw();
+                }}
                 className="body-medium text-error flex w-full cursor-pointer items-center justify-center px-6 py-1 whitespace-nowrap transition-opacity hover:opacity-80">
                 회원탈퇴
               </button>

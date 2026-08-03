@@ -10,6 +10,17 @@ interface DashboardNotiProps {
 export default function DashboardNoti({ data, onReadItem }: DashboardNotiProps) {
   const navigate = useNavigate();
 
+  //알림 데이터가 없을떄 초기 상태
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex h-[198px] w-full flex-col items-center justify-center self-stretch rounded-[6px] bg-[#1C1E24] p-8 text-center select-none">
+        <p className="font-['Pretendard'] text-[24px] leading-[36px] font-semibold tracking-[-0.02em] text-white">
+          새로운 알림이 없습니다.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex w-full flex-col">
       <div className="flex w-full flex-col gap-2">
