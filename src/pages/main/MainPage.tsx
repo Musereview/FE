@@ -10,13 +10,13 @@ import type { NotiItem } from '@/types/notification';
 import type { DashboardData } from '@/types/dashboard';
 
 interface LayoutContextType {
-  onOpenNotification: () => void;
+  onToggleNotification: () => void;
   notiList: NotiItem[];
   onReadItem: (id: number) => void;
 }
 
 export default function MainPage() {
-  const { onOpenNotification, notiList, onReadItem } = useOutletContext<LayoutContextType>();
+  const { onToggleNotification, notiList, onReadItem } = useOutletContext<LayoutContextType>();
 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -29,6 +29,12 @@ export default function MainPage() {
         setDashboardData(result);
       } catch (error) {
         console.error('대시보드 데이터 로드 실패:', error);
+        setDashboardData({
+          attendance: [],
+          currentLearning: null,
+          recommendedLearnings: [],
+          recentPlayings: [],
+        } as unknown as DashboardData);
       } finally {
         setIsLoading(false);
       }
@@ -36,6 +42,7 @@ export default function MainPage() {
     loadData();
   }, []);
 
+  //로딩 중일 때
   if (isLoading || !dashboardData) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[#090A0F] text-white">
@@ -83,7 +90,7 @@ export default function MainPage() {
 
             <button
               type="button"
-              onClick={onOpenNotification}
+              onClick={onToggleNotification}
               className="cursor-pointer border-none bg-transparent p-0 font-sans text-xs text-gray-500 transition-colors outline-none hover:text-gray-400">
               전체 보기
             </button>
