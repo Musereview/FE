@@ -2,6 +2,7 @@ import HistorySummaryCards from '@/components/history/HistorySummaryCards';
 import GrowthProgressSection from '@/components/history/GrowthProgressSection';
 import WeeklyTrendChart from '@/components/history/WeeklyTrendChart';
 import HistoryRecentPractices from '@/components/history/HistoryRecentPractices';
+import { useHistoryList, useHistoryStatistics } from '@/hooks/useHistory';
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
@@ -14,46 +15,19 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
   );
 }
 
+function SectionMessage({ children }: { children: string }) {
+  return (
+    <div className="flex min-h-[160px] w-full items-center justify-center rounded-[6px] border border-gray-800 bg-gray-900 text-gray-500">
+      {children}
+    </div>
+  );
+}
+
+const STATISTICS_ERROR_MESSAGE = '통계를 불러오지 못했습니다.';
+
 export default function HistoryPage() {
-  const historyPracticeData = [
-    {
-      practiceId: 1,
-      title: 'Jazz Standard Practice',
-      scoreChange: '+8',
-      scoreType: 'up' as const,
-      description:
-        '리디안 스케일 활용이 우수하며, 텐션음 해결이 자연스러웠습니다.\n박자 안정성을 더 개선하면 좋겠습니다.',
-      timeLabel: '소요시간 10분',
-      date: '오늘',
-    },
-    {
-      practiceId: 2,
-      title: 'Modal Interchange Practice',
-      scoreChange: '+6',
-      scoreType: 'up' as const,
-      description: '모달 인터체인지 개념을 잘 적용했으나, 전조 구간에서 약간의 불안정함이 있었습니다.',
-      timeLabel: '소요시간 10분',
-      date: '어제',
-    },
-    {
-      practiceId: 3,
-      title: 'Voice Leading Exercise',
-      scoreChange: '-5',
-      scoreType: 'down' as const,
-      description: '보이스 리딩이 매끄럽지 못했고, 코드 톤 간 연결이 부자연스러웠습니다.\n더 많은 연습이 필요합니다.',
-      timeLabel: '소요시간 10분',
-      date: '4월 30일',
-    },
-    {
-      practiceId: 4,
-      title: 'Blues Scale Improvisation',
-      scoreChange: '—',
-      scoreType: 'neutral' as const,
-      description: '블루스 스케일을 효과적으로 사용했고, 리듬감이 뛰어났습니다.',
-      timeLabel: '소요시간 10분',
-      date: '4월 29일',
-    },
-  ];
+  const { data, isError: isListError } = useHistoryList();
+  const { data: statistics, isError: isStatisticsError } = useHistoryStatistics();
 
   return (
     <div className="flex min-h-screen w-full justify-center bg-gray-950 px-6 pt-[76px] pb-[100px] text-white">
@@ -69,25 +43,43 @@ export default function HistoryPage() {
         {/* 2. 이번주 연주 요약 섹션 */}
         <div className="mb-[80px] flex w-full flex-col">
           <SectionHeader title="이번주 연주 요약" />
-          <HistorySummaryCards />
+          {isStatisticsError ? (
+            <SectionMessage>{STATISTICS_ERROR_MESSAGE}</SectionMessage>
+          ) : (
+            <HistorySummaryCards data={statistics?.weeklySummary} />
+          )}
         </div>
 
         {/* 3. 영역별 성장 변화 섹션 */}
         <div className="mb-[80px] flex w-full flex-col">
           <SectionHeader title="영역별 성장 변화" subtitle="지난주 대비 영역별 평균 점수 변화를 보여드려요." />
-          <GrowthProgressSection />
+          {isStatisticsError ? (
+            <SectionMessage>{STATISTICS_ERROR_MESSAGE}</SectionMessage>
+          ) : (
+            <GrowthProgressSection data={statistics?.domainGrowth} />
+          )}
         </div>
 
         {/* 4. 최근 4주 학습 추이 섹션 */}
         <div className="mb-[80px] flex w-full flex-col">
           <SectionHeader title="최근 4주 학습 추이" subtitle="최근 4주간 평균 점수 변화를 보여드려요." />
-          <WeeklyTrendChart />
+          {isStatisticsError ? (
+            <SectionMessage>{STATISTICS_ERROR_MESSAGE}</SectionMessage>
+          ) : (
+            <WeeklyTrendChart data={statistics?.weeklyTrend} />
+          )}
         </div>
 
         {/* 5. 최근 연주 리스트 */}
         <div className="flex w-full flex-col">
           <SectionHeader title="최근 연주" />
-          <HistoryRecentPractices data={historyPracticeData} />
+          {isListError ? (
+            <SectionMessage>연주 기록을 불러오지 못했습니다.</SectionMessage>
+          ) : data && data.items.length === 0 ? (
+            <SectionMessage>아직 연주 기록이 없습니다.</SectionMessage>
+          ) : (
+            <HistoryRecentPractices data={data?.items} />
+          )}
         </div>
       </div>
     </div>

@@ -1,45 +1,32 @@
 import { useNavigate } from 'react-router-dom';
 import ClickableCard from '@/components/common/ClickableCard';
-
-export interface HistoryPracticeItem {
-  practiceId?: number;
-  playingId?: number;
-  title: string;
-  scoreChange: string | number;
-  scoreType: 'up' | 'down' | 'neutral';
-  description?: string;
-  summary?: string;
-  timeLabel?: string;
-  durationMinutes?: number;
-  date?: string;
-  relativeDate?: string;
-}
+import { isValidHistoryId } from '@/utils/historyId';
+import type { HistoryListItem } from '@/types/history';
 
 interface HistoryRecentPracticesProps {
-  data?: HistoryPracticeItem[];
+  data?: HistoryListItem[];
 }
 
-export default function HistoryRecentPractices({ data }: HistoryRecentPracticesProps) {
+export default function HistoryRecentPractices({ data = [] }: HistoryRecentPracticesProps) {
   const navigate = useNavigate();
-  const practiceList = data ?? [];
 
   return (
-    <div className="flex w-full flex-col gap-3">
-      {practiceList.map((item, index) => {
-        const targetId = item.practiceId ?? item.playingId;
-        const desc = item.description ?? item.summary ?? '';
-        const time = item.timeLabel ?? (item.durationMinutes ? `소요시간 ${item.durationMinutes}분` : '');
-        const when = item.date ?? item.relativeDate ?? '';
+
+    <div className="flex w-full flex-col gap-[12px]">
+      {data.map((item) => {
+        // 점수 변화가 없거나(null) 0이면 중립 처리
+        const scoreType =
+          item.scoreChange === null || item.scoreChange === 0 ? 'neutral' : item.scoreChange > 0 ? 'up' : 'down';
+
 
         const handleClick = () => {
-          if (targetId) {
-            navigate(`/history/${targetId}`);
-          }
+          if (!isValidHistoryId(item.playingId)) return;
+          navigate(`/history/${item.playingId}`);
         };
 
         return (
           <ClickableCard
-            key={index}
+            key={item.playingId}
             onClick={handleClick}
 
             className="box-border flex w-full cursor-pointer flex-col gap-4 rounded-[6px] border border-gray-800 bg-gray-900 p-6 text-white transition-colors select-none hover:border-gray-700 md:flex-row md:items-center md:justify-between md:gap-0">
@@ -50,8 +37,10 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
                 <span className="text-xl font-normal tracking-tight text-white">{item.title}</span>
 
                 {/* 점수 변화 아이콘 및 텍스트 영역 */}
-                <div className="flex items-center gap-1">
-                  {item.scoreType === 'down' ? (
+
+                <div className="ml-[24px] flex items-center gap-[4px]">
+                  {scoreType === 'down' ? (
+
                     <>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -65,9 +54,12 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
                           fill="#FF5D6B"
                         />
                       </svg>
-                      <span className="text-sm font-medium text-[#FF5D6B]">{item.scoreChange}</span>
+
+
+                      <span className="text-[14px] leading-[20px] font-medium text-[#FF5D6B]">{item.scoreChange}</span>
+
                     </>
-                  ) : item.scoreType === 'up' ? (
+                  ) : scoreType === 'up' ? (
                     <>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -81,7 +73,12 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
                           fill="#69FFC0"
                         />
                       </svg>
-                      <span className="text-primary-400 text-sm font-medium">{item.scoreChange}</span>
+
+
+                      <span className="text-primary-400 text-[14px] leading-[20px] font-medium">
+                        +{item.scoreChange}
+                      </span>
+
                     </>
                   ) : (
                     <svg
@@ -98,7 +95,11 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
               </div>
 
               {/* 상세 설명 */}
-              <p className="m-0 text-lg font-medium tracking-tight whitespace-pre-line text-gray-500">{desc}</p>
+
+              <p className="m-0 text-[18px] leading-[30px] font-medium tracking-[-0.36px] whitespace-pre-line text-gray-500">
+                {item.summary}
+              </p>
+
             </div>
 
             {/* 우측 구역 */}
@@ -115,11 +116,16 @@ export default function HistoryRecentPractices({ data }: HistoryRecentPracticesP
                   <circle cx="8" cy="8" r="6.5" stroke="#AEB1B6" strokeWidth="1.2" />
                   <path d="M8 4.5V8H11" stroke="#AEB1B6" strokeWidth="1.2" strokeLinecap="round" />
                 </svg>
-                <span>{time}</span>
+
+                <span>소요시간 {item.durationMinutes}분</span>
               </div>
 
               {/* 날짜 */}
-              <div className="text-right text-sm font-normal text-gray-500 md:w-[90px] md:pr-6">{when}</div>
+
+              <div className="mr-[24px] w-[90px] text-right text-[14px] leading-[20px] font-normal text-gray-500">
+                {item.relativeDate}
+              </div>
+
 
               {/* 우측 단일 화살표 아이콘 */}
               <svg

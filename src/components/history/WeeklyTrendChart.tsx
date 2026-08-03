@@ -1,20 +1,49 @@
-export default function WeeklyTrendChart() {
-  const points = [
-    { label: '3주 전', score: 60, x: 40, y: 110 },
-    { label: '2주 전', score: 78, x: 330, y: 65 },
-    { label: '지난주', score: 63, x: 620, y: 100 },
-    { label: '이번주', score: 93, x: 910, y: 24 },
-  ];
+import type { WeeklyTrendData } from '@/types/history';
+
+// viewBox(950) 안에서 첫/마지막 점이 놓이는 x 좌표
+const X_START = 40;
+const X_END = 910;
+// Y축 눈금: 100점 -> y 0, 40점 -> y 156 (60점 구간이 156px)
+const Y_PER_POINT = 2.6;
+const Y_MAX = 208; // X축 실선 위치
+
+function toY(score: number) {
+  return Math.min(Math.max((100 - score) * Y_PER_POINT, 0), Y_MAX);
+}
+
+interface WeeklyTrendChartProps {
+  data?: WeeklyTrendData;
+}
+
+export default function WeeklyTrendChart({ data }: WeeklyTrendChartProps) {
+  const items = data?.items ?? [];
+  const gap = items.length > 1 ? (X_END - X_START) / (items.length - 1) : 0;
+
+  const points = items.map((item, idx) => ({
+    label: item.label,
+    score: item.averageScore,
+    x: X_START + idx * gap,
+    y: toY(item.averageScore),
+  }));
 
   const pathString = points.reduce((acc, cur, idx) => {
     return idx === 0 ? `M ${cur.x} ${cur.y}` : `${acc} L ${cur.x} ${cur.y}`;
   }, '');
 
+  const diff = data?.diffFromPreviousWeek;
+
   return (
-    <div className="flex w-full flex-col">
-      {/* 전 주 대비 +9점 향상 텍스트 */}
-      <div className="mb-3 w-auto text-lg font-medium tracking-tight text-gray-500">
-        전 주보다 <span className="text-primary-400">+9점</span> 향상
+
+    <div className="flex w-[1196px] flex-col">
+      {/* 전 주 대비 점수 변화 텍스트 */}
+      <div className="mb-[12px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-500">
+        {diff !== undefined && (
+          <>
+            전 주보다 <span className={diff >= 0 ? 'text-primary-400' : 'text-purple-500'}>{Math.abs(diff)}점</span>{' '}
+            {diff >= 0 ? '향상' : '하락'}
+          </>
+        )}
+
       </div>
 
       {/* 차트 메인 박스  */}

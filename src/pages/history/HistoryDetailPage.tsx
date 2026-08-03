@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import * as Tone from 'tone';
 
 import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
@@ -9,7 +10,9 @@ import {
   extractActiveTempoMeterAtMeasure,
 } from '@/utils/musicXmlTiming';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
+import { isValidHistoryId } from '@/utils/historyId';
 import { useMetronome } from '@/hooks/useMetronome';
+import { useHistoryDetail } from '@/hooks/useHistory';
 import LoadingPage from '@/pages/common/LoadingPage';
 
 // 분리한 컴포넌트들 임포트
@@ -18,46 +21,14 @@ import HistoryPlayerBar from '@/components/history/HistoryPlayerBar';
 import AnalysisReportList from '@/components/history/AnalysisReportList';
 import MeasureSelectForm from '@/components/history/MeasureSelectForm';
 
-// API 명세서 기준 Mock Data
-const MOCK_HISTORY_DETAIL = {
-  playingId: 31,
-  title: 'Jazz Standard Practice',
-  genre: 'JAZZ',
-  key: 'C Major',
-  bpm: 120,
-  timeSignature: '4/4',
-  playedAt: '2026-05-04T14:32:00',
-  durationMinutes: 10,
-  durationSec: 612,
-  totalBars: null,
-  analyses: [
-    {
-      analysisId: 10,
-      startBar: 5,
-      endBar: 10,
-      title: '5마디-10마디 분석 리포트',
-      oneLineSummary: '긴장감을 오래 유지하는 흐름이 많았어요.',
-      status: 'COMPLETED',
-      estimatedSeconds: null,
-      createdAt: '2026-05-04T14:35:00',
-    },
-    {
-      analysisId: 11,
-      startBar: 11,
-      endBar: 16,
-      title: '11마디-16마디 분석 리포트',
-      oneLineSummary: '코드 연결은 안정적이지만 보이스리딩 보완이 필요합니다.',
-      status: 'COMPLETED',
-      estimatedSeconds: null,
-      createdAt: '2026-05-04T14:40:00',
-    },
-  ],
-};
-
 export default function HistoryDetailPage() {
   const navigate = useNavigate();
   const { historyId } = useParams<{ historyId: string }>();
-  const parsedHistoryId = Number(historyId) || 31;
+  const parsedHistoryId = Number(historyId);
+  const isValidId = isValidHistoryId(parsedHistoryId);
+
+  // 히스토리 상세보기 조회
+  const { data: historyData, isPending, isError, error } = useHistoryDetail(isValidId ? parsedHistoryId : 0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isScoreReady, setIsScoreReady] = useState(false);
@@ -66,7 +37,6 @@ export default function HistoryDetailPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [historyData] = useState(MOCK_HISTORY_DETAIL);
 
   const [xmlContent, setXmlContent] = useState('');
   const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
@@ -77,7 +47,9 @@ export default function HistoryDetailPage() {
   const [currentMeasureIndex, setCurrentMeasureIndex] = useState(0);
   const [beatInBar, setBeatInBar] = useState(-1);
   const [beatsPerBar, setBeatsPerBar] = useState(4);
-  const [bpm, setBpm] = useState(historyData.bpm);
+
+  const [xmlBpm, setXmlBpm] = useState(0);
+  const bpm = historyData?.bpm || xmlBpm || 120;
 
   const scoreViewerRef = useRef<ScoreViewerHandle>(null);
   const playbackTimeRef = useRef(0);
@@ -122,7 +94,7 @@ export default function HistoryDetailPage() {
         setCurrentMeasureIndex(sIdx);
 
         const { bpm: activeBpm, beats } = extractActiveTempoMeterAtMeasure(text, 1);
-        setBpm(historyData.bpm || activeBpm);
+        setXmlBpm(activeBpm);
         setBeatsPerBar(beats);
       } catch (e) {
         console.error('MusicXML 분석 실패:', e);
@@ -133,7 +105,7 @@ export default function HistoryDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [historyData.bpm]);
+  }, []);
 
   useEffect(() => {
     if (isPlaying) {
@@ -263,11 +235,36 @@ export default function HistoryDetailPage() {
     }, 2000);
   };
 
+  // 잘못된 id는 조회를 시도 X -> 로딩보다 먼저 처리
+  if (!isValidId) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center text-gray-500">
+        연주 히스토리가 없습니다.
+      </div>
+    );
+  }
+
+  if (isPending) {
+    return null;
+  }
+
+  if (isError) {
+    const isNotFound = isAxiosError(error) && error.response?.status === 404;
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center text-gray-500">
+        {isNotFound ? '연주 히스토리가 없습니다.' : '연주 히스토리를 불러오지 못했습니다.'}
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-gray-950 pt-[68px] pb-[100px] font-sans text-gray-100 select-none">
       {isLoading && (
-        <div className="fixed inset-0 z-50 bg-gray-950">
-          <LoadingPage />
+        <div className="absolute inset-0 z-50 bg-gray-950">
+          {/* 페이지가 뷰포트보다 길어도 로딩 화면은 화면 중앙에 고정 */}
+          <div className="sticky top-0 h-screen">
+            <LoadingPage />
+          </div>
         </div>
       )}
 
@@ -308,11 +305,11 @@ export default function HistoryDetailPage() {
       <div className="mx-auto flex w-full max-w-[1280px] flex-col px-6 md:px-12 xl:px-0">
         {/* 상단 헤더 컴포넌트 */}
         <HistoryHeader
-          title={historyData.title}
-          genre={historyData.genre}
-          keySig={historyData.key}
+          title={historyData?.title}
+          genre={historyData?.genre}
+          keySig={historyData?.key}
           bpm={bpm}
-          playedAt={historyData.playedAt}
+          playedAt={historyData?.playedAt}
         />
 
         {/* 플레이어 컨트롤 바 컴포넌트 */}
@@ -354,7 +351,7 @@ export default function HistoryDetailPage() {
 
         <div className="mt-[24px] flex flex-col gap-[16px]">
           <AnalysisReportList
-            analyses={historyData.analyses}
+            analyses={historyData?.analyses ?? []}
             onSelectReport={(startBar, endBar, analysisId) => {
               navigate(
                 `/history/${parsedHistoryId}/analysis/result?start=${startBar}&end=${endBar}&analysisId=${analysisId}`,
