@@ -193,7 +193,7 @@ export default function AnalysisSelectPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex cursor-pointer items-center gap-[8px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#CECFD1] transition-colors hover:text-white">
+          className="flex cursor-pointer items-center gap-[8px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-400 transition-colors hover:text-white">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -203,7 +203,7 @@ export default function AnalysisSelectPage() {
             className="aspect-square shrink-0">
             <path
               d="M16 19.5L7 12L16 4.5"
-              stroke="#CECFD1"
+              className="stroke-gray-400"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -245,7 +245,7 @@ export default function AnalysisSelectPage() {
               <svg xmlns="http://www.w3.org/2000/svg" width="29" height="32" viewBox="0 0 29 32" fill="none">
                 <path
                   d="M19.199 0.0949879C19.6985 -0.139593 20.2939 0.0753149 20.5291 0.57448L22.8865 5.58327C23.2162 6.28388 22.9152 7.11975 22.2147 7.44948L17.2059 9.8069C16.7061 10.042 16.11 9.82714 15.8748 9.32741C15.6399 8.82774 15.8547 8.23243 16.3543 7.99733L19.4559 6.53737C17.3421 5.54543 14.9815 5.17506 12.6522 5.48171C9.9784 5.83378 7.49466 7.05815 5.5877 8.96511C3.6811 10.872 2.45629 13.3551 2.1043 16.0286C1.75241 18.7023 2.29307 21.4177 3.64141 23.7532C4.9898 26.0886 7.07094 27.9145 9.56231 28.9466C12.0537 29.9785 14.8169 30.1599 17.4217 29.4622C20.0265 28.7642 22.3288 27.2255 23.9705 25.0862C25.6121 22.9468 26.5026 20.3249 26.5027 17.6282C26.5027 17.076 26.9506 16.6283 27.5027 16.6282C28.0549 16.6283 28.5027 17.076 28.5027 17.6282C28.5026 20.7651 27.4671 23.8153 25.5574 26.304C23.6477 28.7925 20.9693 30.5819 17.9393 31.3938C14.9092 32.2055 11.6958 31.9946 8.79766 30.7942C5.89936 29.5937 3.47759 27.47 1.90899 24.7532C0.340611 22.0365 -0.287426 18.8779 0.121882 15.7678C0.531326 12.6578 1.9557 9.76929 4.17364 7.55104C6.39191 5.33277 9.28115 3.90785 12.3914 3.49831C15.0854 3.14372 17.8154 3.56818 20.2635 4.70729L18.7195 1.42604C18.4847 0.926405 18.6994 0.330066 19.199 0.0949879Z"
-                  fill="#CECFD1"
+                  className="fill-gray-400"
                 />
               </svg>
             </button>
@@ -255,7 +255,7 @@ export default function AnalysisSelectPage() {
             <div className="flex flex-col gap-[8px]">
               <label
                 htmlFor="analysis-start-measure"
-                className="text-[20px] leading-[30px] font-normal tracking-[-0.4px] text-[#E7E7E8]">
+                className="text-[20px] leading-[30px] font-normal tracking-[-0.4px] text-gray-300">
                 분석 시작 마디
               </label>
               <input
@@ -272,7 +272,7 @@ export default function AnalysisSelectPage() {
             <div className="flex flex-col gap-[8px]">
               <label
                 htmlFor="analysis-end-measure"
-                className="text-[20px] leading-[30px] font-normal tracking-[-0.4px] text-[#E7E7E8]">
+                className="text-[20px] leading-[30px] font-normal tracking-[-0.4px] text-gray-300">
                 분석 종료 마디
               </label>
               <input
@@ -301,7 +301,7 @@ export default function AnalysisSelectPage() {
                 className="aspect-square shrink-0">
                 <path
                   d="M8.5 19.5L16.5 12L8.5 4.5"
-                  stroke="#1B1E27"
+                  className="stroke-gray-900"
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"

@@ -1,6 +1,5 @@
-// src/layout/AppLayout.tsx
-import { useMemo, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import NotificationDrawer from './NotificationDrawer';
 import {
@@ -15,12 +14,24 @@ export default function AppLayout() {
   const { data: notiList = [] } = useNotificationList();
   const { data: hasUnread = false } = useNotificationUnreadStatus();
 
+  // 주소가 바뀔 때마다 main 컨테이너 스크롤을 맨 위로 (develop)
+  const mainScrollRef = useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    mainScrollRef.current?.scrollTo(0, 0);
+  }, [pathname]);
+
   const { mutate: readItem } = useReadNotification();
   const { mutate: readAll } = useReadAllNotifications();
 
+  const handleToggleNotification = () => {
+    setIsNotiOpen((prev) => !prev);
+  };
+
   const contextValue = useMemo(
     () => ({
-      onOpenNotification: () => setIsNotiOpen(true),
+      onToggleNotification: handleToggleNotification,
       notiList,
       onReadItem: readItem,
     }),
@@ -29,9 +40,14 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-950 text-gray-300">
-      <Navbar onOpenNotification={() => setIsNotiOpen(true)} hasUnread={hasUnread} />
+      <Navbar
+        onToggleNotification={handleToggleNotification}
+        onCloseNoti={() => setIsNotiOpen(false)}
+        isOpen={isNotiOpen}
+        hasUnread={hasUnread}
+      />
 
-      <main className="min-w-0 flex-1 overflow-y-auto">
+      <main ref={mainScrollRef} className="min-w-0 flex-1 overflow-y-auto">
         <Outlet context={contextValue} />
       </main>
 

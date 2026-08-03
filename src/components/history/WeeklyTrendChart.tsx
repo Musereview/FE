@@ -45,35 +45,29 @@ export default function WeeklyTrendChart({ data }: WeeklyTrendChartProps) {
       </div>
 
       {/* 차트 메인 박스  */}
-      <div className="box-border flex w-[1196px] flex-col rounded-[6px] border border-gray-800 bg-gray-900 px-[40px] pt-[66px] pb-[40px]">
+      <div className="box-border flex w-full flex-col rounded-[6px] border border-gray-800 bg-gray-950 px-6 pt-16 pb-10 md:px-10">
         {/* 전체 차트 영역 */}
         <div className="relative flex h-[260px] w-full">
           {/* 1. Y축 수치 레이블 */}
-          <div className="pointer-events-none absolute top-0 bottom-[52px] left-0 w-[40px] text-[16px] leading-[24px] font-medium tracking-[-0.32px] text-gray-500">
-            <span className="absolute top-[0px] translate-y-[-50%]">100</span>
-            <span className="absolute top-[52px] translate-y-[-50%]">80</span>
-            <span className="absolute top-[104px] translate-y-[-50%]">60</span>
-            <span className="absolute top-[156px] translate-y-[-50%]">40</span>
+          <div className="pointer-events-none absolute top-0 bottom-[52px] left-0 w-10 text-base font-medium tracking-tight text-gray-500">
+            <span className="absolute top-0 -translate-y-1/2">100</span>
+            <span className="absolute top-[52px] -translate-y-1/2">80</span>
+            <span className="absolute top-[104px] -translate-y-1/2">60</span>
+            <span className="absolute top-[156px] -translate-y-1/2">40</span>
           </div>
 
           {/* 2. 그래프 및 그리드 영역 */}
-          <div className="relative mr-[20px] ml-[64px] h-full flex-1">
+          <div className="relative mr-5 ml-16 h-full flex-1">
             {/* 점선 4개 */}
             <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[156px] flex-col justify-between">
-              <div className="w-full border-b-[0.5px] border-dashed border-[#3A3F4A]" />
-              <div className="w-full border-b-[0.5px] border-dashed border-[#3A3F4A]" />
-              <div className="w-full border-b-[0.5px] border-dashed border-[#3A3F4A]" />
-              <div className="w-full border-b-[0.5px] border-dashed border-[#3A3F4A]" />
+              <div className="w-full border-b-[0.5px] border-dashed border-gray-700" />
+              <div className="w-full border-b-[0.5px] border-dashed border-gray-700" />
+              <div className="w-full border-b-[0.5px] border-dashed border-gray-700" />
+              <div className="w-full border-b-[0.5px] border-dashed border-gray-700" />
             </div>
 
-            {/* X축 기준 실선 */}
-            <div
-              className="pointer-events-none absolute inset-x-0 bg-gray-500"
-              style={{
-                top: '208px',
-                height: '0.7px',
-              }}
-            />
+            {/* X축 기준 실선  */}
+            <div className="pointer-events-none absolute inset-x-0 top-[208px] h-[0.7px] bg-gray-500" />
 
             {/* SVG 연결선 및 점 */}
             <div className="absolute inset-0 overflow-visible">
@@ -83,7 +77,7 @@ export default function WeeklyTrendChart({ data }: WeeklyTrendChartProps) {
                 preserveAspectRatio="none">
                 <path
                   d={pathString}
-                  stroke="#69FFC0"
+                  className="stroke-primary-400"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -95,7 +89,7 @@ export default function WeeklyTrendChart({ data }: WeeklyTrendChartProps) {
                 const leftPercent = (pt.x / 950) * 100;
                 return (
                   <div key={idx}>
-                    {/* 수치 텍스트 */}
+                    {/* 수치 텍스트  */}
                     <div
                       className="pointer-events-none absolute flex -translate-x-1/2 flex-col items-center"
                       style={{
@@ -107,6 +101,7 @@ export default function WeeklyTrendChart({ data }: WeeklyTrendChartProps) {
                       </span>
                     </div>
 
+                    {/* 데이터 포인트 원 */}
                     <div
                       className="bg-primary-400 pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full"
                       style={{
@@ -119,17 +114,16 @@ export default function WeeklyTrendChart({ data }: WeeklyTrendChartProps) {
               })}
             </div>
 
-            {/* 3. 하단 X축 레이블*/}
-            <div className="pointer-events-none absolute inset-x-0" style={{ top: '208px' }}>
+            {/* 3. 하단 X축 레이블 */}
+            <div className="pointer-events-none absolute inset-x-0 top-[208px]">
               {points.map((pt, idx) => {
                 const leftPercent = (pt.x / 950) * 100;
                 return (
                   <span
                     key={idx}
-                    className="absolute -translate-x-1/2 text-[16px] leading-[24px] font-medium tracking-[-0.32px] text-gray-500"
+                    className="absolute top-[13px] -translate-x-1/2 text-base font-medium tracking-tight text-gray-500"
                     style={{
                       left: `${leftPercent}%`,
-                      top: '13px',
                     }}>
                     {pt.label}
                   </span>
