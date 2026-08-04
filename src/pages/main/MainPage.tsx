@@ -5,9 +5,9 @@ import LearningBanner from '@/components/main/LearningBanner';
 import RecommendedLearnings from '@/components/main/RecommandLearn';
 import RecentPractices from '@/components/main/RecentPractices';
 import DashboardNoti from '@/components/main/DashboardNoti';
-import { fetchDashboardData } from '@/apis/dashboardApi';
+import { fetchDashboardData } from '@/apis/home';
 import type { NotiItem } from '@/types/notification';
-import type { DashboardData } from '@/types/dashboard';
+import type { DashboardData } from '@/types/home';
 
 interface LayoutContextType {
   onToggleNotification: () => void;
