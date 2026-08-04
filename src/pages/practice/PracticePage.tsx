@@ -13,6 +13,7 @@ import SelectDropdown from '@/components/practice/SelectDropdown';
 import KeyFilterDropdown from '@/components/practice/KeyFilterDropdown';
 import BpmDropdown, { type BpmFilterMode } from '@/components/practice/BpmDropdown';
 import TrackDetailModal from '@/components/practice/TrackDetailModal';
+import Modal from '@/components/common/Modal';
 import PlusIcon from '@/assets/practice/plus.svg?react';
 import { useClickOutside } from '@/hooks/useClickOutside';
 
@@ -51,10 +52,20 @@ function PracticePage() {
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useBackingTracks();
-  const { data: recommendedData } = useRecommendedBackingTracks();
+  const {
+    data: recommendedData,
+    isLoading: isRecommendedLoading,
+    isError: isRecommendedError,
+    refetch: refetchRecommended,
+  } = useRecommendedBackingTracks();
 
   const detailId = selectedTrackId ? Number(selectedTrackId) : null;
-  const { data: trackDetail } = useBackingTrackDetail(detailId);
+  const {
+    data: trackDetail,
+    isLoading: isDetailLoading,
+    isError: isDetailError,
+    refetch: refetchDetail,
+  } = useBackingTrackDetail(detailId);
   const selectedTrack: Track | null = trackDetail ? mapDetailToTrack(trackDetail) : null;
 
   useEffect(() => {
@@ -146,7 +157,21 @@ function PracticePage() {
     <div className="mx-auto flex w-full max-w-[1128px] flex-col px-6">
       <section className="border-b border-gray-700 py-[76px]">
         <h2 className="body-medium text-primary-300 mb-5">김뮤즈 님을 위한 추천 트랙</h2>
-        <RecommendedTrackCarousel tracks={recommendedTracks} onSelectTrack={handleSelectTrack} />
+        {isRecommendedLoading ? (
+          <div className="body-medium flex h-40 items-center justify-center text-gray-500">불러오는 중…</div>
+        ) : isRecommendedError ? (
+          <div className="body-medium flex h-40 flex-col items-center justify-center gap-4 text-gray-500">
+            <p>추천 트랙을 불러오지 못했어요.</p>
+            <button
+              type="button"
+              onClick={() => refetchRecommended()}
+              className="button-small bg-primary-400 rounded-[6px] px-4 py-2 text-gray-950">
+              다시 시도
+            </button>
+          </div>
+        ) : (
+          <RecommendedTrackCarousel tracks={recommendedTracks} onSelectTrack={handleSelectTrack} />
+        )}
       </section>
 
       <section className="flex flex-col gap-9 py-[76px]">
@@ -210,7 +235,35 @@ function PracticePage() {
         {hasNextPage && <div ref={loadMoreRef} className="h-px w-full" />}
       </section>
 
-      {selectedTrack && (
+      {selectedTrackId && isDetailLoading && (
+        <Modal
+          onClose={handleCloseModal}
+          overlayClassName="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/70 p-6 backdrop-blur-sm"
+          dialogClassName="body-medium flex h-40 w-[320px] items-center justify-center rounded-[10px] border-[0.3px] border-gray-600 bg-gray-900 text-gray-500"
+          dialogAriaLabel="트랙 상세 정보 불러오는 중"
+          lockBodyScroll>
+          불러오는 중…
+        </Modal>
+      )}
+
+      {selectedTrackId && isDetailError && (
+        <Modal
+          onClose={handleCloseModal}
+          overlayClassName="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/70 p-6 backdrop-blur-sm"
+          dialogClassName="body-medium flex h-40 w-[320px] flex-col items-center justify-center gap-4 rounded-[10px] border-[0.3px] border-gray-600 bg-gray-900 text-gray-500"
+          dialogAriaLabel="트랙 상세 정보 불러오기 실패"
+          lockBodyScroll>
+          <p>트랙 정보를 불러오지 못했어요.</p>
+          <button
+            type="button"
+            onClick={() => refetchDetail()}
+            className="button-small bg-primary-400 rounded-[6px] px-4 py-2 text-gray-950">
+            다시 시도
+          </button>
+        </Modal>
+      )}
+
+      {selectedTrack && !isDetailLoading && (
         <TrackDetailModal
           track={selectedTrack}
           onClose={handleCloseModal}
