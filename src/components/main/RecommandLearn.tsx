@@ -1,11 +1,11 @@
-// src/pages/main/components/RecommandLearn.tsx
 import { useNavigate } from 'react-router-dom';
 
 interface RecommendationItem {
   learningId: number;
   title: string;
+  subtitle: string;
   level: string;
-  description: string;
+  nextStepId: number;
 }
 
 interface RecommendedLearningsProps {
@@ -24,74 +24,26 @@ export default function RecommendedLearnings({ data }: RecommendedLearningsProps
           return (
             <div
               key={item.learningId}
-              onClick={() => navigate(`/learn/curriculum/${item.learningId}`)}
-
-              className="cursor-pointer text-left transition-colors select-none hover:opacity-90"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                flex: '1',
-                height: '198px',
-                padding: '32px',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                borderRadius: '6px',
-                background: '#2B2E36',
-              }}>
-              {/* ── 1) 상단 레이어: 노래 제목 & 난이도 뱃지  ── */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
-                <span
-                  style={{
-                    color: '#FFFFFF',
-                    fontFamily: 'Pretendard',
-                    fontSize: '24px',
-                    fontStyle: 'normal',
-                    fontWeight: 600,
-                    lineHeight: '36px',
-                    letterSpacing: '-0.48px',
-                  }}>
+              onClick={() => navigate(`/learn/curriculum/${item.learningId}?step=${item.nextStepId}`)}
+              className="flex h-[198px] flex-1 cursor-pointer flex-col items-start rounded-[6px] bg-gray-800 p-8 text-left transition-colors select-none hover:opacity-90">
+              {/* ── 상단: 제목과 뱃지 ── */}
+              <div className="flex w-full items-center gap-[12px]">
+                <span className="font-['Pretendard'] text-[24px] leading-[36px] font-semibold tracking-[-0.02em] text-white">
                   {item.title}
                 </span>
 
-                {/* 난이도 뱃지 스타일 */}
                 <div
-                  style={{
-                    display: 'flex',
-                    width: '40px',
-                    padding: '4px 6px',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '10px',
-                    borderRadius: '999px',
-                    border: isAdvanced ? '0.5px solid #F0ABFF' : '0.5px solid #A2ACFF',
-                    background: '#1B1E27',
-                  }}
-                  className="shrink-0">
+                  className={`flex w-[40px] shrink-0 items-center justify-center gap-[6px] rounded-full border-[0.5px] bg-gray-900 px-[6px] py-1 ${isAdvanced ? 'border-secondary-300' : 'border-secondary-400'}`}>
                   <span
-                    style={{
-                      fontFamily: 'Pretendard',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      color: isAdvanced ? '#F0ABFF' : '#A2ACFF',
-                    }}>
+                    className={`font-['Pretendard'] text-[12px] font-semibold ${isAdvanced ? 'text-secondary-300' : 'text-secondary-400'}`}>
                     {isAdvanced ? '고급' : '중급'}
                   </span>
                 </div>
               </div>
 
-              {/* ── 2) 하단 레이어: 설명 텍스트  ── */}
-              <p
-                className="w-full text-left whitespace-pre-line"
-                style={{
-                  color: '#E7E7E8',
-                  fontFamily: 'Pretendard',
-                  fontSize: '20px',
-                  fontStyle: 'normal',
-                  fontWeight: 400,
-                  lineHeight: '30px',
-                  letterSpacing: '-0.4px',
-                }}>
-                {item.description}
+              {/* ── 하단: 설명 텍스트  ── */}
+              <p className="mt-[38px] w-full font-['Pretendard'] text-[20px] leading-[30px] font-normal tracking-[-0.02em] whitespace-pre-line text-gray-500">
+                {item.subtitle}
               </p>
             </div>
           );

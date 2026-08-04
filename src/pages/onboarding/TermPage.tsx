@@ -122,7 +122,7 @@ function TermPage() {
             <button
               type="button"
               onClick={() => navigate('/onboarding/role')}
-              className="button-large1 bg-primary-400 flex h-[76px] w-[388px] items-center justify-center rounded-md text-gray-950">
+              className="button-large1 bg-primary-400 flex h-[76px] w-[388px] cursor-pointer items-center justify-center rounded-md text-gray-950">
               다음
             </button>
           )}

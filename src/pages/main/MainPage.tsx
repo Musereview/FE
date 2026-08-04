@@ -1,134 +1,96 @@
-// src/pages/main/MainPage.tsx
+import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import AttendanceSection from '@/components/main/AttendanceSection';
 import LearningBanner from '@/components/main/LearningBanner';
 import RecommendedLearnings from '@/components/main/RecommandLearn';
 import RecentPractices from '@/components/main/RecentPractices';
 import DashboardNoti from '@/components/main/DashboardNoti';
+import { fetchDashboardData } from '@/apis/dashboardApi';
 import type { NotiItem } from '@/types/notification';
+import type { DashboardData } from '@/types/dashboard';
 
 interface LayoutContextType {
-  onOpenNotification: () => void;
+  onToggleNotification: () => void;
   notiList: NotiItem[];
   onReadItem: (id: number) => void;
 }
 
 export default function MainPage() {
-  const { onOpenNotification, notiList, onReadItem } = useOutletContext<LayoutContextType>();
+  const { onToggleNotification, notiList, onReadItem } = useOutletContext<LayoutContextType>();
 
-  const mockDashboardData = {
-    user: { nickname: '김뮤즈' },
-    streak: {
-      currentDays: 4,
-      message: '4일 연속 학습 중이에요!',
-      weeklyAttendance: [
-        { dayOfWeek: 'MON', label: '월', status: 'COMPLETED' },
-        { dayOfWeek: 'TUE', label: '화', status: 'EMPTY' },
-        { dayOfWeek: 'WED', label: '수', status: 'COMPLETED' },
-        { dayOfWeek: 'THU', label: '목', status: 'TODAY_COMPLETED' },
-        { dayOfWeek: 'FRI', label: '금', status: 'EMPTY' },
-        { dayOfWeek: 'SAT', label: '토', status: 'EMPTY' },
-        { dayOfWeek: 'SUN', label: '일', status: 'EMPTY' },
-      ],
-    },
-    practiceSummary: { weeklyPracticeHours: 21, monthlyPracticeHours: 60, monthLabel: '6월' },
-    currentLearning: {
-      learningId: 5,
-      title: 'Tension Notes',
-      subtitle: '11th 텐션 노트 활용하기',
-      level: 'ADVANCED',
-      progressRate: 10,
-    },
-    recommendedLearnings: [
-      {
-        learningId: 1,
-        title: 'Lydian Scale',
-        level: 'ADVANCED',
-        description: '밝고 몽환적인 색채를 가진 모드.\n#4도 음정이 특징입니다.',
-      },
-      {
-        learningId: 2,
-        title: 'Pentatonic Scale',
-        level: 'INTERMEDIATE',
-        description: '5음 음계로 블루스, 록, 팝에서\n광범위하게 사용됩니다.',
-      },
-    ],
-    recentPractices: [
-      {
-        practiceId: 101,
-        title: 'Jazz Standard Practice',
-        genre: 'JAZZ',
-        keySignature: 'C Major',
-        bpm: 120,
-        timeLabel: '오늘 · 12분',
-      },
-      {
-        practiceId: 102,
-        title: 'Modal Interchange Practice',
-        genre: 'JAZZ',
-        keySignature: 'C Major',
-        bpm: 120,
-        timeLabel: '어제 · 15분',
-      },
-      {
-        practiceId: 103,
-        title: 'Voice Leading Exercise',
-        genre: 'JAZZ',
-        keySignature: 'C Major',
-        bpm: 120,
-        timeLabel: '4월 30일 · 10분',
-      },
-      {
-        practiceId: 104,
-        title: 'Blues Scale Improvisation',
-        genre: 'JAZZ',
-        keySignature: 'C Major',
-        bpm: 120,
-        timeLabel: '4월 29일 · 8분',
-      },
-    ],
-  };
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setIsLoading(true);
+        const result = await fetchDashboardData();
+        setDashboardData(result);
+      } catch (error) {
+        console.error('대시보드 데이터 로드 실패:', error);
+        setDashboardData({
+          attendance: [],
+          currentLearning: null,
+          recommendedLearnings: [],
+          recentPlayings: [],
+        } as unknown as DashboardData);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  //로딩 중일 때
+  if (isLoading || !dashboardData) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-gray-950 text-white">
+        <p className="animate-pulse">로딩 중...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex w-full min-w-[1280px] flex-col overflow-x-auto bg-[#090A0F] pb-[44px]">
+    <div className="flex w-full flex-col bg-gray-950 pb-[44px]">
       {/* 1. 상단 출석 현황판 섹션 */}
-      <AttendanceSection data={mockDashboardData} />
+      <AttendanceSection data={dashboardData} />
 
       {/* 2. 중간 블록: 진행 중인 학습 / 추천 학습 */}
       <div className="mx-auto mt-[54px] grid w-full max-w-[1400px] grid-cols-2 gap-6 px-10">
         <div className="flex w-full flex-col">
-          <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
+          <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300">
             진행 중인 학습
           </h3>
-          <LearningBanner data={mockDashboardData.currentLearning} />
+          <LearningBanner data={dashboardData.currentLearning} />
         </div>
 
         <div className="flex w-full flex-col">
-          <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
+          <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300">
             추천 학습
           </h3>
-          <RecommendedLearnings data={mockDashboardData.recommendedLearnings} />
+          <RecommendedLearnings data={dashboardData.recommendedLearnings} />
         </div>
       </div>
 
       {/* 3. 하단 블록: 최근 연습 / 알림 */}
       <div className="mx-auto mt-[98px] grid w-full max-w-[1400px] grid-cols-2 gap-6 px-10">
         <div className="flex w-full flex-col">
-          <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
+          <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300">
             최근 연습
           </h3>
-          <RecentPractices data={mockDashboardData.recentPractices} />
+          <RecentPractices data={dashboardData.recentPlayings} />
         </div>
 
         <div className="flex w-full flex-col">
           <div className="mb-3 flex w-full items-center justify-between">
-            <h3 className="flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-[#E7E7E8]">
+            <h3 className="flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300">
               알림
             </h3>
 
             <button
               type="button"
-              onClick={onOpenNotification}
+              onClick={onToggleNotification}
               className="cursor-pointer border-none bg-transparent p-0 font-sans text-xs text-gray-500 transition-colors outline-none hover:text-gray-400">
               전체 보기
             </button>

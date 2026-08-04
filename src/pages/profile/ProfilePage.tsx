@@ -20,7 +20,7 @@ function ProfilePage() {
         <button
           type="button"
           onClick={() => refetch()}
-          className="button-small bg-primary-400 rounded-[6px] px-4 py-2 text-gray-950">
+          className="button-small bg-primary-400 cursor-pointer rounded-[6px] px-4 py-2 text-gray-950">
           다시 시도
         </button>
       </div>
@@ -48,7 +48,7 @@ function ProfilePage() {
         <button
           type="button"
           onClick={() => navigate('/profile/edit')}
-          className="button-small rounded-[6px] bg-gray-500 px-3 py-2 text-gray-950">
+          className="button-small cursor-pointer rounded-[6px] bg-gray-500 px-3 py-2 text-gray-950">
           내 정보 수정
         </button>
       </div>
@@ -88,7 +88,7 @@ function ProfilePage() {
             <button
               type="button"
               onClick={() => navigate('/onboarding/student/plan')}
-              className="button-medium bg-primary-400 rounded-[4px] px-4 py-2 text-gray-950">
+              className="button-medium bg-primary-400 cursor-pointer rounded-[4px] px-4 py-2 text-gray-950">
               플랜 변경
             </button>
           </div>

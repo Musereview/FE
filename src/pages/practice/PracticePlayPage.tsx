@@ -24,6 +24,7 @@ import SettingsIcon from '@/assets/setting.svg?react';
 import DeviceDisconnectedModal from '@/components/common/DeviceDisconnectedModal';
 
 const PX_PER_BEAT = 120; // 노트바 길이 환산: 1박 = 120px
+const COUNTDOWN_BEATS = 4; // 재생 전 카운트다운 박 수 (4,3,2,1)
 
 function PracticePlayPage() {
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ function PracticePlayPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [beatInBar, setBeatInBar] = useState(-1); // 진행점 (마디 내 0-based)
   const [currentBeat, setCurrentBeat] = useState(-1); // 백킹트랙 전체 진행 박
-  const [showStart, setShowStart] = useState(true); // 진입 시 START 안내 (1초)
+  const [countdown, setCountdown] = useState<number | null>(null); // 재생 전 카운트다운(4→1), null이면 비표시
   const [noteBars, setNoteBars] = useState<LiveNoteBar[]>([]); // 연습 노트바 (가변 길이)
   const totalBeatRef = useRef(0);
   const barIdRef = useRef(0);
@@ -51,6 +52,8 @@ function PracticePlayPage() {
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 진입 시 자동재생 예약
   const pauseStartRef = useRef(performance.now()); // 정지 시각 (노트바 얼림 기준 + 재개 시 보정)
+  const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
+  const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
 
   // 친 음: 소리 재생 + 노트바 생성(성장 시작) → 뗄 때 소리·길이 확정 후 위로 사라짐
   const handleNoteOn = (note: number, velocity = 100) => {
@@ -121,12 +124,46 @@ function PracticePlayPage() {
     setIsPlaying(false);
     setBeatInBar(-1);
     setCurrentBeat(-1);
+    setCountdown(null); // 카운트다운 도중 정지 시 화면에 숫자가 멈춰 남지 않도록
+  };
+
+  // 카운트다운(4,3,2,1): 메트로놈 박에 맞춰 숫자를 표시하고, 끝나면 START 안내 후 실제 재생 시작
+  const runCountdown = async () => {
+    cancelAutoStart(); // 대기 중인 자동재생 취소 (중복 시작 방지)
+    setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
+    countdownEndedRef.current = false;
+    await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능)
+
+    if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
+
+    let cbeat = 0;
+    start(track.bpm, beatsPerBar, (time, bib) => {
+      if (cbeat >= COUNTDOWN_BEATS) {
+        if (countdownEndedRef.current) return false; // 중복 예약 방지
+        countdownEndedRef.current = true;
+        Tone.getDraw().schedule(() => {
+          stop();
+          Tone.getDraw().cancel();
+          setBeatInBar(-1);
+          setCountdown(null);
+          startPlayback();
+        }, time);
+        return false;
+      }
+      const current = cbeat;
+      Tone.getDraw().schedule(() => {
+        setBeatInBar(bib);
+        setCountdown(COUNTDOWN_BEATS - current);
+      }, time);
+      cbeat += 1;
+    });
   };
 
   const startPlayback = async () => {
     cancelAutoStart(); // 대기 중인 자동재생 취소 (중복 시작 방지)
-    setShowStart(false); // 수동 재생/자동재생 모두 START 숨김
+    setCountdown(null);
     await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능)
+    if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
     totalBeatRef.current = 0;
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
     setIsPlaying(true);
@@ -176,7 +213,7 @@ function PracticePlayPage() {
     heldRef.current.clear();
     // transport 정지가 반영된 뒤 재시작 (연속 stop→start 글리치 방지)
     if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-    restartTimerRef.current = setTimeout(() => startPlayback(), 80);
+    restartTimerRef.current = setTimeout(() => runCountdown(), 80);
   };
 
   // 분석: 녹음 + 레이턴시 보정값을 스토어에 저장하고 분석 화면으로 이동
@@ -203,18 +240,24 @@ function PracticePlayPage() {
     };
   }, [stop]);
 
-  // 진입 시 START 1초 표시 후 자동 재생 (startPlayback이 START 숨김·중복 취소 처리)
+  // 진입 시 카운트다운(4,3,2,1) → 자동 재생
   useEffect(() => {
-    startTimerRef.current = setTimeout(() => startPlayback(), 1000);
-    return () => cancelAutoStart();
+    isMountedRef.current = true;
+    runCountdown();
+    return () => {
+      isMountedRef.current = false;
+      cancelAutoStart();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="flex h-full flex-col bg-gray-950">
       {/* 헤더 */}
-      <header className="flex h-[154px] w-full items-center justify-between bg-gray-900 px-[160px] py-[28px]">
-        {/* Track Title: 재생 버튼(좌) + 제목/칩 컬럼 — 칩은 제목 아래 */}
+      <header className="relative flex h-[154px] w-full items-center justify-between bg-gray-900 px-[160px] py-[28px]">
+        {/* 카운트다운 중 배경 블러 + 클릭 차단 */}
+        {countdown !== null && <div className="absolute inset-0 z-20 bg-gray-900/60 backdrop-blur-md" />}
+        {/* Track Title*/}
         <div className="flex w-[403px] items-start gap-4">
           <button
             type="button"
@@ -262,24 +305,24 @@ function PracticePlayPage() {
 
       {/* 본문 */}
       <div className="relative flex flex-1 flex-col px-[160px] pt-8">
-        {/* 백킹트랙 + 진행점 (중앙 정렬, 반응형) — 진행점은 본문 기준 top-113, 백킹트랙 오른쪽 끝에 정렬 */}
+        {/* 백킹트랙 + 메트로놈 진행점 (중앙 정렬, 반응형)*/}
         <div className="relative mx-auto flex w-full max-w-[1510px] flex-col">
           <BackingTrack measures={measures} currentBeat={currentBeat} beatsPerBar={beatsPerBar} />
-          {/* top-[81px] = 본문 top-[113px] - pt-8(32px) */}
           <div className="absolute top-[81px] right-0 flex">
             <MetronomeDots total={beatsPerBar} current={beatInBar} />
           </div>
         </div>
 
-        {/* 진입 시 START (본문 기준 고정) */}
-        {showStart && (
-          <span className="display-large absolute top-[158px] left-1/2 -translate-x-1/2 text-center text-gray-700">
-            START
+        {/* 재생 전 카운트다운(4,3,2,1): 배경 블러 + 숫자/문구 (본문 기준 고정) */}
+        {countdown !== null && <div className="absolute inset-0 z-20 bg-gray-950/60 backdrop-blur-md" />}
+        {countdown !== null && (
+          <span className="display-large absolute top-[158px] left-1/2 z-20 -translate-x-1/2 text-center text-gray-700">
+            {countdown}
           </span>
         )}
 
         {/* 백킹트랙 현재 코드명 (배경) */}
-        {!showStart && currentChord && (
+        {currentChord && (
           <span className="display-large absolute top-[158px] left-1/2 -translate-x-1/2 text-center text-gray-700">
             {currentChord}
           </span>
@@ -287,7 +330,7 @@ function PracticePlayPage() {
 
         {/* 노트바 클리핑 영역: 위(백킹트랙 밑)에서만 자르고 좌우는 열어둠(설정 버튼이 안 잘리도록) */}
         <div className="relative flex flex-1 flex-col justify-end [clip-path:inset(0_-100vw_-100vw_-100vw)]">
-          {/* 건반 + 노트바 (누른 시간만큼 길이가 그려짐) */}
+          {/* 건반 + 노트바*/}
           <div className="relative mx-auto w-full max-w-[1560px]">
             <PracticeNoteBars
               bars={noteBars}

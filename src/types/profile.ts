@@ -1,6 +1,8 @@
-// 닉네임 중복확인 응답 타입
+// GET /api/users/verify-nickname 응답 data
 export interface CheckNicknameResponse {
-  available: boolean;
+  nickname: string; // 검증한 닉네임
+  isAvailable: boolean; // 사용 가능 여부
+  message: string; // 화면에 바로 표시할 안내 문구
 }
 
 // 화성학 숙련도
@@ -9,8 +11,8 @@ export type SkillLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 // 요금제
 export type SubscriptionTier = 'FREE' | 'STANDARD' | 'PRO';
 
-// 악기 종류
-export type InstrumentType = 'KEYBOARD';
+// 악기 종류 (MVP는 피아노 단일)
+export type InstrumentType = 'PIANO';
 
 // 누적 활동 통계
 export interface ProfileStatistics {
@@ -22,7 +24,7 @@ export interface ProfileStatistics {
 // GET /api/users/me/profile 응답 data
 export interface Profile {
   nickname: string;
-  profileImgUrl: string | null;
+  profileImgUrl: string; // 서버가 항상 유효한 URL(기본 이미지) 반환
   instrumentType: InstrumentType;
   skillLevel: SkillLevel;
   subscriptionTier: SubscriptionTier;
@@ -54,8 +56,9 @@ export interface RegisterProfileResponse {
   userId: number;
   nickname: string;
   skillLevel: SkillLevel;
-  instrumentType: InstrumentType;
-  profileImgUrl: string | null;
+  instrumentType: InstrumentType; // 서버가 PIANO로 고정 등록
+  subscriptionTier: SubscriptionTier; // 서버가 PRO로 고정 등록
+  profileImgUrl: string;
 }
 
 export const SKILL_LEVEL_OPTIONS: SkillLevel[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
@@ -73,5 +76,5 @@ export const SUBSCRIPTION_LABEL: Record<SubscriptionTier, string> = {
 };
 
 export const INSTRUMENT_LABEL: Record<InstrumentType, string> = {
-  KEYBOARD: 'Piano',
+  PIANO: 'Piano',
 };

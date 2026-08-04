@@ -11,7 +11,7 @@ import TrackCard from '@/components/practice/TrackCard';
 import RecommendedTrackCarousel from '@/components/practice/RecommendedTrackCarousel';
 import SelectDropdown from '@/components/practice/SelectDropdown';
 import KeyFilterDropdown from '@/components/practice/KeyFilterDropdown';
-import BpmDropdown from '@/components/practice/BpmDropdown';
+import BpmDropdown, { type BpmFilterMode } from '@/components/practice/BpmDropdown';
 import TrackDetailModal from '@/components/practice/TrackDetailModal';
 import PlusIcon from '@/assets/practice/plus.svg?react';
 import { useClickOutside } from '@/hooks/useClickOutside';
@@ -41,6 +41,7 @@ function PracticePage() {
   const [sortBy, setSortBy] = useState<SortBy>('popularity');
   const [genre, setGenre] = useState(GENRE_OPTIONS[0].value);
   const [bpm, setBpm] = useState(DEFAULT_BPM);
+  const [bpmMode, setBpmMode] = useState<BpmFilterMode>('all'); // 전체(필터 없음)가 기본
   const [keyValue, setKeyValue] = useState('');
   const [keyMode, setKeyMode] = useState<KeyMode | null>(null);
 
@@ -79,7 +80,8 @@ function PracticePage() {
           return false;
         }
       }
-      if (Math.abs(track.bpm - bpm) > BPM_FILTER_RANGE) return false;
+
+      if (bpmMode === 'custom' && Math.abs(track.bpm - bpm) > BPM_FILTER_RANGE) return false;
       if (keyValue && track.key !== keyValue) return false;
       if (keyMode && track.mode !== keyMode) return false;
       return true;
@@ -90,7 +92,7 @@ function PracticePage() {
         ? b.popularity - a.popularity
         : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }, [tracks, genre, bpm, keyValue, keyMode, sortBy]);
+  }, [tracks, genre, bpm, bpmMode, keyValue, keyMode, sortBy]);
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -181,6 +183,8 @@ function PracticePage() {
               <BpmDropdown
                 value={bpm}
                 onChange={setBpm}
+                mode={bpmMode}
+                onModeChange={setBpmMode}
                 isOpen={openFilter === 'bpm'}
                 onOpenChange={(open) => setOpenFilter(open ? 'bpm' : null)}
                 className="w-[106px]"

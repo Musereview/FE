@@ -83,18 +83,18 @@ const ScoreViewer = forwardRef<ScoreViewerHandle, ScoreViewerProps>(function Sco
   );
 
   return (
-    <div className={`relative rounded-[12px] border border-[#2E3142]/20 bg-[#090A0F] ${className}`}>
+    <div className={`relative rounded-[12px] border border-gray-800/20 bg-gray-950 ${className}`}>
       {isLoading && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#090A0F]">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#69FFC0] border-t-transparent" />
-          <span className="mt-4 text-sm text-[#86899C]">악보 렌더링 중...</span>
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gray-950">
+          <div className="border-primary-400 h-10 w-10 animate-spin rounded-full border-4 border-t-transparent" />
+          <span className="mt-4 text-sm text-gray-500">악보 렌더링 중...</span>
         </div>
       )}
 
       {/* 가로 스크롤 뷰포트. 자동 줄바꿈 대신 여기서 좌우로만 이동한다. */}
       <div
         ref={scrollRef}
-        className="overflow-x-auto overflow-y-hidden px-0 py-7 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#3A3D4A] [&::-webkit-scrollbar-track]:bg-transparent"
+        className="overflow-x-auto overflow-y-hidden px-0 py-7 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-track]:bg-transparent"
         style={{ height }}>
         {/* renderSingleHorizontalStaffline: true 로 렌더링된, 줄바꿈 없는 단일 라인 악보 */}
         <div

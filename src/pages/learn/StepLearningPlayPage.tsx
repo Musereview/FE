@@ -28,6 +28,7 @@ import DeviceDisconnectedModal from '@/components/common/DeviceDisconnectedModal
 
 // TODO(mock): 백킹트랙 코드 진행 — 추후 학습 데이터로 교체
 const MOCK_CHORDS = ['Cm7(#11)', 'CM7(#11)', 'Dm7', 'Am7'];
+const COUNTDOWN_BEATS = 4; // 재생 전 카운트다운 박 수 (4,3,2,1)
 
 function StepLearningPlayPage() {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ function StepLearningPlayPage() {
   // 실습 데이터(bpm/keySignature/midiData) — '이 이론으로 실습하기'에서 조회. 지금은 mock.
   // TODO: midiData를 채점 정답 데이터로 사용(현재는 악보(OSMD)에서 추출). keySignature도 필요 시 활용.
   const { learningId, learningStepId } = getLearningIds(curriculumId);
-  const { data: practiceData } = usePracticeData(learningId, learningStepId);
+  const { data: practiceData, isLoading: isPracticeDataLoading } = usePracticeData(learningId, learningStepId);
   const bpm = practiceData?.bpm ?? curriculum.bpm; // 실습 데이터 우선, 로딩 중엔 커리큘럼 값
 
   // 입력 레이턴시 보정값 (레이턴시 체크에서 측정한 값). 미측정/실패면 0
@@ -62,13 +63,16 @@ function StepLearningPlayPage() {
   const [beatInBar, setBeatInBar] = useState(-1); // 진행점 (마디 내 0-based)
   const [currentBeat, setCurrentBeat] = useState(-1); // 백킹트랙 전체 진행 박
   const [measureIndex, setMeasureIndex] = useState(0); // 악보 현재 진행 마디 (가운데 정렬 기준)
-  const [showStart, setShowStart] = useState(true); // 진입 시 START 안내
+  const [countdown, setCountdown] = useState<number | null>(null); // 재생 전 카운트다운(4→1), null이면 비표시
   const totalBeatRef = useRef(0);
   const recordingRef = useRef<PlayedNote[]>([]); // 연주 녹음 — 채점(다음 단계)에서 정답 음과 비교
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 진입 시 자동재생 예약
+  const finishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 곡 끝 → 점수 화면 이동 예약
   const scoreRef = useRef<LearningScoreHandle>(null); // 악보 판정·색칠 핸들
   const endedRef = useRef(false); // 곡 끝 정지 중복 예약 방지
+  const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
+  const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
   // 진입 자동재생(마운트 시점 클로저)이 stale bpm으로 시작하지 않도록 최신 bpm을 ref로 유지
   const bpmRef = useRef(bpm);
   useEffect(() => {
@@ -110,8 +114,10 @@ function StepLearningPlayPage() {
   const cancelPendingStarts = () => {
     if (startTimerRef.current) clearTimeout(startTimerRef.current);
     if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+    if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
     startTimerRef.current = null;
     restartTimerRef.current = null;
+    finishTimerRef.current = null;
   };
 
   const stopPlayback = () => {
@@ -123,6 +129,7 @@ function StepLearningPlayPage() {
     setBeatInBar(-1);
     setCurrentBeat(-1);
     setMeasureIndex(0);
+    setCountdown(null); // 카운트다운 도중 정지 시 화면에 숫자가 멈춰 남지 않도록
     // 정지 시엔 색칠·판정을 지우지 않음(끝/분석 시 결과 유지). 새 재생(startPlayback)에서 초기화한다.
   };
 
@@ -133,12 +140,44 @@ function StepLearningPlayPage() {
     Tone.getDraw().cancel();
     setIsPlaying(false);
     // beatInBar/currentBeat/measureIndex/색칠 모두 유지 (끝 지점 상태 그대로)
+    finishTimerRef.current = setTimeout(() => goToScore(), 2000); // 2초 후 채점 결과 화면으로 이동
+  };
+
+  // 카운트다운(4,3,2,1): 메트로놈 박에 맞춰 숫자를 표시
+  const runCountdown = async () => {
+    cancelPendingStarts(); // 대기 중인 자동재생·재시작 타이머 취소 (중복 시작 방지)
+    setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
+    countdownEndedRef.current = false;
+    await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
+    if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
+    let cbeat = 0;
+    start(bpmRef.current, beatsPerBar, (time, bib) => {
+      if (cbeat >= COUNTDOWN_BEATS) {
+        if (countdownEndedRef.current) return false; // 중복 예약 방지
+        countdownEndedRef.current = true;
+        Tone.getDraw().schedule(() => {
+          stop();
+          Tone.getDraw().cancel();
+          setBeatInBar(-1);
+          setCountdown(null);
+          startPlayback();
+        }, time);
+        return false;
+      }
+      const current = cbeat;
+      Tone.getDraw().schedule(() => {
+        setBeatInBar(bib);
+        setCountdown(COUNTDOWN_BEATS - current);
+      }, time);
+      cbeat += 1;
+    });
   };
 
   const startPlayback = async () => {
     cancelPendingStarts(); // 대기 중인 자동재생·재시작 타이머 취소 (중복 시작 방지)
-    setShowStart(false);
+    setCountdown(null);
     await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
+    if (!isMountedRef.current) return;
     totalBeatRef.current = 0;
     endedRef.current = false; // 재생 시작 시 끝 가드 해제 (재시작/재생 시 다시 정지 가능하도록)
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
@@ -149,10 +188,10 @@ function StepLearningPlayPage() {
       const pbeat = totalBeatRef.current; // 곡 시작 기준 현재 박(언랩)
       // 악보 한 바퀴(totalCells 박)를 모두 지나면 루프 대신 정지 (mock: 백킹트랙·악보 모두 8마디)
       if (pbeat >= totalCells) {
-        if (endedRef.current) return; // 중복 예약 방지
+        if (endedRef.current) return false; // 중복 예약 방지
         endedRef.current = true;
         Tone.getDraw().schedule(() => finishPlayback(), time); // 진행 위치 유지하고 정지만
-        return;
+        return false; // 마지막 박 클릭음 재생 방지
       }
       const beat = pbeat % totalCells;
       const measure = Math.floor(beat / beatsPerBar); // 백킹 루프와 같은 주기 — 악보 슬라이드가 백킹과 어긋나지 않게
@@ -185,14 +224,13 @@ function StepLearningPlayPage() {
   };
   const handleRestart = () => {
     stopPlayback(); // cancelPendingStarts로 대기 타이머 정리됨
-    restartTimerRef.current = setTimeout(() => startPlayback(), 80); // 연속 stop→start 글리치 방지
+    restartTimerRef.current = setTimeout(() => runCountdown(), 80); // 연속 stop→start 글리치 방지
   };
 
-  // 분석하기: 지금까지의 판정을 집계해 점수 스토어에 담고 점수 화면으로 이동
-  const handleAnalyze = () => {
+  // 지금까지의 판정을 집계해 점수 스토어에 담고 점수 화면으로 이동
+  const goToScore = () => {
     const result = scoreRef.current?.getScore();
     if (result) setScore(result);
-    stopPlayback();
     navigate(`/learn/curriculum/${curriculumId}/score`);
   };
 
@@ -210,12 +248,18 @@ function StepLearningPlayPage() {
     };
   }, [stop]);
 
-  // 진입 시 START 1초 표시 후 자동 재생
+  // 진입 시 카운트다운(4,3,2,1) →자동 재생
+  // bpm 확정(실습 데이터 로딩 완료) 후 시작 — 로딩 중 fallback bpm으로 카운트다운이 시작되는 것 방지
   useEffect(() => {
-    startTimerRef.current = setTimeout(() => startPlayback(), 1000);
-    return () => cancelPendingStarts();
+    if (isPracticeDataLoading) return;
+    isMountedRef.current = true;
+    runCountdown();
+    return () => {
+      isMountedRef.current = false;
+      cancelPendingStarts();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isPracticeDataLoading]);
 
   // 악보 현재 음 하이라이트를 소수 박 해상도로 갱신 (정박 아닌 8·16분음표도 정확히 현재 음이 되도록).
   // state 갱신 없이 imperative tick 호출 → 리렌더 없음. 박 = transport ticks/PPQ (tempo 독립, onBeat 단위와 일치)
@@ -234,7 +278,9 @@ function StepLearningPlayPage() {
   return (
     <div className="flex h-full flex-col bg-gray-950">
       {/* 헤더 */}
-      <header className="flex h-[154px] w-full items-center justify-between bg-gray-900 px-[160px] py-[28px]">
+      <header className="relative flex h-[154px] w-full items-center justify-between bg-gray-900 px-[160px] py-[28px]">
+        {/* 카운트다운 배경 블러 + 클릭 차단 */}
+        {countdown !== null && <div className="absolute inset-0 z-20 bg-gray-900/60 backdrop-blur-md" />}
         {/* 재생 버튼(좌) + 제목/칩 컬럼 — 칩은 제목 아래(진행률 + BPM) */}
         <div className="flex w-[403px] items-start gap-4">
           <button
@@ -261,18 +307,12 @@ function StepLearningPlayPage() {
             재시작
             <RefreshIcon className="h-6 w-6" />
           </button>
-          <button
-            type="button"
-            onClick={handleAnalyze}
-            className="button-large2 bg-primary-400 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] px-3 py-[6px] text-gray-950">
-            분석하기
-          </button>
         </div>
       </header>
 
       {/* 본문 */}
       <div className="relative flex flex-1 flex-col px-[160px] pt-8">
-        {/* 백킹트랙 + 진행점 (중앙 정렬, 반응형) */}
+        {/* 백킹트랙 + 메트로놈 진행점 (중앙 정렬, 반응형) */}
         <div className="relative mx-auto flex w-full max-w-[1510px] flex-col">
           <BackingTrack measures={measures} currentBeat={currentBeat} beatsPerBar={beatsPerBar} />
           {/* top-[81px] = 본문 top-[113px] - pt-8(32px) */}
@@ -281,10 +321,11 @@ function StepLearningPlayPage() {
           </div>
         </div>
 
-        {/* 진입 시 START (본문 기준 고정) */}
-        {showStart && (
-          <span className="display-large absolute top-[158px] left-1/2 -translate-x-1/2 text-center text-gray-700">
-            START
+        {/* 재생 전 카운트다운(4,3,2,1): 배경 블러 + 숫자/문구 (본문 기준 고정) */}
+        {countdown !== null && <div className="absolute inset-0 z-20 bg-gray-950/60 backdrop-blur-md" />}
+        {countdown !== null && (
+          <span className="display-large absolute top-[158px] left-1/2 z-20 -translate-x-1/2 text-center text-gray-700">
+            {countdown}
           </span>
         )}
 
