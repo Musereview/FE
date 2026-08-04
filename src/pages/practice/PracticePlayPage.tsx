@@ -14,6 +14,7 @@ import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
 import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
 import { usePlayingSessionStore } from '@/stores/playingSessionStore';
+import { isAudioUnlocked } from '@/utils/audioUnlock';
 import { buildFallbackProgression, mapDetailToTrack, MODE_LABEL } from '@/pages/practice/trackDisplay';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import StopIcon from '@/assets/practice/stop.svg?react';
@@ -241,14 +242,20 @@ function PracticePlayPage() {
     };
   }, [stop]);
 
-  // 세션 없이(새로고침/직접 진입) 들어온 경우 — 연주 세션은 상세 모달 "연습 시작"에서만 생성되므로 목록으로 되돌림
+  // 세션 자체가 없으면(직접 진입) 목록으로, 세션은 있는데 오디오 잠금만 안 풀린 채(새로고침) 들어왔으면
+  // 설정 화면으로 되돌려 "시작하기"를 다시 누르게 한다 (세션은 그대로 살아있으니 재생성 안 함).
+  // Tone.start()는 클릭 제스처 안에서만 성공하는데, 새로고침 직후엔 그 제스처가 없어 재생을 시작할 수 없음.
   useEffect(() => {
-    if (!backingTrack) navigate('/practice', { replace: true });
+    if (!backingTrack) {
+      navigate('/practice', { replace: true });
+    } else if (!isAudioUnlocked()) {
+      navigate(`/practice/${backingTrack.backingTrackId}/settings`, { replace: true });
+    }
   }, [backingTrack, navigate]);
 
   // 진입 시 카운트다운(4,3,2,1) → 자동 재생
   useEffect(() => {
-    if (!backingTrack) return; // 세션 없으면 위 이펙트가 곧 리다이렉트
+    if (!backingTrack || !isAudioUnlocked()) return;
     isMountedRef.current = true;
     runCountdown();
     return () => {
