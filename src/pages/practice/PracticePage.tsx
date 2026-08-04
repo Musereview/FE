@@ -7,6 +7,8 @@ import { mapListItemToTrack, mapDetailToTrack, mapRecommendedItemToTrack } from 
 import { useBackingTracks } from '@/hooks/useBackingTracks';
 import { useBackingTrackDetail } from '@/hooks/useBackingTrackDetail';
 import { useRecommendedBackingTracks } from '@/hooks/useRecommendedBackingTracks';
+import { useCreatePlaying } from '@/hooks/useCreatePlaying';
+import { usePlayingSessionStore } from '@/stores/playingSessionStore';
 import TrackCard from '@/components/practice/TrackCard';
 import RecommendedTrackCarousel from '@/components/practice/RecommendedTrackCarousel';
 import SelectDropdown from '@/components/practice/SelectDropdown';
@@ -68,6 +70,10 @@ function PracticePage() {
   } = useBackingTrackDetail(detailId);
   const selectedTrack: Track | null = trackDetail ? mapDetailToTrack(trackDetail) : null;
 
+  const { mutateAsync: createPlaying, isPending: isStarting } = useCreatePlaying();
+  const setPlayingSession = usePlayingSessionStore((s) => s.setSession);
+  const [startError, setStartError] = useState(false);
+
   useEffect(() => {
     const reopenTrackId = (location.state as { reopenTrackId?: string } | null)?.reopenTrackId;
     if (!reopenTrackId) return;
@@ -122,12 +128,22 @@ function PracticePage() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const handleSelectTrack = (track: Track) => setSelectedTrackId(track.id);
+  const handleSelectTrack = (track: Track) => {
+    setStartError(false);
+    setSelectedTrackId(track.id);
+  };
   const handleCloseModal = () => setSelectedTrackId(null);
-  const handleStartPractice = () => {
-    if (!selectedTrack) return;
-    setSelectedTrackId(null);
-    navigate(`/practice/${selectedTrack.id}/settings`);
+  const handleStartPractice = async () => {
+    if (!trackDetail) return;
+    setStartError(false);
+    try {
+      const session = await createPlaying(trackDetail.backingTrackId);
+      setPlayingSession({ playingId: session.playingId, backingTrack: session.backingTrack });
+      setSelectedTrackId(null);
+      navigate(`/practice/${session.backingTrack.backingTrackId}/settings`);
+    } catch {
+      setStartError(true);
+    }
   };
   const handleEditTrack = () => {
     if (!selectedTrack) return;
@@ -269,6 +285,8 @@ function PracticePage() {
           onClose={handleCloseModal}
           onStartPractice={handleStartPractice}
           onEditTrack={handleEditTrack}
+          isStartingPractice={isStarting}
+          startError={startError}
         />
       )}
     </div>

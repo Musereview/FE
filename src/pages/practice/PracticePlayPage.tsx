@@ -1,5 +1,5 @@
 // 연습 플레이 페이지 - 61건반/88건반
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as Tone from 'tone';
 import Piano from '@/components/piano/Piano';
@@ -13,8 +13,8 @@ import { useMetronome } from '@/hooks/useMetronome';
 import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
 import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
-import { ALL_TRACKS, RECOMMENDED_TRACKS } from '@/pages/practice/mockTracks';
-import { buildFallbackProgression, MODE_LABEL } from '@/pages/practice/trackDisplay';
+import { usePlayingSessionStore } from '@/stores/playingSessionStore';
+import { buildFallbackProgression, mapDetailToTrack, MODE_LABEL } from '@/pages/practice/trackDisplay';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import StopIcon from '@/assets/practice/stop.svg?react';
 import RefreshIcon from '@/assets/restart.svg?react';
@@ -33,12 +33,13 @@ function PracticePlayPage() {
   const { start, stop, pause, resume } = useMetronome();
   const { noteOn: playNote, noteOff: stopNote, releaseAll } = usePianoSound();
   const setResult = usePracticeResultStore((s) => s.setResult);
+  const backingTrack = usePlayingSessionStore((s) => s.backingTrack);
 
-  const track = [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((t) => t.id === practiceId) ?? RECOMMENDED_TRACKS[0];
-  const beatsPerBar = Number(track.timeSignature.split('/')[0]); // '4/4' → 4
-  const measures = track.chordProgression ?? buildFallbackProgression(track.chords, beatsPerBar);
+  const track = useMemo(() => (backingTrack ? mapDetailToTrack(backingTrack) : null), [backingTrack]);
+  const beatsPerBar = track ? Number(track.timeSignature.split('/')[0]) : 4; // '4/4' → 4
+  const measures = track ? (track.chordProgression ?? buildFallbackProgression(track.chords, beatsPerBar)) : [];
   const totalCells = measures.length * beatsPerBar;
-  const pxPerMs = (PX_PER_BEAT * track.bpm) / 60000; // 노트바 길이: 1박 = PX_PER_BEAT px
+  const pxPerMs = (PX_PER_BEAT * (track?.bpm ?? 0)) / 60000; // 노트바 길이: 1박 = PX_PER_BEAT px
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [beatInBar, setBeatInBar] = useState(-1); // 진행점 (마디 내 0-based)
@@ -137,7 +138,7 @@ function PracticePlayPage() {
     if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
 
     let cbeat = 0;
-    start(track.bpm, beatsPerBar, (time, bib) => {
+    start(track?.bpm ?? 0, beatsPerBar, (time, bib) => {
       if (cbeat >= COUNTDOWN_BEATS) {
         if (countdownEndedRef.current) return false; // 중복 예약 방지
         countdownEndedRef.current = true;
@@ -167,7 +168,7 @@ function PracticePlayPage() {
     totalBeatRef.current = 0;
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
     setIsPlaying(true);
-    start(track.bpm, beatsPerBar, (time, bib) => {
+    start(track?.bpm ?? 0, beatsPerBar, (time, bib) => {
       const beat = totalBeatRef.current % totalCells;
       Tone.getDraw().schedule(() => {
         setBeatInBar(bib);
@@ -240,8 +241,14 @@ function PracticePlayPage() {
     };
   }, [stop]);
 
+  // 세션 없이(새로고침/직접 진입) 들어온 경우 — 연주 세션은 상세 모달 "연습 시작"에서만 생성되므로 목록으로 되돌림
+  useEffect(() => {
+    if (!backingTrack) navigate('/practice', { replace: true });
+  }, [backingTrack, navigate]);
+
   // 진입 시 카운트다운(4,3,2,1) → 자동 재생
   useEffect(() => {
+    if (!backingTrack) return; // 세션 없으면 위 이펙트가 곧 리다이렉트
     isMountedRef.current = true;
     runCountdown();
     return () => {
@@ -249,7 +256,9 @@ function PracticePlayPage() {
       cancelAutoStart();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [backingTrack]);
+
+  if (!track) return null;
 
   return (
     <div className="flex h-full flex-col bg-gray-950">
