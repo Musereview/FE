@@ -1,0 +1,105 @@
+import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
+import { analysisDetail } from '@/apis/analysis';
+import {
+  notificationList,
+  notificationUnreadStatus,
+  readAllNotifications,
+  readNotification,
+} from '@/apis/notification';
+import type { NotiItem, NotificationItem } from '@/types/notification';
+import { formatRelativeTime } from '@/utils/relativeTime';
+
+function retryExceptClientError(failureCount: number, error: Error) {
+  const status = isAxiosError(error) ? error.response?.status : undefined;
+  if (status && status >= 400 && status < 500) return false;
+  return failureCount < 3;
+}
+
+export const NOTIFICATION_QUERY_KEY = ['notification'] as const;
+export const notificationListQueryKey = (page: number, size: number) => ['notification', 'list', page, size] as const;
+export const NOTIFICATION_UNREAD_STATUS_QUERY_KEY = ['notification', 'unreadStatus'] as const;
+
+function toNotiItem(item: NotificationItem): NotiItem {
+  return {
+    notiId: item.notificationId,
+    type: item.type,
+    title: item.title,
+    content: item.content,
+    isRead: item.isRead,
+    targetId: item.targetId,
+    timeLabel: formatRelativeTime(item.createdAt),
+  };
+}
+
+// 분석 완료 알림만 이동 대상(analysisId)을 가짐
+export function isClickableNoti(item: NotiItem) {
+  return item.type === 'ANALYSIS' && item.targetId !== null;
+}
+
+// 알림 목록 조회
+export function useNotificationList(page = 0, size = 10) {
+  return useQuery({
+    queryKey: notificationListQueryKey(page, size),
+    queryFn: () => notificationList(page, size),
+    select: (data) => data.notificationList.map(toNotiItem),
+    retry: retryExceptClientError,
+  });
+}
+
+// 알림 읽음 처리
+export function useReadNotification() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (notificationId: number) => readNotification(notificationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: NOTIFICATION_QUERY_KEY });
+    },
+  });
+}
+
+// 알림 전체 읽음 처리
+export function useReadAllNotifications() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: readAllNotifications,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: NOTIFICATION_QUERY_KEY });
+    },
+  });
+}
+
+// 알림 클릭 처리
+export function useNotificationClick() {
+  const navigate = useNavigate();
+  const { mutate: readItem } = useReadNotification();
+
+  return useCallback(
+    async (item: NotiItem) => {
+      if (!item.isRead) readItem(item.notiId);
+
+      // 분석 완료 알림만 이동 대상, 나머지는 읽음 처리만
+      if (!isClickableNoti(item) || item.targetId === null) return;
+
+      try {
+        // 알림에는 analysisId만 담겨 있어 연주 상세 경로에 필요한 playingId를 조회
+        const { playingId } = await analysisDetail(item.targetId);
+        navigate(`/history/${playingId}`);
+      } catch {
+        navigate('/history');
+      }
+    },
+    [navigate, readItem],
+  );
+}
+
+// 읽지 않은 알림 여부 확인
+export function useNotificationUnreadStatus() {
+  return useQuery({
+    queryKey: NOTIFICATION_UNREAD_STATUS_QUERY_KEY,
+    queryFn: notificationUnreadStatus,
+    retry: retryExceptClientError,
+  });
+}

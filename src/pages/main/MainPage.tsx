@@ -12,11 +12,11 @@ import type { DashboardData } from '@/types/dashboard';
 interface LayoutContextType {
   onToggleNotification: () => void;
   notiList: NotiItem[];
-  onReadItem: (id: number) => void;
+  onNotificationClick: (item: NotiItem) => void;
 }
 
 export default function MainPage() {
-  const { onToggleNotification, notiList, onReadItem } = useOutletContext<LayoutContextType>();
+  const { onToggleNotification, notiList, onNotificationClick } = useOutletContext<LayoutContextType>();
 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -96,7 +96,7 @@ export default function MainPage() {
             </button>
           </div>
 
-          <DashboardNoti data={notiList} onReadItem={onReadItem} />
+          <DashboardNoti data={notiList} onNotificationClick={onNotificationClick} />
         </div>
       </div>
     </div>

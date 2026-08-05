@@ -1,29 +1,13 @@
 // 학습 홈 페이지
 import { useNavigate } from 'react-router-dom';
-import type { Topic } from '@/types/topic';
-import { MOCK_TOPICS, MOCK_CHAPTERS } from './mockTopics';
-import { getChapterProgressList, getCurrentLearningPackage, getPackageStatus } from './mockCurriculum';
-import { DIFFICULTY_ORDER } from './topicDisplay';
+import { useLearningHome } from '@/hooks/useLearningHome';
 import RecentStudyBanner from '@/components/learn/RecentStudyBanner';
 import TopicCard from '@/components/learn/TopicCard';
 import ChapterCard from '@/components/learn/ChapterCard';
 
-const FEATURED_TOPICS = DIFFICULTY_ORDER.map((difficulty) =>
-  MOCK_TOPICS.find((topic) => topic.difficulty === difficulty),
-).filter((topic): topic is Topic => topic !== undefined);
-
-/**
- * TODO: /learn/curriculum(패키지 전체 목록 페이지)가 아직 스텁이라 임시로 연결.
- * TopicDetailPage가 topicId를 무시하고 항상 같은 패키지 목록을 보여주는 현재 동작에 기대고 있어서,
- * TopicDetailPage가 topicId별 실제 콘텐츠를 보여주도록 바뀌면 이 경로는 더 이상 유효하지 않음.
- * /learn/curriculum 구현되면 그쪽으로 교체할 것.
- */
-const PACKAGE_LIST_PATH = '/learn/topics/intermediate-1';
-
 function LearnPage() {
   const navigate = useNavigate();
-  const chapterProgressList = getChapterProgressList(MOCK_CHAPTERS);
-  const currentLearning = getCurrentLearningPackage(chapterProgressList);
+  const { data } = useLearningHome();
 
   return (
     <section className="mx-auto flex w-full max-w-[1128px] flex-col gap-[100px] px-6 py-[76px]">
@@ -36,7 +20,7 @@ function LearnPage() {
 
       <div className="flex flex-col gap-6">
         <h2 className="heading-small-b text-gray-300">최근 학습 이어서 하기</h2>
-        <RecentStudyBanner data={currentLearning} />
+        <RecentStudyBanner data={data?.currentLearning ?? null} />
       </div>
 
       <div className="flex flex-col gap-6">
@@ -54,8 +38,8 @@ function LearnPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {FEATURED_TOPICS.map((topic) => (
-            <TopicCard key={topic.id} topic={topic} onClick={() => navigate(`/learn/topics/${topic.id}`)} />
+          {(data?.theoryPackages ?? []).map((topic) => (
+            <TopicCard key={topic.id} topic={topic} onClick={() => navigate(`/learn/curriculum/${topic.id}`)} />
           ))}
         </div>
       </div>
@@ -65,17 +49,17 @@ function LearnPage() {
           <h2 className="heading-small-b text-gray-300">실전 반주법 패키지</h2>
           <button
             type="button"
-            onClick={() => navigate(PACKAGE_LIST_PATH)}
+            onClick={() => navigate('/learn/curriculum')}
             className="body-small cursor-pointer text-gray-600">
             전체보기
           </button>
         </div>
 
         <div className="flex flex-col gap-3">
-          {chapterProgressList.map(({ chapter, progress }) => (
+          {(data?.accompanimentPackages ?? []).map((chapter) => (
             <ChapterCard
               key={chapter.id}
-              chapter={{ ...chapter, status: getPackageStatus(progress) }}
+              chapter={chapter}
               onClick={() => navigate(`/learn/curriculum/${chapter.id}`)}
               onActionClick={() => navigate(`/learn/curriculum/${chapter.id}`)}
             />
