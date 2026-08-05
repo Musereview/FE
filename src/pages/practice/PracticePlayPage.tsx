@@ -14,6 +14,7 @@ import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
 import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
 import { usePlayingSessionStore } from '@/stores/playingSessionStore';
+import { useRecordingBlobStore } from '@/stores/recordingBlobStore';
 import { isAudioUnlocked } from '@/utils/audioUnlock';
 import { buildFallbackProgression, mapDetailToTrack, MODE_LABEL } from '@/pages/practice/trackDisplay';
 import PlayIcon from '@/assets/practice/play.svg?react';
@@ -32,9 +33,19 @@ function PracticePlayPage() {
   const { practiceId } = useParams();
   const { keyCount, inputId, latencyByDevice } = useSettingStore();
   const { start, stop, pause, resume } = useMetronome();
-  const { noteOn: playNote, noteOff: stopNote, releaseAll } = usePianoSound();
+  const {
+    noteOn: playNote,
+    noteOff: stopNote,
+    releaseAll,
+    startRecording,
+    pauseRecording,
+    resumeRecording,
+    stopRecording,
+  } = usePianoSound();
   const setResult = usePracticeResultStore((s) => s.setResult);
   const backingTrack = usePlayingSessionStore((s) => s.backingTrack);
+  const setAudioBlob = useRecordingBlobStore((s) => s.setAudioBlob);
+  const clearAudioBlob = useRecordingBlobStore((s) => s.clear);
 
   const track = useMemo(() => (backingTrack ? mapDetailToTrack(backingTrack) : null), [backingTrack]);
   const beatsPerBar = track ? Number(track.timeSignature.split('/')[0]) : 4; // '4/4' → 4
@@ -168,6 +179,8 @@ function PracticePlayPage() {
     if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
     totalBeatRef.current = 0;
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
+    await stopRecording(); // 이전 녹음(있다면) 정리 후 새로 시작
+    startRecording();
     setIsPlaying(true);
     start(track?.bpm ?? 0, beatsPerBar, (time, bib) => {
       const beat = totalBeatRef.current % totalCells;
@@ -184,6 +197,7 @@ function PracticePlayPage() {
     pause();
     pauseStartRef.current = performance.now();
     finalizeOpenNotes(pauseStartRef.current); // 정지 시점에 열린 노트 확정 (정지 시간이 길이에 안 껴들게)
+    pauseRecording();
     setIsPlaying(false);
   };
   const resumePlayback = () => {
@@ -201,6 +215,7 @@ function PracticePlayPage() {
     releaseAll();
     resetInput();
     resume();
+    resumeRecording();
     setIsPlaying(true);
   };
   const handlePlayToggle = () => {
@@ -211,6 +226,8 @@ function PracticePlayPage() {
   };
   const handleRestart = () => {
     stopPlayback();
+    stopRecording(); // 이전 오디오 녹음 폐기 (다음 startPlayback에서 새로 시작됨)
+    clearAudioBlob();
     setNoteBars([]); // 노트바 초기화
     heldRef.current.clear();
     // transport 정지가 반영된 뒤 재시작 (연속 stop→start 글리치 방지)
@@ -218,9 +235,11 @@ function PracticePlayPage() {
     restartTimerRef.current = setTimeout(() => runCountdown(), 80);
   };
 
-  // 분석: 녹음 + 레이턴시 보정값을 스토어에 저장하고 분석 화면으로 이동
-  const handleAnalyze = () => {
+  // 분석: MIDI 녹음 + 레이턴시 보정값을 스토어에 저장하고, 오디오 녹음(webm)을 확정해 분석 화면으로 이동
+  const handleAnalyze = async () => {
     stopPlayback();
+    const audioBlob = await stopRecording();
+    if (audioBlob) setAudioBlob(audioBlob);
     const raw = inputId ? latencyByDevice[inputId] : undefined;
     const latencyMs = typeof raw === 'number' ? raw : 0; // 미측정/실패면 0
     setResult({ trackId: practiceId, recording: recordingRef.current, latencyMs });

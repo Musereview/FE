@@ -7,6 +7,7 @@ import { computeMeasureTimings } from '@/utils/musicXmlTiming';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
 import { usePracticeResultStore } from '@/stores/practiceResultStore';
+import { useRecordingBlobStore } from '@/stores/recordingBlobStore';
 import { ALL_TRACKS, RECOMMENDED_TRACKS } from '@/pages/practice/mockTracks';
 import LoadingPage from '@/pages/common/LoadingPage';
 import PlayIcon from '@/assets/practice/play.svg?react';
@@ -31,6 +32,7 @@ export default function AnalysisSelectPage() {
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { recording, trackId } = usePracticeResultStore();
+  const audioBlob = useRecordingBlobStore((s) => s.audioBlob); // 녹음 재생 테스트용 (API 연동 전 임시)
 
   // 언마운트 시 토스트 타이머 정리
   useEffect(() => {
@@ -65,8 +67,12 @@ export default function AnalysisSelectPage() {
   }, [recording, trackId, practiceId]);
 
   // 2) 오디오 엘리먼트 (페이지 진입 시 프리로드 적용으로 재생 딜레이 방지)
+  // 녹음된 blob이 있으면 그걸 재생(재생 테스트용, API 연동 전 임시), 없으면 목업 mp3로 폴백
   useEffect(() => {
-    const audio = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+    const src = audioBlob
+      ? URL.createObjectURL(audioBlob)
+      : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    const audio = new Audio(src);
     audio.preload = 'auto';
     audio.load();
     audioRef.current = audio;
@@ -74,8 +80,10 @@ export default function AnalysisSelectPage() {
     return () => {
       audio.pause();
       audioRef.current = null;
+      if (audioBlob) URL.revokeObjectURL(src);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioBlob]);
 
   useEffect(() => {
     if (!audioRef.current) return;

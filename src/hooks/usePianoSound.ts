@@ -6,6 +6,9 @@ import * as Tone from 'tone';
 
 export function usePianoSound() {
   const synthRef = useRef<Tone.PolySynth | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   // 신디는 한 번만 생성 (지연 초기화)
   const getSynth = () => {
@@ -18,6 +21,10 @@ export function usePianoSound() {
 
   useEffect(() => {
     return () => {
+      if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
+      recorderRef.current = null;
+      streamDestRef.current?.disconnect();
+      streamDestRef.current = null;
       synthRef.current?.releaseAll();
       synthRef.current?.dispose();
       synthRef.current = null;
@@ -39,5 +46,53 @@ export function usePianoSound() {
   // 울리고 있는 모든 소리 즉시 끊기 (정지/일시정지 등)
   const releaseAll = () => synthRef.current?.releaseAll(Tone.immediate());
 
-  return { noteOn, noteOff, releaseAll };
+  // 녹음 시작: 신디 출력을 스피커 출력과 별개로 MediaStream으로 뽑아 MediaRecorder에 연결
+  // (이전 녹음이 남아있으면 먼저 정리하고 새로 시작)
+  const startRecording = () => {
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
+    streamDestRef.current?.disconnect();
+
+    const synth = getSynth();
+    const rawContext = Tone.getContext().rawContext as AudioContext;
+    const dest = rawContext.createMediaStreamDestination();
+    synth.connect(dest);
+    streamDestRef.current = dest;
+
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+    const recorder = new MediaRecorder(dest.stream, { mimeType });
+    chunksRef.current = [];
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
+    recorder.start();
+    recorderRef.current = recorder;
+  };
+
+  const pauseRecording = () => {
+    if (recorderRef.current?.state === 'recording') recorderRef.current.pause();
+  };
+
+  const resumeRecording = () => {
+    if (recorderRef.current?.state === 'paused') recorderRef.current.resume();
+  };
+
+  // 녹음 종료: 지금까지 모은 청크를 하나의 webm Blob으로 합쳐 반환 (녹음 중이 아니었으면 null)
+  const stopRecording = (): Promise<Blob | null> => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state === 'inactive') return Promise.resolve(null);
+
+    return new Promise((resolve) => {
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        chunksRef.current = [];
+        streamDestRef.current?.disconnect();
+        streamDestRef.current = null;
+        recorderRef.current = null;
+        resolve(blob);
+      };
+      recorder.stop();
+    });
+  };
+
+  return { noteOn, noteOff, releaseAll, startRecording, pauseRecording, resumeRecording, stopRecording };
 }
