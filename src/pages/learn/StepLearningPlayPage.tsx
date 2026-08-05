@@ -18,7 +18,7 @@ import { useSettingStore } from '@/stores/settingsStore';
 import { useLearningScoreStore } from '@/stores/learningScoreStore';
 import type { PlayedNote } from '@/stores/practiceResultStore';
 import { getCurriculum, getCurriculumProgress, getScorePath } from './mockCurriculum';
-import { getLearningIds } from '@/apis/learning.mock';
+import { getLearningIds } from '@/utils/learningId';
 import { usePracticeData } from '@/hooks/usePracticeData';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import StopIcon from '@/assets/practice/stop.svg?react';
