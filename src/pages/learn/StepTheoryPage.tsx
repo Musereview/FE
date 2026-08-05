@@ -65,8 +65,13 @@ function StepTheoryPage() {
 
     if (hasFinished) audio.currentTime = 0;
     setHasFinished(false);
-    audio.play();
-    setIsPlaying(true);
+    void audio
+      .play()
+      .then(() => setIsPlaying(true))
+      .catch(() => {
+        setIsPlaying(false);
+        setHasFinished(false);
+      });
   };
 
   const handleAudioEnded = () => {
