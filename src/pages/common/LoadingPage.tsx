@@ -20,7 +20,11 @@ function barLevel(t: number, i: number): number {
   return Math.min(1, Math.max(0, level));
 }
 
-function LoadingPage() {
+interface LoadingPageProps {
+  message?: string;
+}
+
+function LoadingPage({ message = '김뮤즈 님의 연습 결과를 분석 중입니다..' }: LoadingPageProps) {
   const barsRef = useRef<(HTMLSpanElement | null)[]>([]);
 
   useEffect(() => {
@@ -48,7 +52,7 @@ function LoadingPage() {
       role="status"
       aria-live="polite"
       className="flex h-full min-h-screen w-full min-w-0 flex-col items-center justify-center gap-[140px] overflow-hidden bg-gray-950 px-6 text-gray-300">
-      <p className="heading-medium-m text-center text-gray-300">김뮤즈 님의 연습 결과를 분석 중입니다..</p>
+      <p className="heading-medium-m text-center text-gray-300">{message}</p>
 
       <div
         aria-hidden="true"

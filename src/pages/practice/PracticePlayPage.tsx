@@ -27,6 +27,7 @@ import CheckIcon from '@/assets/check.svg?react';
 import ChangeIcon from '@/assets/change.svg?react';
 import SettingsIcon from '@/assets/setting.svg?react';
 import DeviceDisconnectedModal from '@/components/common/DeviceDisconnectedModal';
+import LoadingPage from '@/pages/common/LoadingPage';
 
 const PX_PER_BEAT = 120; // 노트바 길이 환산: 1박 = 120px
 const COUNTDOWN_BEATS = 4; // 재생 전 카운트다운 박 수 (4,3,2,1)
@@ -62,6 +63,7 @@ function PracticePlayPage() {
   const [currentBeat, setCurrentBeat] = useState(-1); // 백킹트랙 전체 진행 박
   const [countdown, setCountdown] = useState<number | null>(null); // 재생 전 카운트다운(4→1), null이면 비표시
   const [noteBars, setNoteBars] = useState<LiveNoteBar[]>([]); // 연습 노트바 (가변 길이)
+  const [isAnalyzing, setIsAnalyzing] = useState(false); // 분석하기 클릭 후 업로드·저장 대기 중 로딩 화면
   const totalBeatRef = useRef(0);
   const barIdRef = useRef(0);
   const heldRef = useRef<Map<number, number>>(new Map()); // midi → 진행 중 노트바 id
@@ -243,6 +245,7 @@ function PracticePlayPage() {
   // Presigned URL 발급 → S3 업로드 → MIDI 이벤트 저장(최종 완료 처리) 순으로 연동 후 분석 화면으로 이동
   const handleAnalyze = async () => {
     stopPlayback();
+    setIsAnalyzing(true);
     const audioBlob = await stopRecording();
     if (audioBlob) setAudioBlob(audioBlob); // 로컬 재생 테스트용 보관 (분석 화면에서 재생 확인용)
     const raw = inputId ? latencyByDevice[inputId] : undefined;
@@ -311,6 +314,13 @@ function PracticePlayPage() {
 
   return (
     <div className="flex h-full flex-col bg-gray-950">
+      {/* 분석하기 클릭 후 업로드·저장 대기 중 (전체 화면 로딩) */}
+      {isAnalyzing && (
+        <div className="fixed inset-0 z-50 bg-gray-950">
+          <LoadingPage message="연주 기록을 저장하고 있습니다.." />
+        </div>
+      )}
+
       {/* 헤더 */}
       <header className="relative flex h-[154px] w-full items-center justify-between bg-gray-900 px-[160px] py-[28px]">
         {/* 카운트다운 중 배경 블러 + 클릭 차단 */}
