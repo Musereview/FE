@@ -20,33 +20,46 @@ export default function MainPage() {
 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isError, setIsError] = useState<boolean>(false);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      setIsError(false);
+      const result = await fetchDashboardData();
+      setDashboardData(result);
+    } catch (error) {
+      console.error('대시보드 데이터 로드 실패:', error);
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        setIsLoading(true);
-        const result = await fetchDashboardData();
-        setDashboardData(result);
-      } catch (error) {
-        console.error('대시보드 데이터 로드 실패:', error);
-        setDashboardData({
-          attendance: [],
-          currentLearning: null,
-          recommendedLearnings: [],
-          recentPlayings: [],
-        } as unknown as DashboardData);
-      } finally {
-        setIsLoading(false);
-      }
-    }
     loadData();
   }, []);
 
   //로딩 중일 때
-  if (isLoading || !dashboardData) {
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gray-950 text-white">
         <p className="animate-pulse">로딩 중...</p>
+      </div>
+    );
+  }
+
+  //API 에러가 발생했거나 데이터가 없을 때
+  if (isError || !dashboardData) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center gap-4 bg-gray-950 text-white">
+        <p className="text-lg text-gray-300">대시보드 데이터를 불러오지 못했습니다.</p>
+        <button
+          type="button"
+          onClick={loadData}
+          className="rounded-lg bg-[#2E3142] px-6 py-2.5 font-medium text-white transition-colors hover:bg-gray-800">
+          다시 시도
+        </button>
       </div>
     );
   }
