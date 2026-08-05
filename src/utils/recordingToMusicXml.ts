@@ -85,6 +85,10 @@ function midiToPitch(midi: number) {
   return { step, alter, octave };
 }
 
+// 그랜드 스태프 분리 기준: 가온도(C4=MIDI 60) 컨벤션에서 낮은음자리표 경계는 F#3(MIDI 54).
+// 이 음까지(이하)는 낮은음자리표(staff 2), 초과는 높은음자리표(staff 1)로 나눈다.
+const GRAND_STAFF_SPLIT_MIDI = 54;
+
 /** ticks를 표기 가능한 음표 단위들로 분해한다 (필요 시 tie로 이어질 조각들). */
 function decomposeTicks(ticks: number): { ticks: number; type: string; dot: boolean }[] {
   const pieces: { ticks: number; type: string; dot: boolean }[] = [];
@@ -106,50 +110,32 @@ interface NoteFragment {
   tieStop: boolean;
 }
 
+/** 마디 전체를 쉼표로 채운 NoteFragment 배열 (그랜드 스태프 중 한쪽 마디 수가 모자랄 때 채움용) */
+function fullMeasureRest(measureTicks: number): NoteFragment[] {
+  return decomposeTicks(measureTicks).map((piece) => ({
+    pitches: null,
+    ticks: piece.ticks,
+    type: piece.type,
+    dot: piece.dot,
+    tieStart: false,
+    tieStop: false,
+  }));
+}
+
 /**
- * 연주 녹음(PlayedNote[])을 MusicXML(score-partwise) 문자열로 변환한다.
- * - 같은 시각(quantize 후)에 시작하는 노트는 화음(chord)으로 묶는다.
- * - 마디 경계를 넘는 노트는 tie로 이어지는 여러 조각으로 분할한다.
- * - 서로 다른 시각에 겹치는(폴리포닉) 노트는 지원하지 않고 시작 순서대로 단선율 처리한다.
+ * 한 성부(그룹 목록)를 마디별 NoteFragment 배열로 변환한다.
+ * - [startTick, startTick+ticks) 구간을 마디 경계에서 잘라 tie로 이어지는 조각들로 기록.
+ * - 그룹 사이 빈 구간과 마지막 불완전 마디는 쉼표로 채운다.
  */
-export function buildMusicXmlFromRecording(recording: PlayedNote[], options: BuildMusicXmlOptions): string {
-  const { bpm, beatsPerBar, beatType = 4, key = 'C', mode = 'major', title = '내 연주' } = options;
-
-  const secToTick = (sec: number) => Math.round(((sec * bpm) / 60) * DIVISIONS);
-  const measureTicks = Math.max(1, Math.round(beatsPerBar * (4 / beatType) * DIVISIONS));
-
-  const quantized = recording
-    .map((n) => {
-      const startTick = Math.max(0, secToTick(n.onSec));
-      const endTick = secToTick(n.offSec ?? n.onSec + 60 / bpm); // 못 닫힌 노트는 1박으로 대체
-      return { pitch: n.midi, startTick, durationTicks: Math.max(1, endTick - startTick) };
-    })
-    .sort((a, b) => a.startTick - b.startTick);
-
-  // 같은 시작 tick끼리 화음으로 그룹화 (그룹 duration은 그 중 가장 긴 노트 기준)
-  const groups: { startTick: number; durationTicks: number; pitches: number[] }[] = [];
-  for (const n of quantized) {
-    const last = groups[groups.length - 1];
-    if (last && last.startTick === n.startTick) {
-      last.pitches.push(n.pitch);
-      last.durationTicks = Math.max(last.durationTicks, n.durationTicks);
-    } else {
-      groups.push({ startTick: n.startTick, durationTicks: n.durationTicks, pitches: [n.pitch] });
-    }
-  }
-
-  // 겹치는 노트(다음 그룹이 이전 그룹 duration 안에서 시작) 클리핑 — 단선율 유지, 마디 duration 초과 방지
-  for (let i = 0; i < groups.length - 1; i++) {
-    const maxTicks = groups[i + 1].startTick - groups[i].startTick;
-    groups[i].durationTicks = Math.max(1, Math.min(groups[i].durationTicks, maxTicks));
-  }
-
+function buildStaffMeasures(
+  groups: { startTick: number; durationTicks: number; pitches: number[] }[],
+  measureTicks: number,
+): NoteFragment[][] {
   const measures: NoteFragment[][] = [];
   const ensureMeasure = (idx: number) => {
     while (measures.length <= idx) measures.push([]);
   };
 
-  // [startTick, startTick+ticks) 구간을 마디 경계에서 잘라 tie로 이어지는 조각들로 기록한다.
   const writeSpan = (startTick: number, ticks: number, pitches: number[] | null) => {
     let pos = startTick;
     let remaining = ticks;
@@ -191,10 +177,66 @@ export function buildMusicXmlFromRecording(recording: PlayedNote[], options: Bui
   if (measures.length === 0 || remainderInLastMeasure > 0) {
     writeSpan(cursor, measureTicks - remainderInLastMeasure, null);
   }
+  return measures;
+}
+
+/**
+ * 연주 녹음(PlayedNote[])을 MusicXML(score-partwise) 문자열로 변환한다.
+ * - 같은 시각(quantize 후)에 시작하는 노트는 화음(chord)으로 묶는다.
+ * - 마디 경계를 넘는 노트는 tie로 이어지는 여러 조각으로 분할한다.
+ * - 서로 다른 시각에 겹치는(폴리포닉) 노트는 지원하지 않고 시작 순서대로 단선율 처리한다.
+ */
+export function buildMusicXmlFromRecording(recording: PlayedNote[], options: BuildMusicXmlOptions): string {
+  const { bpm, beatsPerBar, beatType = 4, key = 'C', mode = 'major', title = '내 연주' } = options;
+
+  const secToTick = (sec: number) => Math.round(((sec * bpm) / 60) * DIVISIONS);
+  const measureTicks = Math.max(1, Math.round(beatsPerBar * (4 / beatType) * DIVISIONS));
+
+  const quantized = recording
+    .map((n) => {
+      const startTick = Math.max(0, secToTick(n.onSec));
+      const endTick = secToTick(n.offSec ?? n.onSec + 60 / bpm); // 못 닫힌 노트는 1박으로 대체
+      return { pitch: n.midi, startTick, durationTicks: Math.max(1, endTick - startTick) };
+    })
+    .sort((a, b) => a.startTick - b.startTick);
+
+  // 같은 시작 tick끼리 화음으로 그룹화 (그룹 duration은 그 중 가장 긴 노트 기준)
+  const groups: { startTick: number; durationTicks: number; pitches: number[] }[] = [];
+  for (const n of quantized) {
+    const last = groups[groups.length - 1];
+    if (last && last.startTick === n.startTick) {
+      last.pitches.push(n.pitch);
+      last.durationTicks = Math.max(last.durationTicks, n.durationTicks);
+    } else {
+      groups.push({ startTick: n.startTick, durationTicks: n.durationTicks, pitches: [n.pitch] });
+    }
+  }
+
+  // 겹치는 노트(다음 그룹이 이전 그룹 duration 안에서 시작) 클리핑 — 단선율 유지, 마디 duration 초과 방지
+  for (let i = 0; i < groups.length - 1; i++) {
+    const maxTicks = groups[i + 1].startTick - groups[i].startTick;
+    groups[i].durationTicks = Math.max(1, Math.min(groups[i].durationTicks, maxTicks));
+  }
+
+  // 그랜드 스태프: 성부(그룹)를 높은음자리표/낮은음자리표 쪽으로 나눠 각각 독립적으로 마디를 구성한다.
+  const trebleGroups = groups
+    .map((g) => ({ ...g, pitches: g.pitches.filter((p) => p > GRAND_STAFF_SPLIT_MIDI) }))
+    .filter((g) => g.pitches.length > 0);
+  const bassGroups = groups
+    .map((g) => ({ ...g, pitches: g.pitches.filter((p) => p <= GRAND_STAFF_SPLIT_MIDI) }))
+    .filter((g) => g.pitches.length > 0);
+
+  const trebleMeasures = buildStaffMeasures(trebleGroups, measureTicks);
+  const bassMeasures = buildStaffMeasures(bassGroups, measureTicks);
+
+  // 한쪽 손 연주가 더 일찍 끝나 마디 수가 모자라면 쉼표 마디로 채워 길이를 맞춘다.
+  const totalMeasureCount = Math.max(trebleMeasures.length, bassMeasures.length, 1);
+  while (trebleMeasures.length < totalMeasureCount) trebleMeasures.push(fullMeasureRest(measureTicks));
+  while (bassMeasures.length < totalMeasureCount) bassMeasures.push(fullMeasureRest(measureTicks));
 
   const fifths = KEY_FIFTHS[`${key}-${mode}`] ?? 0;
 
-  const noteXml = (frag: NoteFragment): string => {
+  const noteXml = (frag: NoteFragment, voice: number, staff: number): string => {
     const parts: string[] = [];
     const pitches = frag.pitches;
     if (pitches) {
@@ -210,9 +252,10 @@ export function buildMusicXmlFromRecording(recording: PlayedNote[], options: Bui
         parts.push(`<duration>${frag.ticks}</duration>`);
         if (frag.tieStart) parts.push('<tie type="start"/>');
         if (frag.tieStop) parts.push('<tie type="stop"/>');
-        parts.push('<voice>1</voice>');
+        parts.push(`<voice>${voice}</voice>`);
         parts.push(`<type>${frag.type}</type>`);
         if (frag.dot) parts.push('<dot/>');
+        parts.push(`<staff>${staff}</staff>`);
         if (frag.tieStart || frag.tieStop) {
           parts.push('<notations>');
           if (frag.tieStart) parts.push('<tied type="start"/>');
@@ -225,23 +268,25 @@ export function buildMusicXmlFromRecording(recording: PlayedNote[], options: Bui
       parts.push('<note>');
       parts.push('<rest/>');
       parts.push(`<duration>${frag.ticks}</duration>`);
-      parts.push('<voice>1</voice>');
+      parts.push(`<voice>${voice}</voice>`);
       parts.push(`<type>${frag.type}</type>`);
       if (frag.dot) parts.push('<dot/>');
+      parts.push(`<staff>${staff}</staff>`);
       parts.push('</note>');
     }
     return parts.join('');
   };
 
-  const measuresXml = measures
-    .map((fragments, idx) => {
-      const attributesXml =
-        idx === 0
-          ? `<attributes><divisions>${DIVISIONS}</divisions><key><fifths>${fifths}</fifths></key><time><beats>${beatsPerBar}</beats><beat-type>${beatType}</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>`
-          : '';
-      return `<measure number="${idx + 1}">${attributesXml}${fragments.map(noteXml).join('')}</measure>`;
-    })
-    .join('');
+  const measuresXml = Array.from({ length: totalMeasureCount }, (_, idx) => {
+    const attributesXml =
+      idx === 0
+        ? `<attributes><divisions>${DIVISIONS}</divisions><key><fifths>${fifths}</fifths></key><time><beats>${beatsPerBar}</beats><beat-type>${beatType}</beat-type></time><staves>2</staves><clef number="1"><sign>G</sign><line>2</line></clef><clef number="2"><sign>F</sign><line>4</line></clef></attributes>`
+        : '';
+    const trebleXml = trebleMeasures[idx].map((f) => noteXml(f, 1, 1)).join('');
+    const backupXml = `<backup><duration>${measureTicks}</duration></backup>`;
+    const bassXml = bassMeasures[idx].map((f) => noteXml(f, 2, 2)).join('');
+    return `<measure number="${idx + 1}">${attributesXml}${trebleXml}${backupXml}${bassXml}</measure>`;
+  }).join('');
 
   return (
     '<?xml version="1.0" encoding="UTF-8"?>' +
