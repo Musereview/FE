@@ -1,4 +1,4 @@
-import type { BackingTrackDetail, BackingTrackGenre, BackingTrackScaleType } from './track';
+import type { BackingTrackDetail } from './track';
 import type { MidiEventPayload } from '@/utils/midiEventPayload';
 
 // 스펙상 확인된 값: READY(생성 직후) · COMPLETED(연주 종료·업로드 완료 후) — 이후 상태가 추가되면 여기에 union 확장
@@ -42,31 +42,4 @@ export interface SaveMidiEventsRequest {
 export interface SaveMidiEventsResponse {
   playingId: number;
   savedCount: number;
-}
-
-// GET /api/playings/{playingId} 응답의 backingTrack 요약 (BackingTrackDetail보다 필드가 적음)
-export interface PlayingBackingTrackSummary {
-  backingTrackId: number;
-  title: string;
-  genre: BackingTrackGenre;
-  keySignature: string;
-  scaleType: BackingTrackScaleType;
-  timeSignature: string;
-  playtimeSec: number;
-}
-
-// GET /api/playings/{playingId} 응답 data
-// 연주를 마친(COMPLETED) 세션만 조회된다. 상태·연주 설정·백킹트랙 정보·녹음 오디오 URL·연주 시간을 담는다.
-export interface PlayingDetail {
-  playingId: number;
-  status: PlayingStatus;
-  mode: PlayingMode;
-  startedAt: string;
-  endedAt: string;
-  duration: number;
-  bpm: number;
-  recordingFileUrl: string;
-  isPublic: boolean;
-  backingTrack: PlayingBackingTrackSummary;
-  createdAt: string;
 }

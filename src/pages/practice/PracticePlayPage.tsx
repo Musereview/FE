@@ -243,14 +243,9 @@ function PracticePlayPage() {
     stopPlayback();
     setIsAnalyzing(true);
     const audioBlob = await stopRecording();
-    console.log('녹음 blob 확인', {
-      size: audioBlob?.size,
-      type: audioBlob?.type,
-      playedNotes: recordingRef.current.length,
-    });
     const raw = inputId ? latencyByDevice[inputId] : undefined;
     const latencyMs = typeof raw === 'number' ? raw : 0; // 미측정/실패면 0
-    setResult({ trackId: practiceId, recording: recordingRef.current, latencyMs });
+    setResult({ trackId: practiceId, recording: recordingRef.current, latencyMs, audioBlob });
 
     if (audioBlob && playingId) {
       try {

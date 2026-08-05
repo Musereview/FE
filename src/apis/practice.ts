@@ -1,7 +1,6 @@
 import { axiosInstance } from './axiosInstance';
 import type { ApiResponse } from '@/types/api';
 import type {
-  PlayingDetail,
   PlayingSession,
   RecordingUploadUrlRequest,
   RecordingUploadUrlResponse,
@@ -38,12 +37,5 @@ export async function saveMidiEvents(playingId: number, body: SaveMidiEventsRequ
     `${PLAYINGS_ENDPOINT}/${playingId}/midi-events`,
     body,
   );
-  return data.data;
-}
-
-// 연주 세션 조회 — GET /api/playings/{playingId}
-// 연주를 마친(COMPLETED) 세션만 조회된다. 상태·연주 설정·백킹트랙 정보·녹음 오디오 URL·연주 시간을 반환한다.
-export async function getPlaying(playingId: number): Promise<PlayingDetail> {
-  const { data } = await axiosInstance.get<ApiResponse<PlayingDetail>>(`${PLAYINGS_ENDPOINT}/${playingId}`);
   return data.data;
 }
