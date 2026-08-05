@@ -3,10 +3,10 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import NotificationDrawer from './NotificationDrawer';
 import {
+  useNotificationClick,
   useNotificationList,
   useNotificationUnreadStatus,
   useReadAllNotifications,
-  useReadNotification,
 } from '@/hooks/useNotification';
 
 export default function AppLayout() {
@@ -22,7 +22,7 @@ export default function AppLayout() {
     mainScrollRef.current?.scrollTo(0, 0);
   }, [pathname]);
 
-  const { mutate: readItem } = useReadNotification();
+  const handleNotificationClick = useNotificationClick();
   const { mutate: readAll } = useReadAllNotifications();
 
   const handleToggleNotification = () => {
@@ -33,9 +33,9 @@ export default function AppLayout() {
     () => ({
       onToggleNotification: handleToggleNotification,
       notiList,
-      onReadItem: readItem,
+      onNotificationClick: handleNotificationClick,
     }),
-    [notiList, readItem],
+    [notiList, handleNotificationClick],
   );
 
   return (
@@ -56,7 +56,7 @@ export default function AppLayout() {
         onClose={() => setIsNotiOpen(false)}
         notiList={notiList}
         onReadAll={() => readAll()}
-        onReadItem={readItem}
+        onNotificationClick={handleNotificationClick}
       />
     </div>
   );

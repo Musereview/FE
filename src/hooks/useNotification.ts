@@ -1,5 +1,8 @@
+import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
+import { analysisDetail } from '@/apis/analysis';
 import {
   notificationList,
   notificationUnreadStatus,
@@ -22,11 +25,18 @@ export const NOTIFICATION_UNREAD_STATUS_QUERY_KEY = ['notification', 'unreadStat
 function toNotiItem(item: NotificationItem): NotiItem {
   return {
     notiId: item.notificationId,
+    type: item.type,
     title: item.title,
     content: item.content,
     isRead: item.isRead,
+    targetId: item.targetId,
     timeLabel: formatRelativeTime(item.createdAt),
   };
+}
+
+// 분석 완료 알림만 이동 대상(analysisId)을 가짐
+export function isClickableNoti(item: NotiItem) {
+  return item.type === 'ANALYSIS' && item.targetId !== null;
 }
 
 // 알림 목록 조회
@@ -59,6 +69,28 @@ export function useReadAllNotifications() {
       queryClient.invalidateQueries({ queryKey: NOTIFICATION_QUERY_KEY });
     },
   });
+}
+
+// 알림 클릭 처리
+export function useNotificationClick() {
+  const navigate = useNavigate();
+  const { mutate: readItem } = useReadNotification();
+
+  return useCallback(
+    async (item: NotiItem) => {
+      if (!item.isRead) readItem(item.notiId);
+      if (!isClickableNoti(item) || item.targetId === null) return;
+
+      try {
+        // 알림에는 analysisId만 담겨 있어 연주 상세 경로에 필요한 playingId를 조회
+        const { playingId } = await analysisDetail(item.targetId);
+        navigate(`/history/${playingId}`);
+      } catch {
+        navigate('/history');
+      }
+    },
+    [navigate, readItem],
+  );
 }
 
 // 읽지 않은 알림 여부 확인
