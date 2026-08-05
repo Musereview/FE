@@ -1,31 +1,29 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import NotificationDrawer from './NotificationDrawer';
-import type { NotiItem } from '@/types/notification';
+import {
+  useNotificationClick,
+  useNotificationList,
+  useNotificationUnreadStatus,
+  useReadAllNotifications,
+} from '@/hooks/useNotification';
 
 export default function AppLayout() {
   const [isNotiOpen, setIsNotiOpen] = useState(false);
-  const [notiList, setNotiList] = useState<NotiItem[]>([]);
+  const { data: notiList = [] } = useNotificationList();
+  const { data: hasUnread = false } = useNotificationUnreadStatus();
 
-  // 1. main 태그를 타겟팅할 ref 생성
+  // 주소가 바뀔 때마다 main 컨테이너 스크롤을 맨 위로 (develop)
   const mainScrollRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
 
-  // 2. 주소(pathname)가 바뀔 때마다 main 컨테이너의 스크롤을 맨 위(0)로 강제 이동
   useEffect(() => {
-    if (mainScrollRef.current) {
-      mainScrollRef.current.scrollTo(0, 0);
-    }
+    mainScrollRef.current?.scrollTo(0, 0);
   }, [pathname]);
 
-  const handleReadAll = () => {
-    setNotiList((prev) => prev.map((item) => ({ ...item, isRead: true })));
-  };
-
-  const handleReadItem = (id: number) => {
-    setNotiList((prev) => prev.map((item) => (item.notiId === id ? { ...item, isRead: true } : item)));
-  };
+  const handleNotificationClick = useNotificationClick();
+  const { mutate: readAll } = useReadAllNotifications();
 
   const handleToggleNotification = () => {
     setIsNotiOpen((prev) => !prev);
@@ -35,21 +33,20 @@ export default function AppLayout() {
     () => ({
       onToggleNotification: handleToggleNotification,
       notiList,
-      onReadItem: handleReadItem,
+      onNotificationClick: handleNotificationClick,
     }),
-    [notiList, isNotiOpen],
+    [notiList, handleNotificationClick],
   );
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-950 text-gray-300">
       <Navbar
         onToggleNotification={handleToggleNotification}
-        notiList={notiList}
         onCloseNoti={() => setIsNotiOpen(false)}
         isOpen={isNotiOpen}
+        hasUnread={hasUnread}
       />
 
-      {/* 3. ref 연결 */}
       <main ref={mainScrollRef} className="min-w-0 flex-1 overflow-y-auto">
         <Outlet context={contextValue} />
       </main>
@@ -58,8 +55,8 @@ export default function AppLayout() {
         isOpen={isNotiOpen}
         onClose={() => setIsNotiOpen(false)}
         notiList={notiList}
-        onReadAll={handleReadAll}
-        onReadItem={handleReadItem}
+        onReadAll={() => readAll()}
+        onNotificationClick={handleNotificationClick}
       />
     </div>
   );
