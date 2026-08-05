@@ -9,7 +9,7 @@ import StarIcon from '@/assets/Star.svg?react';
 
 function ScorePage() {
   const navigate = useNavigate();
-  const { curriculumId = '' } = useParams();
+  const { curriculumId = '', stepId = '' } = useParams();
   const curriculum = getCurriculum(curriculumId);
   const { result } = useLearningScoreStore();
 
@@ -31,13 +31,13 @@ function ScorePage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate(`/learn/curriculum/${curriculumId}/theory`)}
+            onClick={() => navigate(`/learn/curriculum/${curriculumId}/steps/${stepId}/theory`)}
             className="button-large2 flex h-[60px] w-[174px] cursor-pointer items-center justify-center rounded-[6px] bg-gray-800 px-5 text-gray-300">
             이론 보기
           </button>
           <button
             type="button"
-            onClick={() => navigate(`/learn/curriculum/${curriculumId}/play`)}
+            onClick={() => navigate(`/learn/curriculum/${curriculumId}/steps/${stepId}/play`)}
             className="button-large2 mr-[16px] ml-[16px] flex h-[60px] w-[176px] cursor-pointer items-center justify-center rounded-[6px] bg-gray-800 px-[12px] py-[6px] text-gray-300">
             다시하기
             <RefreshIcon className="ml-2 h-[24px] w-[24px]" />

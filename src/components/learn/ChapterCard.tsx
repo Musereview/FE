@@ -28,8 +28,8 @@ function ChapterCard({ chapter, showAction = true, onClick, onActionClick }: Cha
       className="flex h-[152px] w-full items-center justify-between rounded-[6px] bg-gray-800 px-10 py-6">
       <div className="flex w-[483px] flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <p className="body-medium text-gray-100">{title}</p>
-          <p className="body-regular2 text-gray-600">{description}</p>
+          <p className="body-medium line-clamp-1 text-gray-100">{title}</p>
+          <p className="body-regular2 line-clamp-1 text-gray-600">{description}</p>
         </div>
 
         <div className="flex items-center gap-1">
