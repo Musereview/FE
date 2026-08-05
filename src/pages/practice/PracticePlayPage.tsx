@@ -15,6 +15,9 @@ import { useSettingStore } from '@/stores/settingsStore';
 import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
 import { usePlayingSessionStore } from '@/stores/playingSessionStore';
 import { useRecordingBlobStore } from '@/stores/recordingBlobStore';
+import { getRecordingUploadUrl, saveMidiEvents } from '@/apis/practice';
+import { uploadRecordingToS3 } from '@/utils/s3Upload';
+import { toMidiEventPayload } from '@/utils/midiEventPayload';
 import { isAudioUnlocked } from '@/utils/audioUnlock';
 import { buildFallbackProgression, mapDetailToTrack, MODE_LABEL } from '@/pages/practice/trackDisplay';
 import PlayIcon from '@/assets/practice/play.svg?react';
@@ -44,6 +47,7 @@ function PracticePlayPage() {
   } = usePianoSound();
   const setResult = usePracticeResultStore((s) => s.setResult);
   const backingTrack = usePlayingSessionStore((s) => s.backingTrack);
+  const playingId = usePlayingSessionStore((s) => s.playingId);
   const setAudioBlob = useRecordingBlobStore((s) => s.setAudioBlob);
   const clearAudioBlob = useRecordingBlobStore((s) => s.clear);
 
@@ -235,14 +239,33 @@ function PracticePlayPage() {
     restartTimerRef.current = setTimeout(() => runCountdown(), 80);
   };
 
-  // 분석: MIDI 녹음 + 레이턴시 보정값을 스토어에 저장하고, 오디오 녹음(webm)을 확정해 분석 화면으로 이동
+  // 분석: MIDI 녹음 + 레이턴시 보정값을 스토어에 저장하고, 오디오 녹음(webm)을 확정한 뒤
+  // Presigned URL 발급 → S3 업로드 → MIDI 이벤트 저장(최종 완료 처리) 순으로 연동 후 분석 화면으로 이동
   const handleAnalyze = async () => {
     stopPlayback();
     const audioBlob = await stopRecording();
-    if (audioBlob) setAudioBlob(audioBlob);
+    if (audioBlob) setAudioBlob(audioBlob); // 로컬 재생 테스트용 보관 (분석 화면에서 재생 확인용)
     const raw = inputId ? latencyByDevice[inputId] : undefined;
     const latencyMs = typeof raw === 'number' ? raw : 0; // 미측정/실패면 0
     setResult({ trackId: practiceId, recording: recordingRef.current, latencyMs });
+
+    if (audioBlob && playingId) {
+      try {
+        const { uploadUrl, objectKey, requiredHeaders } = await getRecordingUploadUrl(playingId, {
+          fileName: `recording-${playingId}.webm`,
+          contentType: audioBlob.type || 'audio/webm',
+          fileSize: audioBlob.size,
+        });
+        await uploadRecordingToS3(uploadUrl, audioBlob, requiredHeaders);
+        await saveMidiEvents(playingId, {
+          events: toMidiEventPayload(recordingRef.current),
+          recordingObjectKey: objectKey,
+        });
+      } catch (err) {
+        console.error('연주 녹음 업로드/저장 실패', err); // 실패해도 분석 화면 이동은 막지 않음
+      }
+    }
+
     navigate(`/practice/${practiceId}/analysis`);
   };
 
