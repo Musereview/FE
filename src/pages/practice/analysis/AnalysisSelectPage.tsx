@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-
+//useLocation추가 위에
 import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
 import { useScoreCursorSync } from '@/hooks/music/useScoreCursorSync';
 import { computeMeasureTimings } from '@/utils/musicXmlTiming';
@@ -10,10 +10,14 @@ import { usePracticeResultStore } from '@/stores/practiceResultStore';
 import { ALL_TRACKS, RECOMMENDED_TRACKS } from '@/pages/practice/mockTracks';
 import LoadingPage from '@/pages/common/LoadingPage';
 import PlayIcon from '@/assets/practice/play.svg?react';
+//import { requestAnalysis } from '@/apis/analysis';
 
 export default function AnalysisSelectPage() {
   const navigate = useNavigate();
   const { practiceId } = useParams<{ practiceId: string }>();
+  //const location = useLocation();
+
+  //const passedAudioUrl = location.state?.recordingFileUrl;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [startMeasure, setStartMeasure] = useState('1마디');
@@ -31,7 +35,7 @@ export default function AnalysisSelectPage() {
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { recording, trackId } = usePracticeResultStore();
-
+  //latencyMs추가위에
   // 언마운트 시 토스트 타이머 정리
   useEffect(() => {
     return () => {
