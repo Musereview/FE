@@ -51,6 +51,7 @@ export interface Curriculum {
 
 export interface CurrentLearningInfo {
   curriculumId: string;
+  nextStepId: number;
   title: string;
   difficulty: TopicDifficulty;
   stepLabel: string;

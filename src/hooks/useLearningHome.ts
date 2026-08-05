@@ -7,6 +7,7 @@ import {
   mapDifficulty,
   retryExceptClientError,
 } from '@/apis/learningMappers';
+import { getAccessToken } from '@/utils/authStorage';
 import type { CurrentLearningInfo, Topic, TopicChapter } from '@/types/topic';
 
 export interface LearningHomeView {
@@ -17,13 +18,15 @@ export interface LearningHomeView {
 
 export const useLearningHome = () =>
   useQuery({
-    queryKey: ['learningHome'],
+    // currentLearning/progressRate가 사용자별 데이터라 계정 전환 시 캐시가 섞이지 않도록 토큰을 키에 포함
+    queryKey: ['learningHome', getAccessToken()],
     queryFn: async (): Promise<LearningHomeView> => {
       const home = await getLearningHome();
       return {
         currentLearning: home.currentLearning
           ? {
               curriculumId: String(home.currentLearning.learningId),
+              nextStepId: home.currentLearning.nextStepId,
               title: home.currentLearning.title,
               difficulty: mapDifficulty(home.currentLearning.difficulty),
               stepLabel: home.currentLearning.stepTitle,
