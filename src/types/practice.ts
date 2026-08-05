@@ -1,4 +1,5 @@
 import type { BackingTrackDetail } from './track';
+import type { MidiEventPayload } from '@/utils/midiEventPayload';
 
 // 스펙상 확인된 값은 READY뿐 — 이후 상태가 추가되면 여기에 union 확장
 export type PlayingStatus = 'READY';
@@ -25,4 +26,17 @@ export interface RecordingUploadUrlResponse {
   uploadUrl: string;
   expiresAt: string;
   requiredHeaders: Record<string, string>;
+}
+
+// POST /api/playings/{playingId}/midi-events 요청 바디
+// S3 업로드 성공 후 호출 — 백엔드가 objectKey로 파일 존재를 검증하고 MIDI 데이터를 저장, 연주 상태를 COMPLETED로 변경한다.
+export interface SaveMidiEventsRequest {
+  events: MidiEventPayload[];
+  recordingObjectKey: string;
+}
+
+// POST /api/playings/{playingId}/midi-events 응답 data
+export interface SaveMidiEventsResponse {
+  playingId: number;
+  savedCount: number;
 }

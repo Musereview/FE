@@ -1,6 +1,12 @@
 import { axiosInstance } from './axiosInstance';
 import type { ApiResponse } from '@/types/api';
-import type { PlayingSession, RecordingUploadUrlRequest, RecordingUploadUrlResponse } from '@/types/practice';
+import type {
+  PlayingSession,
+  RecordingUploadUrlRequest,
+  RecordingUploadUrlResponse,
+  SaveMidiEventsRequest,
+  SaveMidiEventsResponse,
+} from '@/types/practice';
 
 const PLAYINGS_ENDPOINT = '/api/playings';
 
@@ -19,6 +25,16 @@ export async function getRecordingUploadUrl(
 ): Promise<RecordingUploadUrlResponse> {
   const { data } = await axiosInstance.post<ApiResponse<RecordingUploadUrlResponse>>(
     `${PLAYINGS_ENDPOINT}/${playingId}/recording-upload-url`,
+    body,
+  );
+  return data.data;
+}
+
+// MIDI 이벤트 저장 + 최종 완료 처리 — POST /api/playings/{playingId}/midi-events
+// S3 업로드 성공 후 호출. 백엔드가 objectKey로 파일 존재를 검증하고 MIDI 데이터를 저장, 연주 상태를 COMPLETED로 변경한다.
+export async function saveMidiEvents(playingId: number, body: SaveMidiEventsRequest): Promise<SaveMidiEventsResponse> {
+  const { data } = await axiosInstance.post<ApiResponse<SaveMidiEventsResponse>>(
+    `${PLAYINGS_ENDPOINT}/${playingId}/midi-events`,
     body,
   );
   return data.data;
