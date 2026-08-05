@@ -5,14 +5,6 @@ import RecentStudyBanner from '@/components/learn/RecentStudyBanner';
 import TopicCard from '@/components/learn/TopicCard';
 import ChapterCard from '@/components/learn/ChapterCard';
 
-/**
- * TODO: /learn/curriculum(패키지 전체 목록 페이지)가 아직 스텁이라 임시로 연결.
- * TopicDetailPage가 topicId를 무시하고 항상 같은 패키지 목록을 보여주는 현재 동작에 기대고 있어서,
- * TopicDetailPage가 topicId별 실제 콘텐츠를 보여주도록 바뀌면 이 경로는 더 이상 유효하지 않음.
- * /learn/curriculum 구현되면 그쪽으로 교체할 것.
- */
-const PACKAGE_LIST_PATH = '/learn/topics/intermediate-1';
-
 function LearnPage() {
   const navigate = useNavigate();
   const { data } = useLearningHome();
@@ -47,7 +39,7 @@ function LearnPage() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {(data?.theoryPackages ?? []).map((topic) => (
-            <TopicCard key={topic.id} topic={topic} onClick={() => navigate(`/learn/topics/${topic.id}`)} />
+            <TopicCard key={topic.id} topic={topic} onClick={() => navigate(`/learn/curriculum/${topic.id}`)} />
           ))}
         </div>
       </div>
@@ -57,7 +49,7 @@ function LearnPage() {
           <h2 className="heading-small-b text-gray-300">실전 반주법 패키지</h2>
           <button
             type="button"
-            onClick={() => navigate(PACKAGE_LIST_PATH)}
+            onClick={() => navigate('/learn/curriculum')}
             className="body-small cursor-pointer text-gray-600">
             전체보기
           </button>
