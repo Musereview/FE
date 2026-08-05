@@ -68,11 +68,12 @@ export default function NotificationDrawer({
                 key={item.notiId}
                 onClick={() => {
                   onNotificationClick(item);
+                  // 이동하는 알림만 드로어를 닫음
                   if (isClickableNoti(item)) onClose();
                 }}
-                className={`relative flex w-full flex-col items-start gap-3 rounded-lg p-5 transition-all duration-200 select-none ${
-                  isClickableNoti(item) ? 'cursor-pointer' : 'cursor-default'
-                } ${item.isRead ? 'bg-[#151720] opacity-55 hover:bg-[#1C1E2A]' : 'bg-[#151720] hover:bg-[#1C1E2A]'}`}>
+                className={`relative flex w-full cursor-pointer flex-col items-start gap-3 rounded-lg p-5 transition-all duration-200 select-none ${
+                  item.isRead ? 'bg-[#151720] opacity-55 hover:bg-[#1C1E2A]' : 'bg-[#151720] hover:bg-[#1C1E2A]'
+                }`}>
                 {!item.isRead && <span className="absolute top-6 right-6 h-2 w-2 rounded-full bg-[#10B981]" />}
 
                 <div className="flex w-full flex-col items-start gap-2 pr-6">

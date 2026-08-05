@@ -79,6 +79,8 @@ export function useNotificationClick() {
   return useCallback(
     async (item: NotiItem) => {
       if (!item.isRead) readItem(item.notiId);
+
+      // 분석 완료 알림만 이동 대상, 나머지는 읽음 처리만
       if (!isClickableNoti(item) || item.targetId === null) return;
 
       try {

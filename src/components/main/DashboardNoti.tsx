@@ -1,5 +1,4 @@
 import type { NotiItem } from '@/types/notification';
-import { isClickableNoti } from '@/hooks/useNotification';
 
 interface DashboardNotiProps {
   data: NotiItem[];
@@ -25,9 +24,7 @@ export default function DashboardNoti({ data, onNotificationClick }: DashboardNo
           <div
             key={item.notiId}
             onClick={() => onNotificationClick(item)}
-            className={`flex h-[86px] w-full items-center justify-between rounded bg-gray-900 px-6 py-3 transition-colors select-none hover:opacity-90 ${
-              isClickableNoti(item) ? 'cursor-pointer' : 'cursor-default'
-            }`}>
+            className="flex h-[86px] w-full cursor-pointer items-center justify-between rounded bg-gray-900 px-6 py-3 transition-colors select-none hover:opacity-90">
             <div className="flex min-w-0 flex-1 items-center gap-4">
               <div
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
