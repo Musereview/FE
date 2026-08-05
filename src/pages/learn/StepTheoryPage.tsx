@@ -19,9 +19,9 @@ type SectionKey = 'example' | 'theory' | 'tip' | 'chord';
 
 function StepTheoryPage() {
   const navigate = useNavigate();
-  const { curriculumId = '' } = useParams<{ curriculumId: string }>();
+  const { curriculumId = '', stepId = '' } = useParams<{ curriculumId: string; stepId: string }>();
   const { data: curriculum } = useLearningCurriculum(curriculumId);
-  const { data: step } = useLearningStep(curriculumId);
+  const { data: step } = useLearningStep(curriculumId, stepId);
 
   const title = curriculum?.title ?? '';
   const difficulty = curriculum?.difficulty ?? 'beginner';
@@ -51,7 +51,7 @@ function StepTheoryPage() {
     setHasFinished(false);
     audioRef.current?.pause();
     if (audioRef.current) audioRef.current.currentTime = 0;
-  }, [curriculumId]);
+  }, [curriculumId, stepId]);
 
   const handleTogglePlay = () => {
     const audio = audioRef.current;
@@ -158,7 +158,7 @@ function StepTheoryPage() {
 
           <button
             type="button"
-            onClick={() => navigate(`/learn/curriculum/${curriculumId}/settings`)}
+            onClick={() => navigate(`/learn/curriculum/${curriculumId}/steps/${stepId}/settings`)}
             className="button-large1 bg-primary-400 flex h-[76px] w-full cursor-pointer items-center justify-center gap-2 rounded-[4px] text-gray-950">
             이 이론으로 실습하기
             <StartIcon className="size-6" />

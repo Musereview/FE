@@ -32,7 +32,7 @@ const COUNTDOWN_BEATS = 4; // 재생 전 카운트다운 박 수 (4,3,2,1)
 
 function StepLearningPlayPage() {
   const navigate = useNavigate();
-  const { curriculumId = '' } = useParams();
+  const { curriculumId = '', stepId = '' } = useParams();
   const { keyCount, inputId, latencyByDevice } = useSettingStore();
   const { start, stop, pause, resume } = useMetronome();
   const { noteOn: playNote, noteOff: stopNote, releaseAll } = usePianoSound();
@@ -44,8 +44,8 @@ function StepLearningPlayPage() {
 
   // 실습 데이터(bpm/keySignature/midiData) — '이 이론으로 실습하기'에서 조회. 지금은 mock.
   // TODO: midiData를 채점 정답 데이터로 사용(현재는 악보(OSMD)에서 추출). keySignature도 필요 시 활용.
-  const { learningId, learningStepId } = getLearningIds(curriculumId);
-  const { data: practiceData, isLoading: isPracticeDataLoading } = usePracticeData(learningId, learningStepId);
+  const { learningId } = getLearningIds(curriculumId);
+  const { data: practiceData, isLoading: isPracticeDataLoading } = usePracticeData(learningId, Number(stepId));
   const bpm = practiceData?.bpm ?? curriculum.bpm; // 실습 데이터 우선, 로딩 중엔 커리큘럼 값
 
   // 입력 레이턴시 보정값 (레이턴시 체크에서 측정한 값). 미측정/실패면 0
@@ -231,7 +231,7 @@ function StepLearningPlayPage() {
   const goToScore = () => {
     const result = scoreRef.current?.getScore();
     if (result) setScore(result);
-    navigate(`/learn/curriculum/${curriculumId}/score`);
+    navigate(`/learn/curriculum/${curriculumId}/steps/${stepId}/score`);
   };
 
   useEffect(() => {
@@ -351,7 +351,7 @@ function StepLearningPlayPage() {
             activeNotes={activeNotes}
             rightSlot={
               <button
-                onClick={() => navigate(`/learn/curriculum/${curriculumId}/settings`)}
+                onClick={() => navigate(`/learn/curriculum/${curriculumId}/steps/${stepId}/settings`)}
                 className="flex cursor-pointer flex-col items-center gap-1"
                 aria-label="설정">
                 <SettingsIcon className="h-10 w-10" />
@@ -366,7 +366,7 @@ function StepLearningPlayPage() {
       {disconnected && (
         <DeviceDisconnectedModal
           onEndPractice={() => navigate(`/learn/curriculum/${curriculumId}`)}
-          onGoSettings={() => navigate(`/learn/curriculum/${curriculumId}/settings`)}
+          onGoSettings={() => navigate(`/learn/curriculum/${curriculumId}/steps/${stepId}/settings`)}
         />
       )}
     </div>

@@ -21,13 +21,13 @@ const MOCK_CHORDS = ['Cm7(#11)', 'CM7(#11)', 'Dm7', 'Am7'];
 
 function StepLearningSettingsPage() {
   const navigate = useNavigate();
-  const { curriculumId = '' } = useParams();
+  const { curriculumId = '', stepId = '' } = useParams();
   const { keyCount, setBpm, setBeatsPerBar } = useSettingStore();
 
   const { data: curriculum } = useLearningCurriculum(curriculumId);
   // bpm 실습 데이터는 커리큘럼/단계별 조회에 없음 — practice-data API(민서 담당, 아직 mock) 사용
-  const { learningId, learningStepId } = getLearningIds(curriculumId);
-  const { data: practiceData } = usePracticeData(learningId, learningStepId);
+  const { learningId } = getLearningIds(curriculumId);
+  const { data: practiceData } = usePracticeData(learningId, Number(stepId));
 
   const chapterNo = curriculumId.match(/\d+/)?.[0] ?? ''; // 'chapter-1' → '1'
   const curriculumTitle = curriculum?.title ?? '';
@@ -112,7 +112,7 @@ function StepLearningSettingsPage() {
 
       <SettingsModal
         onClose={() => navigate(-1)}
-        onStart={() => navigate(`/learn/curriculum/${curriculumId}/play`)}
+        onStart={() => navigate(`/learn/curriculum/${curriculumId}/steps/${stepId}/play`)}
         onLatencyCheck={() => navigate('/latency-check?from=learn')}
       />
     </div>
