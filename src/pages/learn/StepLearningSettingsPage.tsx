@@ -8,7 +8,10 @@ import MetronomeDots from '@/components/metronome/MetronomeDots';
 import BackingTrack from '@/components/practice/BackingTrack';
 import { buildFallbackProgression } from '@/pages/practice/trackDisplay';
 import { useSettingStore } from '@/stores/settingsStore';
-import { getCurriculum, getCurriculumProgress, getScorePath } from './mockCurriculum';
+import { useLearningCurriculum } from '@/hooks/useLearningCurriculum';
+import { usePracticeData } from '@/hooks/usePracticeData';
+import { getLearningIds } from '@/utils/learningId';
+import { getScorePath } from './mockCurriculum';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import RefreshIcon from '@/assets/restart.svg?react';
 import SettingsIcon from '@/assets/setting.svg?react';
@@ -21,13 +24,20 @@ function StepLearningSettingsPage() {
   const { curriculumId = '' } = useParams();
   const { keyCount, setBpm, setBeatsPerBar } = useSettingStore();
 
-  const curriculum = getCurriculum(curriculumId);
+  const { data: curriculum } = useLearningCurriculum(curriculumId);
+  // bpm 실습 데이터는 커리큘럼/단계별 조회에 없음 — practice-data API(민서 담당, 아직 mock) 사용
+  const { learningId, learningStepId } = getLearningIds(curriculumId);
+  const { data: practiceData } = usePracticeData(learningId, learningStepId);
+
   const chapterNo = curriculumId.match(/\d+/)?.[0] ?? ''; // 'chapter-1' → '1'
-  const title = chapterNo ? `${curriculum.title}-chapter ${chapterNo}` : curriculum.title;
-  const bpm = curriculum.bpm;
-  const beatsPerBar = Number(curriculum.timeSignature.split('/')[0]); // '4/4' → 4
+  const curriculumTitle = curriculum?.title ?? '';
+  const title = chapterNo ? `${curriculumTitle}-chapter ${chapterNo}` : curriculumTitle;
+  const difficulty = curriculum?.difficulty ?? 'beginner';
+  const bpm = practiceData?.bpm ?? 120;
+  // TODO: 박자(timeSignature) 필드가 practice-data 응답에도 없음 — 확인 필요, 우선 4/4 고정
+  const beatsPerBar = 4;
   const measures = buildFallbackProgression(MOCK_CHORDS, beatsPerBar);
-  const progress = getCurriculumProgress(curriculum.steps);
+  const progress = curriculum?.progress.progressRate ?? 0;
 
   useEffect(() => {
     setBpm(bpm);
@@ -79,7 +89,7 @@ function StepLearningSettingsPage() {
             xmlPath={getScorePath(curriculumId)}
             currentMeasureIndex={0}
             bpm={bpm}
-            difficulty={curriculum.difficulty}
+            difficulty={difficulty}
             visibleMeasures={3}
             height={600}
             className="w-full"

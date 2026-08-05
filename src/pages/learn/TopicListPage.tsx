@@ -1,8 +1,8 @@
 // 학습 주제 전체보기 페이지
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { TopicDifficulty } from '@/types/topic';
-import { MOCK_TOPICS } from './mockTopics';
+import { useTheoryTopics } from '@/hooks/useTheoryTopics';
 import { DIFFICULTY_ORDER } from './topicDisplay';
 import BackNavLayout from '@/components/learn/BackNavLayout';
 import DifficultyTabs from '@/components/learn/DifficultyTabs';
@@ -23,7 +23,7 @@ function TopicListPage() {
     setSearchParams({ difficulty: next }, { replace: true });
   };
 
-  const topics = useMemo(() => MOCK_TOPICS.filter((topic) => topic.difficulty === difficulty), [difficulty]);
+  const { data: topics = [] } = useTheoryTopics(difficulty);
 
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
