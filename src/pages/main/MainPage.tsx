@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import AttendanceSection from '@/components/main/AttendanceSection';
 import LearningBanner from '@/components/main/LearningBanner';
 import RecommendedLearnings from '@/components/main/RecommandLearn';
 import RecentPractices from '@/components/main/RecentPractices';
 import DashboardNoti from '@/components/main/DashboardNoti';
-import { fetchDashboardData } from '@/apis/dashboardApi';
+import { fetchDashboardData } from '@/apis/home';
+import { retryExceptClientError } from '@/apis/learningMappers';
 import type { NotiItem } from '@/types/notification';
-import type { DashboardData } from '@/types/dashboard';
+import { getAccessToken } from '@/utils/authStorage';
 
 interface LayoutContextType {
   onToggleNotification: () => void;
@@ -18,35 +19,37 @@ interface LayoutContextType {
 export default function MainPage() {
   const { onToggleNotification, notiList, onNotificationClick } = useOutletContext<LayoutContextType>();
 
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const {
+    data: dashboardData,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['dashboardData', getAccessToken()],
+    queryFn: fetchDashboardData,
+    retry: retryExceptClientError,
+  });
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setIsLoading(true);
-        const result = await fetchDashboardData();
-        setDashboardData(result);
-      } catch (error) {
-        console.error('대시보드 데이터 로드 실패:', error);
-        setDashboardData({
-          attendance: [],
-          currentLearning: null,
-          recommendedLearnings: [],
-          recentPlayings: [],
-        } as unknown as DashboardData);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadData();
-  }, []);
-
-  //로딩 중일 때
-  if (isLoading || !dashboardData) {
+  // 1. 로딩 중일 때
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gray-950 text-white">
         <p className="animate-pulse">로딩 중...</p>
+      </div>
+    );
+  }
+
+  // 2. API 에러가 발생했거나 데이터가 없을 때 (재시도 버튼 제공)
+  if (isError || !dashboardData) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-gray-950 text-white">
+        <p className="text-lg text-gray-300">대시보드 데이터를 불러오지 못했습니다.</p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="rounded-lg bg-gray-700 px-6 py-2.5 font-medium text-white transition-colors hover:bg-gray-800">
+          다시 시도
+        </button>
       </div>
     );
   }
