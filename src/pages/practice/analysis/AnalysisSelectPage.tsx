@@ -175,7 +175,7 @@ export default function AnalysisSelectPage() {
       const realAnalysisId = analysisResponse.analysisId;
 
       // 2. 결과 페이지로 이동 (서버 응답 데이터와 녹음/레이턴시 상태 전달)
-      navigate(`/practice/${practiceId || '1'}/analysis/result?start=${startNum}&end=${endNum}`, {
+      navigate(`/practice/${practiceId || '1'}/analysis/loading?start=${startNum}&end=${endNum}`, {
         state: {
           rangeXml,
           analysisData: analysisResponse,

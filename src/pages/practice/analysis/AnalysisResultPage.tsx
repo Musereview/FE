@@ -1,57 +1,35 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import * as Tone from 'tone';
+import { useQuery } from '@tanstack/react-query';
 
 import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
+import { usePracticeResultStore } from '@/stores/practiceResultStore';
+import { useMetronome } from '@/hooks/useMetronome';
+import { getAnalysisDetail } from '@/apis/analysis';
 import {
   computeMeasureTimings,
   findMeasureIndexAtTime,
   extractActiveTempoMeterAtMeasure,
 } from '@/utils/musicXmlTiming';
-import { useMetronome } from '@/hooks/useMetronome';
+
 import MetronomeDots from '@/components/metronome/MetronomeDots';
 import AnalysisChatSection from '@/components/mentor/AnalysisChatSection';
-import { axiosInstance } from '@/apis/axiosInstance';
-import { usePracticeResultStore } from '@/stores/practiceResultStore';
-
-interface DomainScores {
-  scale: number;
-  tension: number;
-  progression: number;
-  voiceLeading: number;
-}
-
-interface ReportData {
-  analysisReportId: number;
-  generationType: string;
-  llmStatus: string;
-  contentFormat: string;
-  content: string;
-  createdAt: string;
-}
-
-interface AnalysisData {
-  analysisId: number;
-  playingId?: number;
-  title: string;
-  genre: string;
-  key: string;
-  bpm: number;
-  playedAt: string;
-  status?: string;
-  totalScore?: number;
-  grade?: string;
-  summary?: string;
-  domainScores?: DomainScores;
-  report?: ReportData;
-  createdAt?: string;
-  completedAt?: string;
-}
 
 export default function AnalysisResultPage() {
   const navigate = useNavigate();
   const { practiceId } = useParams<{ practiceId: string }>();
-  const parsedAnalysisId = Number(practiceId) || 10;
+  const location = useLocation();
+
+  // 1. 이전 화면에서 넘어온 state 안전하게 추출
+  const {
+    analysisId: passedAnalysisId,
+    analysisData: passedAnalysisData,
+    rangeXml: passedRangeXml,
+  } = location.state || {};
+
+  // 2. 분석 ID 확정 (realAnalysisId로 완벽 통일)
+  const realAnalysisId = passedAnalysisId ?? (Number(practiceId) || 10);
 
   const [searchParams] = useSearchParams();
   const startBar = parseInt(searchParams.get('start') ?? '1', 10) || 1;
@@ -62,7 +40,6 @@ export default function AnalysisResultPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isScoreReady, setIsScoreReady] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
 
   const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
   const [sectionStartOffsetSec, setSectionStartOffsetSec] = useState(0);
@@ -79,35 +56,34 @@ export default function AnalysisResultPage() {
   const rafRef = useRef<number | null>(null);
 
   const { start, stop, pause } = useMetronome();
-  const isLoading = !isScoreReady;
 
-  useEffect(() => {
-    async function fetchAnalysisDetail() {
-      try {
-        const response = await axiosInstance.get(`/api/v1/analyses/${parsedAnalysisId}`);
-        if (response.data?.isSuccess && response.data?.data) {
-          setAnalysisData(response.data.data);
-        }
-      } catch (err) {
-        console.warn('API 호출 실패:', err);
-      }
-    }
-    fetchAnalysisDetail();
-  }, [parsedAnalysisId]);
+  // 3. TanStack Query 적용
+  const { data: analysisData, isLoading: isQueryLoading } = useQuery({
+    queryKey: ['analysisDetail', realAnalysisId],
+    queryFn: () => getAnalysisDetail(realAnalysisId),
+    enabled: !!realAnalysisId,
+    initialData: passedAnalysisData,
+  });
 
+  const isLoading = !isScoreReady || isQueryLoading;
+
+  // 4. 악보 및 타이밍 정보 로드
   useEffect(() => {
     let cancelled = false;
 
     async function loadScoreInfo() {
       try {
-        const text = await fetch('/sample.xml').then((r) => r.text());
+        let text = passedRangeXml;
+        if (!text) {
+          text = await fetch('/sample.xml').then((r) => r.text());
+        }
+
         if (cancelled || !text) return;
 
         const timings = computeMeasureTimings(text);
         setMeasureStartTimes(timings.measureStartTimes);
 
         const sIdx = Math.max(0, startBar - 1);
-
         const offsetSec = timings.measureStartTimes[sIdx] ?? 0;
 
         const endSec =
@@ -125,8 +101,10 @@ export default function AnalysisResultPage() {
         const { bpm: activeBpm, beats } = extractActiveTempoMeterAtMeasure(text, startBar);
         setBpm(analysisData?.bpm || activeBpm);
         setBeatsPerBar(beats);
+        setIsScoreReady(true);
       } catch (e) {
         console.error('MusicXML 분석 실패:', e);
+        setIsScoreReady(true);
       }
     }
 
@@ -134,7 +112,7 @@ export default function AnalysisResultPage() {
     return () => {
       cancelled = true;
     };
-  }, [startBar, endBar, analysisData?.bpm]);
+  }, [startBar, endBar, analysisData?.bpm, passedRangeXml]);
 
   const handleRewind = useCallback(() => {
     setIsPlaying(false);
@@ -318,7 +296,7 @@ export default function AnalysisResultPage() {
       {/* 하단 AI 연주 분석 리포트 + 멘토 채팅 섹션  */}
       <div className="mb-[36px] w-full max-w-[1280px]">
         <AnalysisChatSection
-          analysisId={parsedAnalysisId}
+          analysisId={realAnalysisId}
           analysisData={
             analysisData
               ? {
@@ -334,7 +312,7 @@ export default function AnalysisResultPage() {
       {/* 최하단 네비게이션 액션 버튼 그룹 */}
       <div className="flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-4 pt-2">
         <button
-          onClick={() => navigate(`/practice/${parsedAnalysisId}/play`)}
+          onClick={() => navigate(`/practice/${realAnalysisId}/play`)}
           className="cursor-pointer rounded-xl bg-gray-800 px-8 py-4 text-base font-medium text-gray-300 shadow-md transition-colors hover:bg-gray-700">
           다시 연주하기
         </button>
