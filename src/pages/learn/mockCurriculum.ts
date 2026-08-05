@@ -1,4 +1,4 @@
-import type { ChapterProgress, ChapterStatus, Curriculum, CurrentLearningInfo, TopicChapter } from '@/types/topic';
+import type { ChapterStatus, Curriculum, TopicChapter } from '@/types/topic';
 
 const STEP_TEMPLATES: Pick<TopicChapter, 'title' | 'description'>[] = [
   { title: 'Chapter 1', description: '코드에 자연스럽게 색채를 더하는 9th를 학습합니다.' },
@@ -87,33 +87,4 @@ export function getCurriculumProgress(steps: TopicChapter[]): number {
   if (steps.length === 0) return 0;
   const completedCount = steps.filter((step) => step.status === 'completed').length;
   return Math.round((completedCount / steps.length) * 100);
-}
-
-export function getPackageStatus(progress: number): ChapterStatus {
-  if (progress === 0) return 'ready';
-  if (progress === 100) return 'completed';
-  return 'learning';
-}
-
-export function getChapterProgressList(chapters: TopicChapter[]): ChapterProgress[] {
-  return chapters.map((chapter) => {
-    const curriculum = getCurriculum(chapter.id);
-    return { chapter, curriculum, progress: getCurriculumProgress(curriculum.steps) };
-  });
-}
-
-export function getCurrentLearningPackage(chapterProgressList: ChapterProgress[]): CurrentLearningInfo | null {
-  for (const { chapter, curriculum, progress } of chapterProgressList) {
-    const learningStepIndex = curriculum.steps.findIndex((step) => step.status === 'learning');
-    if (learningStepIndex === -1) continue;
-
-    return {
-      curriculumId: chapter.id,
-      title: curriculum.title,
-      difficulty: curriculum.difficulty,
-      stepLabel: `${learningStepIndex + 1}단계 - ${curriculum.stepDescription.replace(/^-\s*/, '')}`,
-      progress,
-    };
-  }
-  return null;
 }

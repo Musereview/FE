@@ -2,13 +2,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Track, KeyMode } from '@/types/track';
-import { RECOMMENDED_TRACKS, ALL_TRACKS, GENRES } from './mockTracks';
+import { GENRES } from './mockTracks';
+import { mapListItemToTrack, mapDetailToTrack, mapRecommendedItemToTrack } from './trackDisplay';
+import { useBackingTracks } from '@/hooks/useBackingTracks';
+import { useBackingTrackDetail } from '@/hooks/useBackingTrackDetail';
+import { useRecommendedBackingTracks } from '@/hooks/useRecommendedBackingTracks';
 import TrackCard from '@/components/practice/TrackCard';
 import RecommendedTrackCarousel from '@/components/practice/RecommendedTrackCarousel';
 import SelectDropdown from '@/components/practice/SelectDropdown';
 import KeyFilterDropdown from '@/components/practice/KeyFilterDropdown';
 import BpmDropdown, { type BpmFilterMode } from '@/components/practice/BpmDropdown';
 import TrackDetailModal from '@/components/practice/TrackDetailModal';
+import Modal from '@/components/common/Modal';
 import PlusIcon from '@/assets/practice/plus.svg?react';
 import { useClickOutside } from '@/hooks/useClickOutside';
 
@@ -19,16 +24,16 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: 'latest', label: '최신순' },
 ];
 
-// GENRES[0] = 장르 전체 (필터 없음)
+// GENRES[0] = 장르 전체 (필터 없음), GENRES[4] = 기타 (Jazz/Pop/Blues 외 나머지)
 const GENRE_ALL = GENRES[0];
+const GENRE_OTHER = GENRES[4];
+const NAMED_GENRES = ['jazz', 'pop', 'blues'];
 const GENRE_OPTIONS = GENRES.map((genre) => ({ value: genre, label: genre }));
 
 const DEFAULT_BPM = 60;
 const BPM_FILTER_RANGE = 2;
 
 type FilterKey = 'sort' | 'genre' | 'key' | 'bpm';
-
-const PAGE_SIZE = 9;
 
 function PracticePage() {
   const navigate = useNavigate();
@@ -44,22 +49,49 @@ function PracticePage() {
   const [openFilter, setOpenFilter] = useState<FilterKey | null>(null);
   const filterRowRef = useRef<HTMLDivElement>(null);
 
-  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
+
+  const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useBackingTracks();
+  const {
+    data: recommendedData,
+    isLoading: isRecommendedLoading,
+    isError: isRecommendedError,
+    refetch: refetchRecommended,
+  } = useRecommendedBackingTracks();
+
+  const detailId = selectedTrackId ? Number(selectedTrackId) : null;
+  const {
+    data: trackDetail,
+    isLoading: isDetailLoading,
+    isError: isDetailError,
+    refetch: refetchDetail,
+  } = useBackingTrackDetail(detailId);
+  const selectedTrack: Track | null = trackDetail ? mapDetailToTrack(trackDetail) : null;
 
   useEffect(() => {
     const reopenTrackId = (location.state as { reopenTrackId?: string } | null)?.reopenTrackId;
     if (!reopenTrackId) return;
 
-    const track = [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((candidate) => candidate.id === reopenTrackId);
-    if (track) setSelectedTrack(track);
+    setSelectedTrackId(reopenTrackId);
     navigate(location.pathname, { replace: true, state: null });
   }, [location, navigate]);
 
   useClickOutside(filterRowRef, () => setOpenFilter(null));
 
+  const tracks = useMemo(() => data?.pages.flatMap((page) => page.tracks.map(mapListItemToTrack)) ?? [], [data]);
+  const recommendedTracks = useMemo(() => recommendedData?.map(mapRecommendedItemToTrack) ?? [], [recommendedData]);
+
   const filteredTracks = useMemo(() => {
-    const filtered = ALL_TRACKS.filter((track) => {
-      if (genre !== GENRE_ALL && track.genre !== genre) return false;
+    const filtered = tracks.filter((track) => {
+      if (genre !== GENRE_ALL) {
+        const isNamedGenre = NAMED_GENRES.includes(track.genre.toLowerCase());
+        if (genre === GENRE_OTHER) {
+          if (isNamedGenre) return false;
+        } else if (track.genre.toLowerCase() !== genre.toLowerCase()) {
+          return false;
+        }
+      }
+
       if (bpmMode === 'custom' && Math.abs(track.bpm - bpm) > BPM_FILTER_RANGE) return false;
       if (keyValue && track.key !== keyValue) return false;
       if (keyMode && track.mode !== keyMode) return false;
@@ -71,50 +103,75 @@ function PracticePage() {
         ? b.popularity - a.popularity
         : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }, [genre, bpm, bpmMode, keyValue, keyMode, sortBy]);
+  }, [tracks, genre, bpm, bpmMode, keyValue, keyMode, sortBy]);
 
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const hasMoreTracks = visibleCount < filteredTracks.length;
-
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [genre, bpm, bpmMode, keyValue, keyMode, sortBy]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
-    if (!target || !hasMoreTracks) return;
+    if (!target || !hasNextPage || isFetchingNextPage) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredTracks.length));
-        }
+        if (entry.isIntersecting) fetchNextPage();
       },
       { rootMargin: '200px' },
     );
 
     observer.observe(target);
     return () => observer.disconnect();
-  }, [hasMoreTracks, filteredTracks.length]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const visibleTracks = filteredTracks.slice(0, visibleCount);
+  const handleSelectTrack = (track: Track) => setSelectedTrackId(track.id);
+  const handleCloseModal = () => setSelectedTrackId(null);
+  const handleStartPractice = () => {
+    if (!selectedTrack) return;
+    setSelectedTrackId(null);
+    navigate(`/practice/${selectedTrack.id}/settings`);
+  };
+  const handleEditTrack = () => {
+    if (!selectedTrack) return;
+    setSelectedTrackId(null);
+    navigate(`/practice/${selectedTrack.id}/edit`);
+  };
 
-  const handleSelectTrack = (track: Track) => setSelectedTrack(track);
-  const handleStartPractice = (track: Track) => {
-    setSelectedTrack(null);
-    navigate(`/practice/${track.id}/settings`);
-  };
-  const handleEditTrack = (track: Track) => {
-    setSelectedTrack(null);
-    navigate(`/practice/${track.id}/edit`);
-  };
+  if (isLoading) {
+    return <div className="body-medium flex min-h-screen items-center justify-center text-gray-500">불러오는 중…</div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="body-medium flex min-h-screen flex-col items-center justify-center gap-4 text-gray-500">
+        <p>백킹트랙 목록을 불러오지 못했어요.</p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="button-small bg-primary-400 rounded-[6px] px-4 py-2 text-gray-950">
+          다시 시도
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-[1128px] flex-col px-6">
       <section className="border-b border-gray-700 py-[76px]">
         <h2 className="body-medium text-primary-300 mb-5">김뮤즈 님을 위한 추천 트랙</h2>
-        <RecommendedTrackCarousel tracks={RECOMMENDED_TRACKS} onSelectTrack={handleSelectTrack} />
+        {isRecommendedLoading ? (
+          <div className="body-medium flex h-40 items-center justify-center text-gray-500">불러오는 중…</div>
+        ) : isRecommendedError ? (
+          <div className="body-medium flex h-40 flex-col items-center justify-center gap-4 text-gray-500">
+            <p>추천 트랙을 불러오지 못했어요.</p>
+            <button
+              type="button"
+              onClick={() => refetchRecommended()}
+              className="button-small bg-primary-400 rounded-[6px] px-4 py-2 text-gray-950">
+              다시 시도
+            </button>
+          </div>
+        ) : (
+          <RecommendedTrackCarousel tracks={recommendedTracks} onSelectTrack={handleSelectTrack} />
+        )}
       </section>
 
       <section className="flex flex-col gap-9 py-[76px]">
@@ -170,20 +227,48 @@ function PracticePage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {visibleTracks.map((track) => (
+          {filteredTracks.map((track) => (
             <TrackCard key={track.id} track={track} onClick={() => handleSelectTrack(track)} />
           ))}
         </div>
 
-        {hasMoreTracks && <div ref={loadMoreRef} className="h-px w-full" />}
+        {hasNextPage && <div ref={loadMoreRef} className="h-px w-full" />}
       </section>
 
-      {selectedTrack && (
+      {selectedTrackId && isDetailLoading && (
+        <Modal
+          onClose={handleCloseModal}
+          overlayClassName="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/70 p-6 backdrop-blur-sm"
+          dialogClassName="body-medium flex h-40 w-[320px] items-center justify-center rounded-[10px] border-[0.3px] border-gray-600 bg-gray-900 text-gray-500"
+          dialogAriaLabel="트랙 상세 정보 불러오는 중"
+          lockBodyScroll>
+          불러오는 중…
+        </Modal>
+      )}
+
+      {selectedTrackId && isDetailError && (
+        <Modal
+          onClose={handleCloseModal}
+          overlayClassName="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/70 p-6 backdrop-blur-sm"
+          dialogClassName="body-medium flex h-40 w-[320px] flex-col items-center justify-center gap-4 rounded-[10px] border-[0.3px] border-gray-600 bg-gray-900 text-gray-500"
+          dialogAriaLabel="트랙 상세 정보 불러오기 실패"
+          lockBodyScroll>
+          <p>트랙 정보를 불러오지 못했어요.</p>
+          <button
+            type="button"
+            onClick={() => refetchDetail()}
+            className="button-small bg-primary-400 rounded-[6px] px-4 py-2 text-gray-950">
+            다시 시도
+          </button>
+        </Modal>
+      )}
+
+      {selectedTrack && !isDetailLoading && (
         <TrackDetailModal
           track={selectedTrack}
-          onClose={() => setSelectedTrack(null)}
-          onStartPractice={() => handleStartPractice(selectedTrack)}
-          onEditTrack={() => handleEditTrack(selectedTrack)}
+          onClose={handleCloseModal}
+          onStartPractice={handleStartPractice}
+          onEditTrack={handleEditTrack}
         />
       )}
     </div>
