@@ -6,7 +6,9 @@ import RecommendedLearnings from '@/components/main/RecommandLearn';
 import RecentPractices from '@/components/main/RecentPractices';
 import DashboardNoti from '@/components/main/DashboardNoti';
 import { fetchDashboardData } from '@/apis/home';
+import { retryExceptClientError } from '@/apis/learningMappers';
 import type { NotiItem } from '@/types/notification';
+import { getAccessToken } from '@/utils/authStorage';
 
 interface LayoutContextType {
   onToggleNotification: () => void;
@@ -23,8 +25,9 @@ export default function MainPage() {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['dashboardData'],
+    queryKey: ['dashboardData', getAccessToken()],
     queryFn: fetchDashboardData,
+    retry: retryExceptClientError,
   });
 
   // 1. 로딩 중일 때
