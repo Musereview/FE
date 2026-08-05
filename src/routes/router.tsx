@@ -16,6 +16,7 @@ import PracticePlayPage from '@/pages/practice/PracticePlayPage';
 import PracticeSettingsPage from '@/pages/practice/PracticeSettingsPage';
 import AnalysisSelectPage from '@/pages/practice/analysis/AnalysisSelectPage';
 import AnalysisResultPage from '@/pages/practice/analysis/AnalysisResultPage';
+import AnalysisLoadingPage from '@/pages/practice/analysis/AnalysisLoadingPage';
 import LearnPage from '@/pages/learn/LearnPage';
 import TopicListPage from '@/pages/learn/TopicListPage';
 import TopicDetailPage from '@/pages/learn/TopicDetailPage';
@@ -136,6 +137,10 @@ export const router = createBrowserRouter([
           {
             path: ':practiceId/analysis',
             element: <AnalysisSelectPage />,
+          },
+          {
+            path: ':practiceId/analysis/loading',
+            element: <AnalysisLoadingPage />,
           },
           {
             path: ':practiceId/analysis/result',
