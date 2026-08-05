@@ -7,7 +7,9 @@ import { computeMeasureTimings } from '@/utils/musicXmlTiming';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
 import { usePracticeResultStore } from '@/stores/practiceResultStore';
-import { useRecordingBlobStore } from '@/stores/recordingBlobStore';
+import { usePlayingSessionStore } from '@/stores/playingSessionStore';
+import { getPlaying } from '@/apis/practice';
+import type { PlayingDetail } from '@/types/practice';
 import { ALL_TRACKS, RECOMMENDED_TRACKS } from '@/pages/practice/mockTracks';
 import LoadingPage from '@/pages/common/LoadingPage';
 import PlayIcon from '@/assets/practice/play.svg?react';
@@ -28,11 +30,13 @@ export default function AnalysisSelectPage() {
 
   const scoreViewerRef = useRef<ScoreViewerHandle>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isPlayingRef = useRef(false); // 오디오 객체 교체(재생 중 recordingFileUrl 도착) 시 재생 상태 유지용
 
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { recording, trackId } = usePracticeResultStore();
-  const audioBlob = useRecordingBlobStore((s) => s.audioBlob); // 녹음 재생 테스트용 (API 연동 전 임시)
+  const playingId = usePlayingSessionStore((s) => s.playingId);
+  const [playingDetail, setPlayingDetail] = useState<PlayingDetail | null>(null);
 
   // 언마운트 시 토스트 타이머 정리
   useEffect(() => {
@@ -41,7 +45,15 @@ export default function AnalysisSelectPage() {
     };
   }, []);
 
-  // 1) 연주 화면에서 저장된 recording을 MusicXML로 변환해 악보를 그린다 (하드코딩된 sample.xml 대체)
+  // 0) 연주 세션 조회 — 서버에 저장된 녹음 오디오 URL(recordingFileUrl)을 가져온다
+  useEffect(() => {
+    if (playingId === null) return;
+    getPlaying(playingId)
+      .then(setPlayingDetail)
+      .catch((err) => console.error('연주 세션 조회 실패', err));
+  }, [playingId]);
+
+  // 1) 연주 화면에서 저장된 recording을 MusicXML로 변환해 악보를 그린다
   useEffect(() => {
     const track =
       [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((t) => t.id === (trackId ?? practiceId)) ?? RECOMMENDED_TRACKS[0];
@@ -66,28 +78,41 @@ export default function AnalysisSelectPage() {
     }
   }, [recording, trackId, practiceId]);
 
-  // 2) 오디오 엘리먼트 (페이지 진입 시 프리로드 적용으로 재생 딜레이 방지)
-  // 녹음된 blob이 있으면 그걸 재생(재생 테스트용, API 연동 전 임시), 없으면 목업 mp3로 폴백
   useEffect(() => {
-    const src = audioBlob
-      ? URL.createObjectURL(audioBlob)
-      : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  // 2) 오디오 엘리먼트 (페이지 진입 시 프리로드 적용으로 재생 딜레이 방지)
+  // 연주 세션 조회로 받은 recordingFileUrl을 재생 (아직 조회 전이면 목업 mp3로 폴백)
+  useEffect(() => {
+    const src = playingDetail?.recordingFileUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
     const audio = new Audio(src);
     audio.preload = 'auto';
     audio.load();
     audioRef.current = audio;
     audio.onended = () => handleRewind();
+    audio.onerror = () => {
+      console.error('오디오 로드 실패', {
+        src,
+        error: audio.error, // MediaError: code(1~4), message
+        networkState: audio.networkState,
+      });
+    };
+    audio.onloadedmetadata = () => {
+      console.log('오디오 메타데이터 로드됨', { src, duration: audio.duration, readyState: audio.readyState });
+    };
+    // playingDetail이 늦게 도착해 오디오 객체가 교체될 때, 이미 재생 중이었다면 새 객체도 이어서 재생
+    if (isPlayingRef.current) audio.play().catch((err) => console.error('오디오 재생 실패', err));
     return () => {
       audio.pause();
       audioRef.current = null;
-      if (audioBlob) URL.revokeObjectURL(src);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audioBlob]);
+  }, [playingDetail]);
 
   useEffect(() => {
     if (!audioRef.current) return;
-    if (isPlaying) audioRef.current.play().catch(() => {});
+    if (isPlaying) audioRef.current.play().catch((err) => console.error('오디오 재생 실패', err));
     else audioRef.current.pause();
   }, [isPlaying]);
 

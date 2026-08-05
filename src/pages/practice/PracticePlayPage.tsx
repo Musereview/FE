@@ -14,7 +14,6 @@ import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
 import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
 import { usePlayingSessionStore } from '@/stores/playingSessionStore';
-import { useRecordingBlobStore } from '@/stores/recordingBlobStore';
 import { getRecordingUploadUrl, saveMidiEvents } from '@/apis/practice';
 import { uploadRecordingToS3 } from '@/utils/s3Upload';
 import { toMidiEventPayload } from '@/utils/midiEventPayload';
@@ -49,8 +48,6 @@ function PracticePlayPage() {
   const setResult = usePracticeResultStore((s) => s.setResult);
   const backingTrack = usePlayingSessionStore((s) => s.backingTrack);
   const playingId = usePlayingSessionStore((s) => s.playingId);
-  const setAudioBlob = useRecordingBlobStore((s) => s.setAudioBlob);
-  const clearAudioBlob = useRecordingBlobStore((s) => s.clear);
 
   const track = useMemo(() => (backingTrack ? mapDetailToTrack(backingTrack) : null), [backingTrack]);
   const beatsPerBar = track ? Number(track.timeSignature.split('/')[0]) : 4; // '4/4' → 4
@@ -233,7 +230,6 @@ function PracticePlayPage() {
   const handleRestart = () => {
     stopPlayback();
     stopRecording(); // 이전 오디오 녹음 폐기 (다음 startPlayback에서 새로 시작됨)
-    clearAudioBlob();
     setNoteBars([]); // 노트바 초기화
     heldRef.current.clear();
     // transport 정지가 반영된 뒤 재시작 (연속 stop→start 글리치 방지)
@@ -247,7 +243,11 @@ function PracticePlayPage() {
     stopPlayback();
     setIsAnalyzing(true);
     const audioBlob = await stopRecording();
-    if (audioBlob) setAudioBlob(audioBlob); // 로컬 재생 테스트용 보관 (분석 화면에서 재생 확인용)
+    console.log('녹음 blob 확인', {
+      size: audioBlob?.size,
+      type: audioBlob?.type,
+      playedNotes: recordingRef.current.length,
+    });
     const raw = inputId ? latencyByDevice[inputId] : undefined;
     const latencyMs = typeof raw === 'number' ? raw : 0; // 미측정/실패면 0
     setResult({ trackId: practiceId, recording: recordingRef.current, latencyMs });
