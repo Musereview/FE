@@ -13,9 +13,6 @@ interface AttendanceSectionProps {
 }
 
 export default function AttendanceSection({ data }: AttendanceSectionProps) {
-  // if(!data || !data.streak) {
-  //   return <div className="text-white">출석 정보를 불러오는 중입니다..</div>;
-  // }
   const { user, streak, practiceSummary } = data;
   const dayOrder = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
