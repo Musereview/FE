@@ -49,6 +49,15 @@ export function usePianoSound() {
   // 녹음 시작: 신디 출력을 스피커 출력과 별개로 MediaStream으로 뽑아 MediaRecorder에 연결
   // (이전 녹음이 남아있으면 먼저 정리하고 새로 시작)
   const startRecording = () => {
+    // 서버에 업로드 가능한 포맷(webm/ogg)만 후보로 두고, 지원되는 것만 명시적으로 전달
+    // (mp3/wav는 브라우저가 녹음 시점에 직접 만들어주지 않아 후보에서 제외)
+    const supportedMimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg'].find(
+      (type) => MediaRecorder.isTypeSupported(type),
+    );
+    if (!supportedMimeType) {
+      throw new Error('현재 브라우저는 오디오 녹음을 지원하지 않습니다.');
+    }
+
     if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
     streamDestRef.current?.disconnect();
 
@@ -58,8 +67,7 @@ export function usePianoSound() {
     synth.connect(dest);
     streamDestRef.current = dest;
 
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
-    const recorder = new MediaRecorder(dest.stream, { mimeType });
+    const recorder = new MediaRecorder(dest.stream, { mimeType: supportedMimeType });
     chunksRef.current = [];
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);

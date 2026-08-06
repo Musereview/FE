@@ -61,6 +61,8 @@ function PracticePlayPage() {
   const [countdown, setCountdown] = useState<number | null>(null); // 재생 전 카운트다운(4→1), null이면 비표시
   const [noteBars, setNoteBars] = useState<LiveNoteBar[]>([]); // 연습 노트바 (가변 길이)
   const [isAnalyzing, setIsAnalyzing] = useState(false); // 분석하기 클릭 후 업로드·저장 대기 중 로딩 화면
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const totalBeatRef = useRef(0);
   const barIdRef = useRef(0);
   const heldRef = useRef<Map<number, number>>(new Map()); // midi → 진행 중 노트바 id
@@ -97,6 +99,12 @@ function PracticePlayPage() {
     setNoteBars((prev) => prev.map((b) => (b.id === id ? { ...b, endTime: performance.now() } : b)));
   };
   const handleBarDone = useCallback((id: number) => setNoteBars((prev) => prev.filter((b) => b.id !== id)), []);
+
+  const triggerToast = useCallback((msg: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastMessage(msg);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
+  }, []);
 
   const { activeNotes, inputs, reset: resetInput } = useActiveNotes(handleNoteOn, handleNoteOff, isPlaying); // 정지 중엔 입력 무시
   const { disconnected } = useDeviceConnection(inputs); // 선택 기기 연결 끊김 감지
@@ -183,7 +191,12 @@ function PracticePlayPage() {
     totalBeatRef.current = 0;
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
     await stopRecording(); // 이전 녹음(있다면) 정리 후 새로 시작
-    startRecording();
+    try {
+      startRecording();
+    } catch {
+      // 브라우저가 녹음을 지원하지 않아도 연주 자체는 계속 진행 (분석 저장만 불가)
+      triggerToast('현재 브라우저에서는 연주 녹음을 지원하지 않습니다.');
+    }
     setIsPlaying(true);
     start(track?.bpm ?? 0, beatsPerBar, (time, bib) => {
       const beat = totalBeatRef.current % totalCells;
@@ -249,9 +262,11 @@ function PracticePlayPage() {
 
     if (audioBlob && playingId) {
       try {
+        const contentType = audioBlob.type || 'audio/webm';
+        const extension = contentType.includes('ogg') ? 'ogg' : 'webm'; // startRecording이 고르는 실제 포맷과 맞춤
         const { uploadUrl, objectKey, requiredHeaders } = await getRecordingUploadUrl(playingId, {
-          fileName: `recording-${playingId}.webm`,
-          contentType: audioBlob.type || 'audio/webm',
+          fileName: `recording-${playingId}.${extension}`,
+          contentType,
           fileSize: audioBlob.size,
         });
         await uploadRecordingToS3(uploadUrl, audioBlob, requiredHeaders);
@@ -279,6 +294,7 @@ function PracticePlayPage() {
       stop();
       Tone.getDraw().cancel();
       if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, [stop]);
 
@@ -313,6 +329,15 @@ function PracticePlayPage() {
       {isAnalyzing && (
         <div className="fixed inset-0 z-50 bg-gray-950">
           <LoadingPage message="연주 기록을 저장하고 있습니다.." />
+        </div>
+      )}
+
+      {/* 상단 알림 토스트 메시지 */}
+      {toastMessage && (
+        <div
+          role="alert"
+          className="bg-error body-small fixed top-[40px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-[12px] rounded-[12px] px-[24px] py-[16px] text-gray-100 shadow-2xl">
+          <span>⚠️</span> {toastMessage}
         </div>
       )}
 
