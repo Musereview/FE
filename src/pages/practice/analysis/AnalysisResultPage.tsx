@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import * as Tone from 'tone';
 import { useQuery } from '@tanstack/react-query';
 
@@ -17,7 +17,7 @@ import AnalysisChatSection from '@/components/mentor/AnalysisChatSection';
 
 export default function AnalysisResultPage() {
   const navigate = useNavigate();
-  const { practiceId } = useParams<{ practiceId: string }>();
+  //const { practiceId } = useParams<{ practiceId: string }>();
   const location = useLocation();
 
   const {
@@ -26,9 +26,11 @@ export default function AnalysisResultPage() {
     rangeXml: passedRangeXml,
   } = location.state || {};
 
-  const parsedPracticeId = practiceId ? Number(practiceId) : NaN;
+  //const parsedPracticeId = practiceId ? Number(practiceId) : NaN;
+  const queryParams = new URLSearchParams(location.search);
+  const queryAnalysisId = queryParams.get('analysisId');
   const realAnalysisId: number | undefined =
-    passedAnalysisId ?? (Number.isNaN(parsedPracticeId) ? undefined : parsedPracticeId);
+    passedAnalysisId ?? (queryAnalysisId ? Number(queryAnalysisId) : undefined);
 
   const [searchParams] = useSearchParams();
   const startBar = parseInt(searchParams.get('start') ?? '1', 10) || 1;
@@ -58,7 +60,7 @@ export default function AnalysisResultPage() {
     queryKey: ['analysisDetail', realAnalysisId],
     queryFn: () => getAnalysisDetail(realAnalysisId as number),
     enabled: !!realAnalysisId,
-    initialData: passedAnalysisData,
+    placeholderData: passedAnalysisData,
   });
 
   // 2. 악보 XML 로드 및 타이밍 계산
@@ -88,11 +90,12 @@ export default function AnalysisResultPage() {
       }
 
       const timings = computeMeasureTimings(text);
-      const sIdx = Math.max(0, startBar - 1);
+      const sIdx = passedRangeXml ? 0 : Math.max(0, startBar - 1);
       const offsetSec = timings.measureStartTimes[sIdx] ?? 0;
 
-      const endSec =
-        endBar >= timings.measureStartTimes.length
+      const endSec = passedRangeXml
+        ? timings.totalDuration
+        : endBar >= timings.measureStartTimes.length
           ? timings.totalDuration
           : (timings.measureStartTimes[endBar] ?? timings.totalDuration);
 
