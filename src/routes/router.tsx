@@ -157,33 +157,33 @@ export const router = createBrowserRouter([
                 index: true,
                 element: <TopicListPage />,
               },
-              {
-                path: ':topicId',
-                element: <TopicDetailPage />,
-              },
             ],
           },
           {
             path: 'curriculum',
             children: [
               {
+                index: true,
+                element: <TopicDetailPage />,
+              },
+              {
                 path: ':curriculumId',
                 element: <StepLearningPage />,
               },
               {
-                path: ':curriculumId/theory',
+                path: ':curriculumId/steps/:stepId/theory',
                 element: <StepTheoryPage />,
               },
               {
-                path: ':curriculumId/settings',
+                path: ':curriculumId/steps/:stepId/settings',
                 element: <StepLearningSettingsPage />,
               },
               {
-                path: ':curriculumId/play',
+                path: ':curriculumId/steps/:stepId/play',
                 element: <StepLearningPlayPage />,
               },
               {
-                path: ':curriculumId/score',
+                path: ':curriculumId/steps/:stepId/score',
                 element: <ScorePage />,
               },
             ],

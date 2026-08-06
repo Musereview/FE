@@ -84,7 +84,6 @@ export default function HistoryDetailPage() {
         }
 
         const sIdx = 0;
-
         const offsetSec = timings.measureStartTimes[sIdx] ?? 0;
         const endSec = timings.totalDuration;
 
@@ -170,9 +169,6 @@ export default function HistoryDetailPage() {
     setBeatInBar(-1);
 
     scoreViewerRef.current?.jumpToMeasure(0);
-
-    setToastMessage('처음 마디로 되돌아가셨습니다.');
-    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
   }, [sectionStartOffsetSec, stop]);
 
   const handleRewindClick = () => {
@@ -279,21 +275,12 @@ export default function HistoryDetailPage() {
         </div>
       )}
 
-      {/* [< 히스토리] 버튼 */}
+      {/* [< 히스토리] 버튼  */}
       <div className="absolute top-[74px] left-[10px] z-10 shrink-0 xl:left-[35px]">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          style={{
-            color: '#CECFD1',
-            fontFamily: 'Pretendard',
-            fontSize: '18px',
-            fontStyle: 'normal',
-            fontWeight: 500,
-            lineHeight: '30px',
-            letterSpacing: '-0.36px',
-          }}
-          className="flex cursor-pointer items-center gap-[8px] transition-colors hover:text-white">
+          className="flex cursor-pointer items-center gap-[8px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300 transition-colors hover:text-white">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -303,7 +290,7 @@ export default function HistoryDetailPage() {
             className="aspect-square shrink-0">
             <path
               d="M16 19.5L7 12L16 4.5"
-              stroke="#CECFD1"
+              className="stroke-gray-400"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -356,17 +343,8 @@ export default function HistoryDetailPage() {
 
       {/* 분석 파트 설정 및 리포트 카드 컴포넌트 */}
       <div className="mx-auto mt-[76px] flex w-full max-w-[1280px] flex-col px-6 md:px-12 xl:px-0">
-        <h2
-          style={{
-            alignSelf: 'stretch',
-            color: '#E7E7E8',
-            fontFamily: 'Pretendard',
-            fontSize: '24px',
-            fontStyle: 'normal',
-            fontWeight: 500,
-            lineHeight: '36px',
-            letterSpacing: '-0.6px',
-          }}>
+        {/* 인라인 스타일 제거 및 테일윈드 적용 */}
+        <h2 className="w-full text-[24px] leading-[36px] font-medium tracking-[-0.6px] text-gray-300">
           분석 파트 설정
         </h2>
 

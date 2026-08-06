@@ -1,5 +1,5 @@
 //사이드바
-// src/layout/Navbar.tsx
+
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import PracticeIcon from '@/assets/layout/practice.svg?react';
@@ -9,7 +9,6 @@ import LogoIcon from '@/assets/layout/logo.svg?react';
 import NotificationIcon from '@/assets/layout/notification.svg?react';
 import ProfileIcon from '@/assets/layout/profile.svg?react';
 import MoreIcon from '@/assets/layout/more.svg?react';
-import type { NotiItem } from '@/types/notification';
 import WithdrawModal from '@/components/common/WithdrawModal';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import { clearTokens, getRefreshToken } from '@/utils/authStorage';
@@ -24,8 +23,10 @@ interface NavItem {
 }
 
 interface NavbarProps {
-  onOpenNotification: () => void;
-  notiList: NotiItem[];
+  onToggleNotification: () => void;
+  onCloseNoti: () => void;
+  isOpen: boolean;
+  hasUnread: boolean;
 }
 
 const STUDENT_MENU: NavItem[] = [
@@ -34,10 +35,13 @@ const STUDENT_MENU: NavItem[] = [
   { Icon: HistoryIcon, label: '히스토리', to: '/history' },
 ];
 
-function Navbar({ onOpenNotification, notiList }: NavbarProps) {
+function Navbar({ onToggleNotification, onCloseNoti, isOpen, hasUnread }: NavbarProps) {
   const navigate = useNavigate();
+
+  const handleMenuClick = () => {
+    onCloseNoti();
+  };
   const location = useLocation();
-  const hasUnread = notiList.some((item) => !item.isRead);
   const latencyCheckFrom =
     location.pathname === '/latency-check' ? new URLSearchParams(location.search).get('from') : null;
 
@@ -104,6 +108,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
         {/* 로고 */}
         <NavLink
           to="/main"
+          onClick={onCloseNoti} //홈으로 갈때 알림창 닫기
           className={({ isActive }) =>
             `flex h-[54px] items-center justify-center p-1.5 transition-colors ${
               isActive ? 'text-primary-400' : 'text-gray-400'
@@ -119,6 +124,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
             <NavLink
               key={to}
               to={to}
+              onClick={handleMenuClick} //각 메뉴 이동할 때 알림창 닫기
               className={({ isActive }) =>
                 `button-label2 flex flex-col items-center gap-1 transition-colors ${
                   isActive || (matchFrom && latencyCheckFrom === matchFrom) ? 'text-primary-400' : 'text-gray-300'
@@ -138,9 +144,9 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
           <button
             type="button"
             aria-label="알림"
-            onClick={onOpenNotification}
+            onClick={onToggleNotification}
             className="relative flex cursor-pointer items-center justify-center transition-opacity hover:opacity-80">
-            <NotificationIcon className="size-7" />
+            <NotificationIcon className={`size-7 transition-colors ${isOpen ? 'text-[#69FFC0]' : 'text-gray-400'}`} />
             {hasUnread && (
               <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#10B981] ring-2 ring-gray-950" />
             )}
@@ -150,6 +156,7 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
         {/* 프로필 */}
         <NavLink
           to="/profile"
+          onClick={onCloseNoti}
           className={({ isActive }) =>
             `flex h-[54px] items-center justify-center ${isActive ? 'text-primary-400' : ''}`
           }
@@ -164,7 +171,10 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
             aria-label="더보기"
             aria-haspopup="menu"
             aria-expanded={isMoreOpen}
-            onClick={() => setIsMoreOpen((v) => !v)}
+            onClick={() => {
+              onCloseNoti();
+              setIsMoreOpen((v) => !v);
+            }}
             className={`cursor-pointer transition-colors hover:opacity-80 ${isMoreOpen ? 'text-primary-400' : ''}`}>
             <MoreIcon className="size-9" />
           </button>
@@ -177,14 +187,20 @@ function Navbar({ onOpenNotification, notiList }: NavbarProps) {
               <button
                 type="button"
                 role="menuitem"
-                onClick={handleLogout}
+                onClick={() => {
+                  onCloseNoti();
+                  handleLogout();
+                }}
                 className="body-medium flex w-full cursor-pointer items-center justify-center px-6 py-1 whitespace-nowrap text-gray-300 transition-opacity hover:opacity-80">
                 로그아웃
               </button>
               <button
                 type="button"
                 role="menuitem"
-                onClick={handleWithdraw}
+                onClick={() => {
+                  onCloseNoti();
+                  handleWithdraw();
+                }}
                 className="body-medium text-error flex w-full cursor-pointer items-center justify-center px-6 py-1 whitespace-nowrap transition-opacity hover:opacity-80">
                 회원탈퇴
               </button>

@@ -21,3 +21,70 @@ export interface Track {
   /** 없으면 chords로 fallback 생성 */
   chordProgression?: ChordMeasure[];
 }
+
+export type BackingTrackGenre = string;
+export type BackingTrackScaleType = 'MAJOR' | 'MINOR';
+export type BackingTrackLevel = 'BASIC' | 'MED' | 'ADVANCED';
+
+// GET /api/backing-tracks 응답 항목
+export interface BackingTrackListItem {
+  backingTrackId: number;
+  title: string;
+  genre: BackingTrackGenre;
+  keySignature: string;
+  scaleType: BackingTrackScaleType;
+  timeSignature: string;
+  chordProgression: string[];
+  bpm: number;
+  level: BackingTrackLevel;
+  playtimeSec: number;
+}
+
+// GET /api/backing-tracks 응답 data
+export interface BackingTrackListResponse {
+  tracks: BackingTrackListItem[];
+  nextCursor: number | null;
+  hasNext: boolean;
+}
+
+// GET /api/backing-tracks/recommended 응답 data
+export interface RecommendedBackingTracksResponse {
+  recommendedTracks: RecommendedBackingTrackItem[];
+}
+
+// GET /api/backing-tracks/recommended 응답 항목
+export interface RecommendedBackingTrackItem {
+  backingTrackId: number;
+  title: string;
+  genre: BackingTrackGenre;
+  keySignature: string;
+  scaleType: BackingTrackScaleType;
+  timeSignature: string;
+  chordProgression: string[];
+  bpm: number;
+  level: BackingTrackLevel;
+  playtimeSec: number;
+  playCount: number;
+}
+
+export interface BackingTrackChordEntry {
+  measureNo: number;
+  sequenceNo: number;
+  chordName: string;
+}
+
+// GET /api/backing-tracks/{backingTrackId} 응답 data
+export interface BackingTrackDetail {
+  backingTrackId: number;
+  title: string;
+  genre: BackingTrackGenre;
+  keySignature: string;
+  scaleType: BackingTrackScaleType;
+  timeSignature: string;
+  bpm: number;
+  playtimeSec: number;
+  level: BackingTrackLevel;
+  creatorName: string;
+  audioFileUrl: string;
+  chordProgression: BackingTrackChordEntry[];
+}

@@ -26,16 +26,16 @@ export default function HistoryRecentPractices({ data = [] }: HistoryRecentPract
           <ClickableCard
             key={item.playingId}
             onClick={handleClick}
-            className="box-border flex w-full max-w-[1196px] items-center justify-between rounded-[6px] border border-gray-800 bg-gray-900 p-[24px] text-white transition-colors select-none hover:border-gray-700">
+
+            className="box-border flex w-full cursor-pointer flex-col gap-4 rounded-[6px] border border-gray-800 bg-gray-900 p-6 text-white transition-colors select-none hover:border-gray-700 md:flex-row md:items-center md:justify-between md:gap-0">
             {/* 좌측 구역 */}
-            <div className="flex flex-1 flex-col gap-[8px] pr-[24px]">
-              <div className="flex items-center">
+            <div className="flex flex-1 flex-col gap-2 md:pr-6">
+              <div className="flex flex-wrap items-center gap-3">
                 {/* 곡명 */}
-                <span className="text-[20px] leading-[30px] font-normal tracking-[-0.4px] text-white">
-                  {item.title}
-                </span>
+                <span className="text-xl font-normal tracking-tight text-white">{item.title}</span>
 
                 {/* 점수 변화 아이콘 및 텍스트 영역 */}
+
                 <div className="ml-[24px] flex items-center gap-[4px]">
                   {scoreType === 'down' ? (
                     <>
@@ -48,11 +48,11 @@ export default function HistoryRecentPractices({ data = [] }: HistoryRecentPract
                         className="h-6 w-6 shrink-0">
                         <path
                           d="M20.9502 18C21.3918 17.9998 21.7499 17.6418 21.75 17.2002V12C21.75 11.7239 21.526 11.5001 21.25 11.5C20.9738 11.5 20.75 11.7239 20.75 12V16.2744L15.332 9.98926C14.7626 9.32875 13.7514 9.29157 13.1347 9.9082L10.1035 12.9395C9.90826 13.1346 9.59171 13.1346 9.39645 12.9395L2.85348 6.39648C2.65822 6.20123 2.34171 6.20124 2.14645 6.39648C1.95118 6.59175 1.95119 6.90825 2.14645 7.10352L8.68941 13.6465C9.27521 14.2321 10.2248 14.2322 10.8105 13.6465L13.8418 10.6152C14.0472 10.4098 14.3843 10.4217 14.5742 10.6416L20.0556 17H16.25C15.9738 17 15.75 17.2239 15.75 17.5C15.75 17.7761 15.9738 18 16.25 18H20.9502Z"
-                          fill="#FF5D6B"
+                          className="fill-error"
                         />
                       </svg>
 
-                      <span className="text-[14px] leading-[20px] font-medium text-[#FF5D6B]">{item.scoreChange}</span>
+                      <span className="text-error text-[14px] leading-[20px] font-medium">{item.scoreChange}</span>
                     </>
                   ) : scoreType === 'up' ? (
                     <>
@@ -65,7 +65,7 @@ export default function HistoryRecentPractices({ data = [] }: HistoryRecentPract
                         className="h-6 w-6 shrink-0">
                         <path
                           d="M20.9502 6.25C21.3918 6.25019 21.7499 6.60819 21.75 7.0498V12.25C21.75 12.5261 21.526 12.7499 21.25 12.75C20.9738 12.75 20.75 12.5261 20.75 12.25V7.97559L15.332 14.2607C14.7626 14.9212 13.7514 14.9584 13.1347 14.3418L10.1035 11.3105C9.90826 11.1154 9.59171 11.1154 9.39645 11.3105L2.85348 17.8535C2.65822 18.0488 2.34171 18.0488 2.14645 17.8535C1.95118 17.6583 1.95119 17.3417 2.14645 17.1465L8.68941 10.6035C9.27521 10.0179 10.2248 10.0178 10.8105 10.6035L13.8418 13.6348C14.0472 13.8402 14.3843 13.8283 14.5742 13.6084L20.0556 7.25H16.25C15.9738 7.25 15.75 7.02614 15.75 6.75C15.75 6.47386 15.9738 6.25 16.25 6.25H20.9502Z"
-                          fill="#69FFC0"
+                          className="fill-primary-400"
                         />
                       </svg>
 
@@ -74,7 +74,6 @@ export default function HistoryRecentPractices({ data = [] }: HistoryRecentPract
                       </span>
                     </>
                   ) : (
-                    /* neutral(중립)일 때는 수평 바 SVG 아이콘 출력 */
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -82,22 +81,23 @@ export default function HistoryRecentPractices({ data = [] }: HistoryRecentPract
                       viewBox="0 0 24 24"
                       fill="none"
                       className="h-6 w-6 shrink-0">
-                      <path d="M6 12H18" stroke="#CECFD1" strokeWidth="1.5" strokeLinecap="round" />
+                      <path d="M6 12H18" className="stroke-gray-400" strokeWidth="1.5" strokeLinecap="round" />
                     </svg>
                   )}
                 </div>
               </div>
 
               {/* 상세 설명 */}
+
               <p className="m-0 text-[18px] leading-[30px] font-medium tracking-[-0.36px] whitespace-pre-line text-gray-500">
                 {item.summary}
               </p>
             </div>
 
             {/* 우측 구역 */}
-            <div className="flex shrink-0 items-center">
+            <div className="flex shrink-0 items-center justify-between gap-4 md:justify-end md:gap-6">
               {/* 소요 시간 */}
-              <div className="flex w-[120px] items-center gap-[6px] text-[14px] leading-[20px] font-normal text-gray-500">
+              <div className="flex items-center gap-1.5 text-sm font-normal text-gray-500 md:w-[120px]">
                 <svg
                   width="16"
                   height="16"
@@ -105,14 +105,15 @@ export default function HistoryRecentPractices({ data = [] }: HistoryRecentPract
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                   className="shrink-0">
-                  <circle cx="8" cy="8" r="6.5" stroke="#AEB1B6" strokeWidth="1.2" />
-                  <path d="M8 4.5V8H11" stroke="#AEB1B6" strokeWidth="1.2" strokeLinecap="round" />
+                  <circle cx="8" cy="8" r="6.5" className="stroke-gray-500" strokeWidth="1.2" />
+                  <path d="M8 4.5V8H11" className="stroke-gray-500" strokeWidth="1.2" strokeLinecap="round" />
                 </svg>
 
                 <span>소요시간 {item.durationMinutes}분</span>
               </div>
 
               {/* 날짜 */}
+
               <div className="mr-[24px] w-[90px] text-right text-[14px] leading-[20px] font-normal text-gray-500">
                 {item.relativeDate}
               </div>
@@ -127,7 +128,7 @@ export default function HistoryRecentPractices({ data = [] }: HistoryRecentPract
                 className="aspect-square h-6 w-6 shrink-0">
                 <path
                   d="M8.5 19.5L16.5 12L8.5 4.5"
-                  stroke="#CECFD1"
+                  className="stroke-gray-400"
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"

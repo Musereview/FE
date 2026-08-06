@@ -1,14 +1,12 @@
-// src/layout/NotificationDrawer.tsx
-import { useNavigate } from 'react-router-dom';
-
 import type { NotiItem } from '@/types/notification';
+import { isClickableNoti } from '@/hooks/useNotification';
 
 interface NotificationDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   notiList: NotiItem[];
   onReadAll: () => void;
-  onReadItem: (id: number) => void;
+  onNotificationClick: (item: NotiItem) => void;
 }
 
 export default function NotificationDrawer({
@@ -16,10 +14,8 @@ export default function NotificationDrawer({
   onClose,
   notiList,
   onReadAll,
-  onReadItem,
+  onNotificationClick,
 }: NotificationDrawerProps) {
-  const navigate = useNavigate();
-
   if (!isOpen) return null;
 
   const hasUnread = notiList.some((item) => !item.isRead);
@@ -71,13 +67,9 @@ export default function NotificationDrawer({
               <div
                 key={item.notiId}
                 onClick={() => {
-                  onReadItem(item.notiId);
-                  onClose();
-                  if (item.historyId) {
-                    navigate(`/history/${item.historyId}`);
-                  } else {
-                    navigate(`/history`);
-                  }
+                  onNotificationClick(item);
+                  // 이동하는 알림만 드로어를 닫음
+                  if (isClickableNoti(item)) onClose();
                 }}
                 className={`relative flex w-full cursor-pointer flex-col items-start gap-3 rounded-lg p-5 transition-all duration-200 select-none ${
                   item.isRead ? 'bg-[#151720] opacity-55 hover:bg-[#1C1E2A]' : 'bg-[#151720] hover:bg-[#1C1E2A]'
@@ -85,25 +77,9 @@ export default function NotificationDrawer({
                 {!item.isRead && <span className="absolute top-6 right-6 h-2 w-2 rounded-full bg-[#10B981]" />}
 
                 <div className="flex w-full flex-col items-start gap-2 pr-6">
-                  <p className="text-left text-[15px] leading-relaxed text-[#E5E7EB]">
-                    <span className="font-semibold text-[#10B981]">{item.title}</span>
-                    {item.type === 'analysis' ? (
-                      <span> 연주 분석이 완료되었습니다.</span>
-                    ) : item.type === 'achievement' ? (
-                      <span> 님, 이번 주 연습 10시간을 달성했습니다!</span>
-                    ) : item.type === 'complete' ? (
-                      <span> 학습을 모두 완료했습니다.</span>
-                    ) : (
-                      <span> 에 코멘트가 작성되었습니다.</span>
-                    )}
-                  </p>
+                  <p className="text-left text-[15px] leading-relaxed font-semibold text-[#10B981]">{item.title}</p>
 
-                  {(!item.type || item.type === 'comment') && (
-                    <p className="text-left text-sm leading-relaxed text-gray-400">
-                      {item.content ||
-                        '길동님, 이번 연주에서 까다로운 리디안 스케일을 아주 잘 살려주셨네요! 특히 귀에 걸리기 쉬운 텐션음들을 자연스럽고...'}
-                    </p>
-                  )}
+                  {item.content && <p className="text-left text-sm leading-relaxed text-gray-400">{item.content}</p>}
                 </div>
 
                 <span className="text-xs text-gray-500">{item.timeLabel}</span>

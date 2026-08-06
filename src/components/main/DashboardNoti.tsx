@@ -1,15 +1,21 @@
-// src/pages/main/components/DashboardNoti.tsx
-import { useNavigate } from 'react-router-dom';
-
 import type { NotiItem } from '@/types/notification';
 
 interface DashboardNotiProps {
   data: NotiItem[];
-  onReadItem: (id: number) => void;
+  onNotificationClick: (item: NotiItem) => void;
 }
 
-export default function DashboardNoti({ data, onReadItem }: DashboardNotiProps) {
-  const navigate = useNavigate();
+export default function DashboardNoti({ data, onNotificationClick }: DashboardNotiProps) {
+  //알림 데이터가 없을떄 초기 상태
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex h-[356px] w-full flex-col items-center justify-center self-stretch rounded-[6px] bg-gray-800 p-[32px] text-center select-none">
+        <p className="font-['Pretendard'] text-[24px] leading-[36px] font-semibold tracking-[-0.02em] text-white">
+          새로운 알림이 없습니다.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-full flex-col">
@@ -17,26 +23,20 @@ export default function DashboardNoti({ data, onReadItem }: DashboardNotiProps) 
         {data.map((item) => (
           <div
             key={item.notiId}
-            onClick={() => {
-              onReadItem(item.notiId);
-              if (item.historyId) {
-                navigate(`/history/${item.historyId}`);
-              } else {
-                navigate(`/history`);
-              }
-            }}
-            className="flex h-[86px] w-full cursor-pointer items-center justify-between rounded bg-[#1B1E27] px-6 py-3 transition-colors select-none hover:opacity-90">
+            onClick={() => onNotificationClick(item)}
+            className="flex h-[86px] w-full cursor-pointer items-center justify-between rounded bg-gray-900 px-6 py-3 transition-colors select-none hover:opacity-90">
             <div className="flex min-w-0 flex-1 items-center gap-4">
               <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                style={{ background: item.isRead ? '#31353F' : '#A855F7' }}>
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                  item.isRead ? 'bg-gray-700' : 'bg-secondary-400'
+                }`}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="18"
                   height="18"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke={item.isRead ? '#AEB1B6' : '#FFFFFF'}
+                  stroke={item.isRead ? 'stroke-gray-500' : 'stroke-white'}
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round">
@@ -45,8 +45,8 @@ export default function DashboardNoti({ data, onReadItem }: DashboardNotiProps) 
               </div>
 
               <div className="flex min-w-0 flex-col items-start gap-1">
-                <p className="w-full truncate text-left font-sans text-[15px] leading-[22px] font-medium tracking-[-0.3px] text-white">
-                  <span className="font-semibold">{item.title}</span>에 코멘트가 작성되었습니다.
+                <p className="w-full truncate text-left font-sans text-[15px] leading-[22px] font-semibold tracking-[-0.3px] text-white">
+                  {item.title}
                 </p>
                 <span className="font-sans text-xs text-gray-400">{item.timeLabel}</span>
               </div>

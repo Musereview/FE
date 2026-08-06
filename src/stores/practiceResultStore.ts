@@ -12,7 +12,8 @@ interface PracticeResultState {
   trackId?: string;
   recording: PlayedNote[]; // 사용자 연주 녹음 (원본, 보정 전)
   latencyMs: number; // 레이턴시 보정값(ms) — 분석 시 각 노트 시각에서 빼서 보정
-  setResult: (r: { trackId?: string; recording: PlayedNote[]; latencyMs: number }) => void;
+  audioBlob: Blob | null; // 녹음된 오디오(webm) — 분석 화면에서 API 없이 바로 재생하는 용도
+  setResult: (r: { trackId?: string; recording: PlayedNote[]; latencyMs: number; audioBlob: Blob | null }) => void;
   clear: () => void;
 }
 
@@ -20,6 +21,7 @@ export const usePracticeResultStore = create<PracticeResultState>((set) => ({
   trackId: undefined,
   recording: [],
   latencyMs: 0,
-  setResult: ({ trackId, recording, latencyMs }) => set({ trackId, recording, latencyMs }),
-  clear: () => set({ trackId: undefined, recording: [], latencyMs: 0 }),
+  audioBlob: null,
+  setResult: ({ trackId, recording, latencyMs, audioBlob }) => set({ trackId, recording, latencyMs, audioBlob }),
+  clear: () => set({ trackId: undefined, recording: [], latencyMs: 0, audioBlob: null }),
 }));

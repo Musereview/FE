@@ -20,7 +20,7 @@ function RecentStudyBanner({ data }: RecentStudyBannerProps) {
     );
   }
 
-  const { curriculumId, title, difficulty, stepLabel, progress } = data;
+  const { curriculumId, nextStepId, title, difficulty, stepLabel, progress } = data;
 
   return (
     <div
@@ -52,7 +52,7 @@ function RecentStudyBanner({ data }: RecentStudyBannerProps) {
 
       <button
         type="button"
-        onClick={() => navigate(`/learn/curriculum/${curriculumId}`)}
+        onClick={() => navigate(`/learn/curriculum/${curriculumId}/steps/${nextStepId}/theory`)}
         className="button-large2 bg-primary-400 relative flex h-[60px] w-[186px] shrink-0 items-center justify-center gap-2 rounded-[6px] text-gray-950">
         이어서 학습하기
         <ResumeIcon className="size-6" />
