@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAccessToken } from '@/utils/authStorage';
 
@@ -6,14 +6,6 @@ function NotFoundPage() {
   const navigate = useNavigate();
 
   const [canGoBack] = useState(() => window.history.length > 1);
-
-  useEffect(() => {
-    const prevTitle = document.title;
-    document.title = '페이지를 찾을 수 없습니다 | MuseReview';
-    return () => {
-      document.title = prevTitle;
-    };
-  }, []);
 
   const handleGoHome = () => {
     navigate(getAccessToken() ? '/main' : '/', { replace: true });
