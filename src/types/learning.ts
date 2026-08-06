@@ -3,7 +3,7 @@
 // 요청 바디 — POST /api/learnings/{learningId}/result
 export interface SaveLearningResultRequest {
   score: number; // 최종 점수
-  learningStep: number; // 학습 스텝 번호
+  learningStepId: number; // 학습 스텝 ID
 }
 
 // 응답 data
