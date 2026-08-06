@@ -1,5 +1,6 @@
 import { useMidi } from '@/hooks/useMidi';
 import { useSettingStore } from '@/stores/settingsStore';
+import { markAudioUnlocked } from '@/utils/audioUnlock';
 import * as Tone from 'tone';
 import CloseIcon from '@/assets/close.svg?react';
 import CheckIcon from '@/assets/check.svg?react';
@@ -29,6 +30,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModa
 
   const handleStart = async () => {
     await Tone.start(); // 오디오 잠금 해제 - 클릭 핸들러 안에서만 가능
+    markAudioUnlocked(); // 플레이 화면이 새로고침으로 들어왔는지 구분하는 데 사용
     onStart();
   };
 

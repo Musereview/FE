@@ -17,7 +17,12 @@ export default function AnalysisSelectPage() {
 
   const { practiceId, trackId } = useParams<{ practiceId?: string; trackId?: string }>();
 
-  const { recording: storeRecording, latencyMs: storeLatencyMs, trackId: storeTrackId } = usePracticeResultStore();
+  const {
+    recording: storeRecording,
+    latencyMs: storeLatencyMs,
+    trackId: storeTrackId,
+    audioBlob,
+  } = usePracticeResultStore();
 
   const recording = location.state?.recording ?? storeRecording;
   const latencyMs = location.state?.latencyMs ?? storeLatencyMs ?? 0;
@@ -58,6 +63,12 @@ export default function AnalysisSelectPage() {
     enabled: !!targetId,
   });
 
+  const src = audioBlob
+    ? URL.createObjectURL(audioBlob)
+    : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+
+  // 1) 연주 화면에서 저장된 recording을 MusicXML로 변환해 악보를 그린다
+
   useEffect(() => {
     if (contextData?.totalBars) {
       setTotalBars(contextData.totalBars);
@@ -71,7 +82,10 @@ export default function AnalysisSelectPage() {
     }
   }, [isContextError, triggerToast]);
 
-  const passedAudioUrl = contextData?.backingTrackAudioFileUrl || '';
+  // audioBlob 우선, 없으면 서버 URL
+  const passedAudioUrl = audioBlob
+    ? URL.createObjectURL(audioBlob)
+    : contextData?.backingTrackAudioFileUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
 
   // 녹음된 연주 데이터를 프론트엔드에서 MusicXML 악보로 변환
   useEffect(() => {
@@ -90,6 +104,7 @@ export default function AnalysisSelectPage() {
     setMeasureStartTimes(timings.measureStartTimes);
   }, [xmlContent]);
 
+  // 오디오 엘리먼트 초기화 및 재생 준비
   useEffect(() => {
     if (!passedAudioUrl) return;
 
@@ -98,15 +113,24 @@ export default function AnalysisSelectPage() {
     audio.load();
     audioRef.current = audio;
     audio.onended = () => handleRewind();
+    audio.onerror = () => {
+      console.error('오디오 로드 실패', {
+        src,
+        error: audio.error,
+        networkState: audio.networkState,
+      });
+    };
     return () => {
       audio.pause();
       audioRef.current = null;
+      if (audioBlob) URL.revokeObjectURL(src);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passedAudioUrl]);
 
   useEffect(() => {
     if (!audioRef.current) return;
-    if (isPlaying) audioRef.current.play().catch(() => {});
+    if (isPlaying) audioRef.current.play().catch((err) => console.error('오디오 재생 실패', err));
     else audioRef.current.pause();
   }, [isPlaying]);
 

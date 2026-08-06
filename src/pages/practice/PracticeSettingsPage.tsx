@@ -1,13 +1,13 @@
 // 연주 트랙 설정 페이지 — 배경은 연습 플레이 화면과 동일한 UI(정적), 그 위에 설정 모달
-import { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import Piano from '@/components/piano/Piano';
 import MetronomeDots from '@/components/metronome/MetronomeDots';
 import BackingTrack from '@/components/practice/BackingTrack';
 import { useSettingStore } from '@/stores/settingsStore';
-import { ALL_TRACKS, RECOMMENDED_TRACKS } from '@/pages/practice/mockTracks';
-import { buildFallbackProgression, MODE_LABEL } from '@/pages/practice/trackDisplay';
+import { usePlayingSessionStore } from '@/stores/playingSessionStore';
+import { buildFallbackProgression, mapDetailToTrack, MODE_LABEL } from '@/pages/practice/trackDisplay';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import RefreshIcon from '@/assets/restart.svg?react';
 import ChangeIcon from '@/assets/change.svg?react';
@@ -16,17 +16,24 @@ import SettingsIcon from '@/assets/setting.svg?react';
 
 function PracticeSettingsPage() {
   const navigate = useNavigate();
-  const { practiceId } = useParams();
   const { keyCount, setBpm, setBeatsPerBar } = useSettingStore();
+  const backingTrack = usePlayingSessionStore((s) => s.backingTrack);
+  const track = useMemo(() => (backingTrack ? mapDetailToTrack(backingTrack) : null), [backingTrack]);
+  const beatsPerBar = track ? Number(track.timeSignature.split('/')[0]) : 4; // '4/4' → 4
+  const measures = track ? (track.chordProgression ?? buildFallbackProgression(track.chords, beatsPerBar)) : [];
 
-  const track = [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((t) => t.id === practiceId) ?? RECOMMENDED_TRACKS[0];
-  const beatsPerBar = Number(track.timeSignature.split('/')[0]); // '4/4' → 4
-  const measures = track.chordProgression ?? buildFallbackProgression(track.chords, beatsPerBar);
+  // 세션 없이(새로고침/직접 진입) 들어온 경우 — 연주 세션은 상세 모달 "연습 시작"에서만 생성되므로 목록으로 되돌림
+  useEffect(() => {
+    if (!backingTrack) navigate('/practice', { replace: true });
+  }, [backingTrack, navigate]);
 
   useEffect(() => {
+    if (!track) return;
     setBpm(track.bpm);
     setBeatsPerBar(beatsPerBar);
-  }, [track.bpm, beatsPerBar, setBpm, setBeatsPerBar]);
+  }, [track, beatsPerBar, setBpm, setBeatsPerBar]);
+
+  if (!track) return null;
 
   return (
     <div className="flex h-full flex-col bg-gray-950">
@@ -93,7 +100,7 @@ function PracticeSettingsPage() {
 
       <SettingsModal
         onClose={() => navigate(-1)}
-        onStart={() => navigate(`/practice/${practiceId}/play`)}
+        onStart={() => navigate(`/practice/${track.id}/play`)}
         onLatencyCheck={() => navigate(`/latency-check?from=practice`)}
       />
     </div>
