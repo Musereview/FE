@@ -4,11 +4,17 @@
 import { useEffect, useRef } from 'react';
 import * as Tone from 'tone';
 
+// 진행 중인 녹음 하나를 이루는 recorder/destination/청크 묶음
+// (recorder별로 묶어서 관리해야 늦게 도착한 이전 recorder의 onstop이 이미 시작된 새 녹음을 건드리지 않음)
+interface RecordingSession {
+  recorder: MediaRecorder;
+  dest: MediaStreamAudioDestinationNode;
+  chunks: Blob[];
+}
+
 export function usePianoSound() {
   const synthRef = useRef<Tone.PolySynth | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const streamDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const sessionRef = useRef<RecordingSession | null>(null);
 
   // 신디는 한 번만 생성 (지연 초기화)
   const getSynth = () => {
@@ -21,10 +27,12 @@ export function usePianoSound() {
 
   useEffect(() => {
     return () => {
-      if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
-      recorderRef.current = null;
-      streamDestRef.current?.disconnect();
-      streamDestRef.current = null;
+      const session = sessionRef.current;
+      if (session) {
+        if (session.recorder.state !== 'inactive') session.recorder.stop();
+        session.dest.disconnect();
+        sessionRef.current = null;
+      }
       synthRef.current?.releaseAll();
       synthRef.current?.dispose();
       synthRef.current = null;
@@ -58,44 +66,50 @@ export function usePianoSound() {
       throw new Error('현재 브라우저는 오디오 녹음을 지원하지 않습니다.');
     }
 
-    if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
-    streamDestRef.current?.disconnect();
+    // 직전 세션이 stopRecording()을 거치지 않고 남아있는 경우를 위한 안전망 (정상 경로는 항상 stopRecording 이후 호출됨)
+    const prevSession = sessionRef.current;
+    if (prevSession) {
+      if (prevSession.recorder.state !== 'inactive') prevSession.recorder.stop();
+      prevSession.dest.disconnect();
+    }
 
     const synth = getSynth();
     const rawContext = Tone.getContext().rawContext as AudioContext;
     const dest = rawContext.createMediaStreamDestination();
     synth.connect(dest);
-    streamDestRef.current = dest;
 
     const recorder = new MediaRecorder(dest.stream, { mimeType: supportedMimeType });
-    chunksRef.current = [];
+    const chunks: Blob[] = [];
+    const session: RecordingSession = { recorder, dest, chunks };
     recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunksRef.current.push(e.data);
+      if (e.data.size > 0) chunks.push(e.data);
     };
     recorder.start();
-    recorderRef.current = recorder;
+    sessionRef.current = session;
   };
 
   const pauseRecording = () => {
-    if (recorderRef.current?.state === 'recording') recorderRef.current.pause();
+    const recorder = sessionRef.current?.recorder;
+    if (recorder?.state === 'recording') recorder.pause();
   };
 
   const resumeRecording = () => {
-    if (recorderRef.current?.state === 'paused') recorderRef.current.resume();
+    const recorder = sessionRef.current?.recorder;
+    if (recorder?.state === 'paused') recorder.resume();
   };
 
   // 녹음 종료: 지금까지 모은 청크를 하나의 webm Blob으로 합쳐 반환 (녹음 중이 아니었으면 null)
   const stopRecording = (): Promise<Blob | null> => {
-    const recorder = recorderRef.current;
-    if (!recorder || recorder.state === 'inactive') return Promise.resolve(null);
+    const session = sessionRef.current;
+    if (!session || session.recorder.state === 'inactive') return Promise.resolve(null);
 
+    const { recorder, dest, chunks } = session;
     return new Promise((resolve) => {
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-        chunksRef.current = [];
-        streamDestRef.current?.disconnect();
-        streamDestRef.current = null;
-        recorderRef.current = null;
+        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        dest.disconnect();
+        // 이 recorder가 여전히 "현재" 세션일 때만 공유 ref 정리 (그 사이 새 녹음이 시작됐다면 건드리지 않음)
+        if (sessionRef.current === session) sessionRef.current = null;
         resolve(blob);
       };
       recorder.stop();

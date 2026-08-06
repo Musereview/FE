@@ -242,12 +242,14 @@ function PracticePlayPage() {
   };
   const handleRestart = () => {
     stopPlayback();
-    stopRecording(); // 이전 오디오 녹음 폐기 (다음 startPlayback에서 새로 시작됨)
+    const recordingStopped = stopRecording(); // 이전 오디오 녹음 폐기 (완료를 기다린 뒤 다음 녹음 시작)
     setNoteBars([]); // 노트바 초기화
     heldRef.current.clear();
-    // transport 정지가 반영된 뒤 재시작 (연속 stop→start 글리치 방지)
+    // transport 정지가 반영된 뒤 재시작 (연속 stop→start 글리치 방지) + 이전 녹음 정리가 끝난 뒤 재시작
     if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-    restartTimerRef.current = setTimeout(() => runCountdown(), 80);
+    restartTimerRef.current = setTimeout(() => {
+      recordingStopped.then(() => runCountdown());
+    }, 80);
   };
 
   // 분석: MIDI 녹음 + 레이턴시 보정값을 스토어에 저장하고, 오디오 녹음(webm)을 확정한 뒤
