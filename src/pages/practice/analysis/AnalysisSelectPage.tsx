@@ -30,7 +30,7 @@ export default function AnalysisSelectPage() {
 
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { recording, trackId } = usePracticeResultStore();
+  const { recording, trackId, audioBlob } = usePracticeResultStore();
 
   // 언마운트 시 토스트 타이머 정리
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function AnalysisSelectPage() {
     };
   }, []);
 
-  // 1) 연주 화면에서 저장된 recording을 MusicXML로 변환해 악보를 그린다 (하드코딩된 sample.xml 대체)
+  // 1) 연주 화면에서 저장된 recording을 MusicXML로 변환해 악보를 그린다
   useEffect(() => {
     const track =
       [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((t) => t.id === (trackId ?? practiceId)) ?? RECOMMENDED_TRACKS[0];
@@ -65,21 +65,34 @@ export default function AnalysisSelectPage() {
   }, [recording, trackId, practiceId]);
 
   // 2) 오디오 엘리먼트 (페이지 진입 시 프리로드 적용으로 재생 딜레이 방지)
+  // 연습 화면에서 녹음된 blob을 API 없이 바로 재생 (없으면 목업 mp3로 폴백)
   useEffect(() => {
-    const audio = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+    const src = audioBlob
+      ? URL.createObjectURL(audioBlob)
+      : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    const audio = new Audio(src);
     audio.preload = 'auto';
     audio.load();
     audioRef.current = audio;
     audio.onended = () => handleRewind();
+    audio.onerror = () => {
+      console.error('오디오 로드 실패', {
+        src,
+        error: audio.error, // MediaError: code(1~4), message
+        networkState: audio.networkState,
+      });
+    };
     return () => {
       audio.pause();
       audioRef.current = null;
+      if (audioBlob) URL.revokeObjectURL(src);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioBlob]);
 
   useEffect(() => {
     if (!audioRef.current) return;
-    if (isPlaying) audioRef.current.play().catch(() => {});
+    if (isPlaying) audioRef.current.play().catch((err) => console.error('오디오 재생 실패', err));
     else audioRef.current.pause();
   }, [isPlaying]);
 

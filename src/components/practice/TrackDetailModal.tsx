@@ -18,9 +18,18 @@ interface TrackDetailModalProps {
   onClose: () => void;
   onStartPractice: () => void;
   onEditTrack: () => void;
+  isStartingPractice?: boolean;
+  startError?: boolean;
 }
 
-function TrackDetailModal({ track, onClose, onStartPractice, onEditTrack }: TrackDetailModalProps) {
+function TrackDetailModal({
+  track,
+  onClose,
+  onStartPractice,
+  onEditTrack,
+  isStartingPractice = false,
+  startError = false,
+}: TrackDetailModalProps) {
   const { id, title, key, mode, timeSignature, genre, bpm, difficulty, creator, chords } = track;
   const numerator = getChordsPerMeasure(timeSignature);
   const isOwnTrack = creator === CURRENT_USER;
@@ -213,14 +222,18 @@ function TrackDetailModal({ track, onClose, onStartPractice, onEditTrack }: Trac
             수정하기
           </button>
         )}
-        <button
-          type="button"
-          onClick={onStartPractice}
-          className={`button-label1 bg-primary-400 ml-auto flex h-[42px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-gray-950 ${
-            numerator === 4 ? 'w-[272px]' : 'w-[242px]'
-          }`}>
-          연습 시작
-        </button>
+        <div className="ml-auto flex flex-col items-end gap-1.5">
+          {startError && <p className="caption-regular text-error">세션 생성에 실패했어요. 다시 시도해주세요.</p>}
+          <button
+            type="button"
+            onClick={onStartPractice}
+            disabled={isStartingPractice}
+            className={`button-label1 bg-primary-400 flex h-[42px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-gray-950 disabled:cursor-not-allowed disabled:opacity-60 ${
+              numerator === 4 ? 'w-[272px]' : 'w-[242px]'
+            }`}>
+            {isStartingPractice ? '시작하는 중…' : '연습 시작'}
+          </button>
+        </div>
       </div>
     </Modal>
   );

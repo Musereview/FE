@@ -4,8 +4,17 @@
 import { useEffect, useRef } from 'react';
 import * as Tone from 'tone';
 
+// 진행 중인 녹음 하나를 이루는 recorder/destination/청크 묶음
+// (recorder별로 묶어서 관리해야 늦게 도착한 이전 recorder의 onstop이 이미 시작된 새 녹음을 건드리지 않음)
+interface RecordingSession {
+  recorder: MediaRecorder;
+  dest: MediaStreamAudioDestinationNode;
+  chunks: Blob[];
+}
+
 export function usePianoSound() {
   const synthRef = useRef<Tone.PolySynth | null>(null);
+  const sessionRef = useRef<RecordingSession | null>(null);
 
   // 신디는 한 번만 생성 (지연 초기화)
   const getSynth = () => {
@@ -18,6 +27,12 @@ export function usePianoSound() {
 
   useEffect(() => {
     return () => {
+      const session = sessionRef.current;
+      if (session) {
+        if (session.recorder.state !== 'inactive') session.recorder.stop();
+        session.dest.disconnect();
+        sessionRef.current = null;
+      }
       synthRef.current?.releaseAll();
       synthRef.current?.dispose();
       synthRef.current = null;
@@ -39,5 +54,67 @@ export function usePianoSound() {
   // 울리고 있는 모든 소리 즉시 끊기 (정지/일시정지 등)
   const releaseAll = () => synthRef.current?.releaseAll(Tone.immediate());
 
-  return { noteOn, noteOff, releaseAll };
+  // 녹음 시작: 신디 출력을 스피커 출력과 별개로 MediaStream으로 뽑아 MediaRecorder에 연결
+  // (이전 녹음이 남아있으면 먼저 정리하고 새로 시작)
+  const startRecording = () => {
+    // 서버에 업로드 가능한 포맷(webm/ogg)만 후보로 두고, 지원되는 것만 명시적으로 전달
+    // (mp3/wav는 브라우저가 녹음 시점에 직접 만들어주지 않아 후보에서 제외)
+    const supportedMimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg'].find(
+      (type) => MediaRecorder.isTypeSupported(type),
+    );
+    if (!supportedMimeType) {
+      throw new Error('현재 브라우저는 오디오 녹음을 지원하지 않습니다.');
+    }
+
+    // 직전 세션이 stopRecording()을 거치지 않고 남아있는 경우를 위한 안전망 (정상 경로는 항상 stopRecording 이후 호출됨)
+    const prevSession = sessionRef.current;
+    if (prevSession) {
+      if (prevSession.recorder.state !== 'inactive') prevSession.recorder.stop();
+      prevSession.dest.disconnect();
+    }
+
+    const synth = getSynth();
+    const rawContext = Tone.getContext().rawContext as AudioContext;
+    const dest = rawContext.createMediaStreamDestination();
+    synth.connect(dest);
+
+    const recorder = new MediaRecorder(dest.stream, { mimeType: supportedMimeType });
+    const chunks: Blob[] = [];
+    const session: RecordingSession = { recorder, dest, chunks };
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+    recorder.start();
+    sessionRef.current = session;
+  };
+
+  const pauseRecording = () => {
+    const recorder = sessionRef.current?.recorder;
+    if (recorder?.state === 'recording') recorder.pause();
+  };
+
+  const resumeRecording = () => {
+    const recorder = sessionRef.current?.recorder;
+    if (recorder?.state === 'paused') recorder.resume();
+  };
+
+  // 녹음 종료: 지금까지 모은 청크를 하나의 webm Blob으로 합쳐 반환 (녹음 중이 아니었으면 null)
+  const stopRecording = (): Promise<Blob | null> => {
+    const session = sessionRef.current;
+    if (!session || session.recorder.state === 'inactive') return Promise.resolve(null);
+
+    const { recorder, dest, chunks } = session;
+    return new Promise((resolve) => {
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        dest.disconnect();
+        // 이 recorder가 여전히 "현재" 세션일 때만 공유 ref 정리 (그 사이 새 녹음이 시작됐다면 건드리지 않음)
+        if (sessionRef.current === session) sessionRef.current = null;
+        resolve(blob);
+      };
+      recorder.stop();
+    });
+  };
+
+  return { noteOn, noteOff, releaseAll, startRecording, pauseRecording, resumeRecording, stopRecording };
 }
