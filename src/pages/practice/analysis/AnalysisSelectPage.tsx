@@ -1,77 +1,99 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import PlayIcon from '@/assets/practice/play.svg?react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-
+import { useQuery, useMutation } from '@tanstack/react-query';
 import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
 import { useScoreCursorSync } from '@/hooks/music/useScoreCursorSync';
 import { computeMeasureTimings } from '@/utils/musicXmlTiming';
-import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
+import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
+import { getAnalysisContext, requestAnalysis } from '@/apis/analysis';
 import { usePracticeResultStore } from '@/stores/practiceResultStore';
-import { ALL_TRACKS, RECOMMENDED_TRACKS } from '@/pages/practice/mockTracks';
-import LoadingPage from '@/pages/common/LoadingPage';
-import PlayIcon from '@/assets/practice/play.svg?react';
-import { requestAnalysis } from '@/apis/analysis';
+import AnalysisLoadingPage from './AnalysisLoadingPage';
 
 export default function AnalysisSelectPage() {
   const navigate = useNavigate();
-  const { practiceId } = useParams<{ practiceId: string }>();
   const location = useLocation();
 
-  const passedAudioUrl = location.state?.recordingFileUrl;
+  const { practiceId, trackId } = useParams<{ practiceId?: string; trackId?: string }>();
+
+  const { recording: storeRecording, latencyMs: storeLatencyMs, trackId: storeTrackId } = usePracticeResultStore();
+
+  const recording = location.state?.recording ?? storeRecording;
+  const latencyMs = location.state?.latencyMs ?? storeLatencyMs ?? 0;
+
+  const targetId = practiceId ?? trackId ?? storeTrackId;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [startMeasure, setStartMeasure] = useState('1마디');
-  const [endMeasure, setEndMeasure] = useState('30마디');
+  const [endMeasure, setEndMeasure] = useState('20마디');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const [xmlContent, setXmlContent] = useState('');
   const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
-  const [totalMeasures, setTotalMeasures] = useState<number>(30);
+  const [totalBars, setTotalBars] = useState<number>(20);
 
-  const scoreViewerRef = useRef<ScoreViewerHandle>(null);
+  const scoreViewerRef = useRef<ScoreViewerHandle | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const { recording, trackId, latencyMs } = usePracticeResultStore();
 
   // 언마운트 시 토스트 타이머 정리
   useEffect(() => {
     return () => {
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
     };
   }, []);
 
-  // 1) 연주 화면에서 저장된 recording을 MusicXML로 변환해 악보를 그린다
+  const triggerToast = useCallback((msg: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastMessage(msg);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
+  }, []);
+
+  const { data: contextData, isError: isContextError } = useQuery({
+    queryKey: ['analysisContext', targetId],
+    queryFn: () => getAnalysisContext(Number(targetId)),
+    enabled: !!targetId,
+  });
+
   useEffect(() => {
-    const track =
-      [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((t) => t.id === (trackId ?? practiceId)) ?? RECOMMENDED_TRACKS[0];
-    const [beatsPerBar, beatType] = track.timeSignature.split('/').map(Number);
-
-    const text = buildMusicXmlFromRecording(recording, {
-      bpm: track.bpm,
-      beatsPerBar,
-      beatType,
-      key: track.key,
-      mode: track.mode,
-      title: track.title,
-    });
-
-    setXmlContent(text);
-    const timings = computeMeasureTimings(text);
-    setMeasureStartTimes(timings.measureStartTimes);
-    if (timings.measureStartTimes.length > 0) {
-      const measuresCount = timings.measureStartTimes.length;
-      setTotalMeasures(measuresCount);
-      setEndMeasure(`${measuresCount}마디`);
+    if (contextData?.totalBars) {
+      setTotalBars(contextData.totalBars);
+      setEndMeasure(`${contextData.totalBars}마디`);
     }
-  }, [recording, trackId, practiceId]);
+  }, [contextData]);
 
-  // 2) 오디오 엘리먼트 (실제 녹음 파일 URL 또는 빈 값 처리)
   useEffect(() => {
-    const audioSource = passedAudioUrl || '';
-    const audio = new Audio(audioSource);
+    if (isContextError) {
+      triggerToast('분석 컨텍스트 조회에 실패했습니다.');
+    }
+  }, [isContextError, triggerToast]);
+
+  const passedAudioUrl = contextData?.backingTrackAudioFileUrl || '';
+
+  // 녹음된 연주 데이터를 프론트엔드에서 MusicXML 악보로 변환
+  useEffect(() => {
+    if (!recording) return;
+    try {
+      const generatedXml = buildMusicXmlFromRecording(recording, latencyMs);
+      setXmlContent(generatedXml);
+    } catch (error) {
+      console.error('녹음 데이터 악보 변환 실패:', error);
+    }
+  }, [recording, latencyMs]);
+
+  useEffect(() => {
+    if (!xmlContent) return;
+    const timings = computeMeasureTimings(xmlContent);
+    setMeasureStartTimes(timings.measureStartTimes);
+  }, [xmlContent]);
+
+  useEffect(() => {
+    if (!passedAudioUrl) return;
+
+    const audio = new Audio(passedAudioUrl);
     audio.preload = 'auto';
     audio.load();
     audioRef.current = audio;
@@ -88,7 +110,6 @@ export default function AnalysisSelectPage() {
     else audioRef.current.pause();
   }, [isPlaying]);
 
-  // 3) 오디오 진행 시간 -> 현재 마디 인덱스 (커서 싱크)
   const { currentMeasureIndex } = useScoreCursorSync({
     audioRef,
     measureStartTimes,
@@ -117,13 +138,10 @@ export default function AnalysisSelectPage() {
     return isNaN(num) ? 0 : num;
   };
 
-  const triggerToast = useCallback((msg: string) => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToastMessage(msg);
-    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
-  }, []);
+  const requestAnalysisMutation = useMutation({
+    mutationFn: requestAnalysis,
+  });
 
-  // 4) 분석하기 버튼 클릭 시 유효성 검사 및 실제 API 연동 처리
   const handleStartAnalysis = async () => {
     const startNum = getMeasureNumber(startMeasure);
     const endNum = getMeasureNumber(endMeasure);
@@ -144,38 +162,32 @@ export default function AnalysisSelectPage() {
       return;
     }
 
-    if (startNum > totalMeasures || endNum > totalMeasures) {
+    if (startNum > totalBars || endNum > totalBars) {
       triggerToast('선택한 마디가 악보 범위를 벗어났습니다.');
       return;
     }
 
     audioRef.current?.pause();
 
-    // 실제 playingId 확보 (파라미터 또는 스토어의 trackId)
-    const rawId = practiceId ?? trackId;
-    const parsedPlayingId = rawId ? parseInt(rawId, 10) : NaN;
+    const parsedPlayingId = targetId ? parseInt(String(targetId), 10) : NaN;
 
     if (isNaN(parsedPlayingId)) {
       triggerToast('유효한 연주 세션 정보를 찾을 수 없습니다.');
       return;
     }
 
-    const rangeXml = extractMeasureRange(xmlContent, startNum, endNum);
+    const rangeXml = await extractMeasureRange(xmlContent, startNum, endNum);
 
     try {
-      setIsLoading(true);
-
-      // 1. 실제 분석 요청 생성 API 호출 (POST /api/analyses)
-      const analysisResponse = await requestAnalysis({
-        playingId: isNaN(parsedPlayingId) ? 31 : parsedPlayingId,
+      const analysisResponse = await requestAnalysisMutation.mutateAsync({
+        playingId: parsedPlayingId,
         startBar: startNum,
         endBar: endNum,
       });
 
       const realAnalysisId = analysisResponse.data.analysisId;
 
-      // 2. 결과 페이지로 이동 (서버 응답 데이터와 녹음/레이턴시 상태 전달)
-      navigate(`/practice/${practiceId || '1'}/analysis/loading?start=${startNum}&end=${endNum}`, {
+      navigate(`/practice/${parsedPlayingId}/analysis/loading?start=${startNum}&end=${endNum}`, {
         state: {
           rangeXml,
           analysisData: analysisResponse,
@@ -189,17 +201,15 @@ export default function AnalysisSelectPage() {
       console.error('분석 요청 실패:', error);
       const errMessage = error instanceof Error ? error.message : '분석 요청 중 오류가 발생했습니다.';
       triggerToast(errMessage);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
     <div className="relative min-h-screen w-full min-w-[1280px] bg-gray-950 px-4 py-[60px] font-sans text-gray-100 select-none md:px-16 xl:px-[120px]">
-      {isLoading && (
+      {requestAnalysisMutation.isPending && (
         <div className="absolute inset-0 z-50 bg-gray-950">
           <div className="sticky top-0 h-screen">
-            <LoadingPage />
+            <AnalysisLoadingPage />
           </div>
         </div>
       )}
@@ -304,7 +314,7 @@ export default function AnalysisSelectPage() {
                 type="text"
                 value={endMeasure}
                 onFocus={() => handleFocus(endMeasure, setEndMeasure)}
-                onBlur={() => handleBlur(endMeasure, setEndMeasure, `${totalMeasures}마디`)}
+                onBlur={() => handleBlur(endMeasure, setEndMeasure, `${totalBars}마디`)}
                 onChange={(e) => handleChange(e.target.value, setEndMeasure)}
                 className="button-label1 focus:border-primary-400 h-[48px] w-[140px] rounded-[8px] border border-gray-800/60 bg-gray-900 px-[16px] text-center text-gray-100 focus:outline-none"
               />
@@ -314,7 +324,8 @@ export default function AnalysisSelectPage() {
             <button
               type="button"
               onClick={handleStartAnalysis}
-              className="button-label1 bg-primary-400 hover:bg-primary-500 flex h-[48px] cursor-pointer items-center gap-[8px] rounded-[8px] px-[24px] text-gray-950 transition-all active:scale-[0.98]">
+              disabled={requestAnalysisMutation.isPending}
+              className="button-label1 bg-primary-400 hover:bg-primary-500 flex h-[48px] cursor-pointer items-center gap-[8px] rounded-[8px] px-[24px] text-gray-950 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50">
               분석하기
               <svg
                 xmlns="http://www.w3.org/2000/svg"

@@ -121,3 +121,28 @@ export interface AnalysisDetailData {
 }
 
 export type AnalysisDetailResponse = ApiResponse<AnalysisDetailData>;
+
+export interface MidiEvent {
+  sequence: number;
+  type: 'NOTE_ON' | 'NOTE_OFF';
+  pitch: number;
+  velocity: number;
+  timestampMs: number;
+}
+
+export interface AnalysisContextData {
+  playingId: number;
+  title: string;
+  genre: string;
+  key: string;
+  bpm: number;
+  timeSignature: string;
+  playedAt: string;
+  durationMinutes: number;
+  durationSec: number;
+  recordingFileUrl: string;
+  backingTrackAudioFileUrl: string;
+  midiEvents: MidiEvent[];
+  backingTrackMidiData: Record<string, unknown>;
+  totalBars: number;
+}
