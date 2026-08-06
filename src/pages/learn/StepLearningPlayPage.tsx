@@ -19,6 +19,7 @@ import type { PlayedNote } from '@/stores/practiceResultStore';
 import { getCurriculum, getCurriculumProgress } from './mockCurriculum';
 import { getLearningIds } from '@/utils/learningId';
 import { usePracticeData } from '@/hooks/usePracticeData';
+import { useLearningProgress } from '@/hooks/useLearningProgress';
 import { parseMidiData, midiDataToMusicXml, midiDataMeasureCount, midiDataChordsToMeasures } from '@/utils/midiData';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import StopIcon from '@/assets/practice/stop.svg?react';
@@ -70,8 +71,9 @@ function StepLearningPlayPage() {
   const totalCells = measureCount * beatsPerBar;
 
   // 진행률: 화면 진입 시 DB에서 받는 값(실시간 아님). 스텝 완료/다음 스텝 이동 시 현재 진행률을 DB에 반영.
-  // TODO: 진행률 GET API로 교체(현재는 mock 커리큘럼에서 스냅샷). 저장(PATCH)은 채점/완료 플로우 배선 시 추가.
-  const [progress] = useState(() => getCurriculumProgress(curriculum.steps));
+  // TODO: 저장(PATCH)은 채점/완료 플로우 배선 시 추가.
+  const { data: progressData } = useLearningProgress(learningId);
+  const progress = progressData?.progressRate ?? getCurriculumProgress(curriculum.steps); // 로딩 중엔 mock 스냅샷
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [beatInBar, setBeatInBar] = useState(-1); // 진행점 (마디 내 0-based)

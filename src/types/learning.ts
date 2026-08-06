@@ -25,6 +25,13 @@ export interface PracticeDataResponse {
   midiData: string; // 채점용 MIDI 데이터 (JSON 문자열)
 }
 
+// 학습 진행률 조회 응답 data — GET /api/learnings/{learningId}/progress
+// 완료(score>=90) 단계 수 / 전체 단계 수 기준 패키지 단위 진행률
+export interface LearningProgressResponse {
+  learningId: number;
+  progressRate: number; // 0~100
+}
+
 // ──────────────────────────────────────────────────────────────────────────
 // 아래 5개는 스웨거(https://api.musereview.site/swagger-ui/index.html) 실제 스키마 기준.
 // 백엔드 difficulty/status는 대문자 enum 문자열로 내려옴 — apis/learningMappers.ts로 변환해서 사용.
