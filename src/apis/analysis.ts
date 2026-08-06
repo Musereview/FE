@@ -2,15 +2,15 @@ import { axiosInstance } from './axiosInstance';
 import type { ApiResponse } from '@/types/api';
 import type {
   CreateAnalysisRequest,
-  CreateAnalysisResponse,
   AnalysisDetailData,
   AnalysisStatusData,
   AnalysisContextData,
+  CreateAnalysisData,
 } from '@/types/analysis';
 
 // 1. 분석 요청 생성 API
-export async function requestAnalysis(requestData: CreateAnalysisRequest): Promise<CreateAnalysisResponse> {
-  const { data } = await axiosInstance.post<ApiResponse<CreateAnalysisResponse>>('/api/analyses', requestData);
+export async function requestAnalysis(requestData: CreateAnalysisRequest): Promise<CreateAnalysisData> {
+  const { data } = await axiosInstance.post<ApiResponse<CreateAnalysisData>>('/api/analyses', requestData);
   return data.data;
 }
 

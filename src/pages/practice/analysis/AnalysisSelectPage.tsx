@@ -209,7 +209,7 @@ export default function AnalysisSelectPage() {
         endBar: endNum,
       });
 
-      const realAnalysisId = analysisResponse.data.analysisId;
+      const realAnalysisId = analysisResponse.analysisId;
 
       navigate(`/practice/${parsedPlayingId}/analysis/loading?start=${startNum}&end=${endNum}`, {
         state: {
