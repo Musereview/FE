@@ -67,6 +67,7 @@ function PracticePlayPage() {
   const barIdRef = useRef(0);
   const heldRef = useRef<Map<number, number>>(new Map()); // midi → 진행 중 노트바 id
   const recordingRef = useRef<PlayedNote[]>([]); // 연주 녹음 (Transport 시각 기준)
+  const recordingFinalizedRef = useRef(false); // 분석 재시도 시 stopRecording을 중복 호출하지 않도록(오디오 유실 방지)
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 진입 시 자동재생 예약
   const pauseStartRef = useRef(performance.now()); // 정지 시각 (노트바 얼림 기준 + 재개 시 보정)
@@ -243,6 +244,7 @@ function PracticePlayPage() {
   const handleRestart = () => {
     stopPlayback();
     const recordingStopped = stopRecording(); // 이전 오디오 녹음 폐기 (완료를 기다린 뒤 다음 녹음 시작)
+    recordingFinalizedRef.current = false; // 재시작으로 새 녹음 세션이 시작되므로 다음 분석 시 다시 stopRecording 필요
     setNoteBars([]); // 노트바 초기화
     heldRef.current.clear();
     // transport 정지가 반영된 뒤 재시작 (연속 stop→start 글리치 방지) + 이전 녹음 정리가 끝난 뒤 재시작
@@ -254,13 +256,20 @@ function PracticePlayPage() {
 
   // 분석: MIDI 녹음 + 레이턴시 보정값을 스토어에 저장하고, 오디오 녹음(webm)을 확정한 뒤
   // Presigned URL 발급 → S3 업로드 → MIDI 이벤트 저장(최종 완료 처리) 순으로 연동 후 분석 화면으로 이동
+  // 업로드/저장 실패 시에는 분석 화면으로 넘어가지 않고 토스트로 안내 → "분석하기"를 다시 눌러 재시도
   const handleAnalyze = async () => {
     stopPlayback();
     setIsAnalyzing(true);
-    const audioBlob = await stopRecording();
-    const raw = inputId ? latencyByDevice[inputId] : undefined;
-    const latencyMs = typeof raw === 'number' ? raw : 0; // 미측정/실패면 0
-    setResult({ trackId: practiceId, recording: recordingRef.current, latencyMs, audioBlob });
+
+    // stopRecording은 최초 1회만: 재시도 시 다시 부르면 이미 정지된 recorder라 null이 나와 기존 audioBlob을 잃음
+    if (!recordingFinalizedRef.current) {
+      const audioBlob = await stopRecording();
+      const raw = inputId ? latencyByDevice[inputId] : undefined;
+      const latencyMs = typeof raw === 'number' ? raw : 0; // 미측정/실패면 0
+      setResult({ trackId: practiceId, recording: recordingRef.current, latencyMs, audioBlob });
+      recordingFinalizedRef.current = true;
+    }
+    const { audioBlob } = usePracticeResultStore.getState();
 
     if (audioBlob && playingId) {
       try {
@@ -277,7 +286,10 @@ function PracticePlayPage() {
           recordingObjectKey: objectKey,
         });
       } catch (err) {
-        console.error('연주 녹음 업로드/저장 실패', err); // 실패해도 분석 화면 이동은 막지 않음
+        console.error('연주 녹음 업로드/저장 실패', err);
+        setIsAnalyzing(false);
+        triggerToast('연주 기록 저장에 실패했습니다. 다시 시도해주세요.');
+        return; // 저장이 끝날 때까지 분석 화면으로 이동하지 않음
       }
     }
 
