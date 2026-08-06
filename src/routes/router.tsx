@@ -42,6 +42,7 @@ import AdminMyPageEditPage from '@/pages/admin/mypage/AdminMyPageEditPage';
 import TeacherMyPageEditPage from '@/pages/admin/mypage/TeacherMyPageEditPage';
 import LatencyCheckPage from '@/pages/latency/LatencyCheckPage';
 import OAuthCallbackPage from '@/pages/auth/OAuthCallbackPage';
+import NotFoundPage from '@/pages/common/NotFoundPage';
 
 export const router = createBrowserRouter([
   {
@@ -294,5 +295,9 @@ export const router = createBrowserRouter([
         ],
       },
     ],
+  },
+  {
+    path: '*',
+    element: <NotFoundPage />,
   },
 ]);
