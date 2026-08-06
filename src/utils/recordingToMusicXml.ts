@@ -123,6 +123,32 @@ function fullMeasureRest(measureTicks: number): NoteFragment[] {
 }
 
 /**
+ * 같은 시작 tick끼리 화음으로 그룹화하고, 겹치는 노트(다음 그룹이 이전 그룹 duration 안에서 시작)를
+ * 클리핑해 단선율을 유지한다. 보표별로 나눈 노트에 대해 독립적으로 호출해야 한다 —
+ * 합친 뒤에 클리핑하면 서로 다른 보표의 노트끼리 간섭해 지속 길이가 잘못 잘린다.
+ */
+function buildGroups(
+  notes: { pitch: number; startTick: number; durationTicks: number }[],
+): { startTick: number; durationTicks: number; pitches: number[] }[] {
+  const groups: { startTick: number; durationTicks: number; pitches: number[] }[] = [];
+  for (const n of notes) {
+    const last = groups[groups.length - 1];
+    if (last && last.startTick === n.startTick) {
+      last.pitches.push(n.pitch);
+      last.durationTicks = Math.max(last.durationTicks, n.durationTicks);
+    } else {
+      groups.push({ startTick: n.startTick, durationTicks: n.durationTicks, pitches: [n.pitch] });
+    }
+  }
+
+  for (let i = 0; i < groups.length - 1; i++) {
+    const maxTicks = groups[i + 1].startTick - groups[i].startTick;
+    groups[i].durationTicks = Math.max(1, Math.min(groups[i].durationTicks, maxTicks));
+  }
+  return groups;
+}
+
+/**
  * 한 성부(그룹 목록)를 마디별 NoteFragment 배열로 변환한다.
  * - [startTick, startTick+ticks) 구간을 마디 경계에서 잘라 tie로 이어지는 조각들로 기록.
  * - 그룹 사이 빈 구간과 마지막 불완전 마디는 쉼표로 채운다.
@@ -200,31 +226,10 @@ export function buildMusicXmlFromRecording(recording: PlayedNote[], options: Bui
     })
     .sort((a, b) => a.startTick - b.startTick);
 
-  // 같은 시작 tick끼리 화음으로 그룹화 (그룹 duration은 그 중 가장 긴 노트 기준)
-  const groups: { startTick: number; durationTicks: number; pitches: number[] }[] = [];
-  for (const n of quantized) {
-    const last = groups[groups.length - 1];
-    if (last && last.startTick === n.startTick) {
-      last.pitches.push(n.pitch);
-      last.durationTicks = Math.max(last.durationTicks, n.durationTicks);
-    } else {
-      groups.push({ startTick: n.startTick, durationTicks: n.durationTicks, pitches: [n.pitch] });
-    }
-  }
-
-  // 겹치는 노트(다음 그룹이 이전 그룹 duration 안에서 시작) 클리핑 — 단선율 유지, 마디 duration 초과 방지
-  for (let i = 0; i < groups.length - 1; i++) {
-    const maxTicks = groups[i + 1].startTick - groups[i].startTick;
-    groups[i].durationTicks = Math.max(1, Math.min(groups[i].durationTicks, maxTicks));
-  }
-
-  // 그랜드 스태프: 성부(그룹)를 높은음자리표/낮은음자리표 쪽으로 나눠 각각 독립적으로 마디를 구성한다.
-  const trebleGroups = groups
-    .map((g) => ({ ...g, pitches: g.pitches.filter((p) => p > GRAND_STAFF_SPLIT_MIDI) }))
-    .filter((g) => g.pitches.length > 0);
-  const bassGroups = groups
-    .map((g) => ({ ...g, pitches: g.pitches.filter((p) => p <= GRAND_STAFF_SPLIT_MIDI) }))
-    .filter((g) => g.pitches.length > 0);
+  // 그랜드 스태프: 노트를 높은음자리표/낮은음자리표로 먼저 나눈 뒤, 화음 그룹화·겹침 클리핑을
+  // 각 보표에서 독립적으로 수행한다 (합친 뒤 나누면 반대 보표 노트가 클리핑에 간섭함).
+  const trebleGroups = buildGroups(quantized.filter((n) => n.pitch > GRAND_STAFF_SPLIT_MIDI));
+  const bassGroups = buildGroups(quantized.filter((n) => n.pitch <= GRAND_STAFF_SPLIT_MIDI));
 
   const trebleMeasures = buildStaffMeasures(trebleGroups, measureTicks);
   const bassMeasures = buildStaffMeasures(bassGroups, measureTicks);
