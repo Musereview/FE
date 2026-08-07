@@ -17,7 +17,7 @@ import AnalysisChatSection from '@/components/mentor/AnalysisChatSection';
 
 export default function AnalysisResultPage() {
   const navigate = useNavigate();
-  //const { practiceId } = useParams<{ practiceId: string }>();
+
   const location = useLocation();
 
   const {
@@ -26,7 +26,6 @@ export default function AnalysisResultPage() {
     rangeXml: passedRangeXml,
   } = location.state || {};
 
-  //const parsedPracticeId = practiceId ? Number(practiceId) : NaN;
   const queryParams = new URLSearchParams(location.search);
   const queryAnalysisId = queryParams.get('analysisId');
   const realAnalysisId: number | undefined =
@@ -148,7 +147,6 @@ export default function AnalysisResultPage() {
 
     scoreViewerRef.current?.jumpToMeasure(targetMeasureIndex);
 
-    //setToastMessage(`선택한 구간(${startBar}마디)의 첫 마디로 되돌아가셨습니다.`);
     setTimeout(() => setToastMessage(null), 3000);
   }, [startBar, measureStartTimes, scoreData, stop]);
 
@@ -351,7 +349,11 @@ export default function AnalysisResultPage() {
       {/* 최하단 네비게이션 액션 버튼 그룹 */}
       <div className="flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-4 pt-2">
         <button
-          onClick={() => navigate(`/practice/${realAnalysisId ?? ''}/play`)}
+          onClick={() => {
+            const targetId = analysisData?.playingId;
+            if (!targetId) return;
+            navigate(`/practice/${targetId}/play`);
+          }}
           className="cursor-pointer rounded-xl bg-gray-800 px-8 py-4 text-base font-medium text-gray-300 shadow-md transition-colors hover:bg-gray-700">
           다시 연주하기
         </button>
