@@ -12,6 +12,7 @@ export interface BuildMusicXmlOptions {
   key?: string; // 'C', 'G', 'E' ...
   mode?: 'major' | 'minor';
   title?: string;
+  latencyMs?: number;
 }
 
 const PITCH_CLASS_INFO: { step: string; alter: number }[] = [
