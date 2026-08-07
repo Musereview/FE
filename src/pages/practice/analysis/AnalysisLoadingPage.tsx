@@ -18,9 +18,10 @@ export default function AnalysisLoadingPage() {
     }
   }, [analysisId, navigate]);
 
-  //무한 루프 및 무한 폴링 방지를 위한 최대 재시도 횟수 설정(30번 = 약 1분)
+  //무한 루프 및 무한 폴링 방지를 위한 최대 재시도 횟수 설정(2초 * 150번 =300초)
   const retryCountRef = useRef(0);
-  const MAX_RETRIES = 30;
+  const MAX_RETRIES = 150;
+  const POLL_INTERVAL_MS = 2000;
 
   // 로딩 화면이 떠 있는 동안 실행되는 폴링 로직
   const pollAnalysisStatus = useCallback(async () => {
@@ -70,13 +71,17 @@ export default function AnalysisLoadingPage() {
   }, [analysisId, analysisData, navigate, practiceId, rangeXml, recording, latencyMs, audioUrl]);
 
   useEffect(() => {
-    // 로딩 화면이 유지되는 동안 2초마다 상태 확인 API 호출 (폴링!)
+    if (!analysisId) return;
+
+    // 로딩 화면이 진입 즉시 지연 없이 1회 상태 확인 실행
+    pollAnalysisStatus();
+
     const intervalId = setInterval(() => {
       pollAnalysisStatus();
-    }, 2000);
+    }, POLL_INTERVAL_MS);
 
     return () => clearInterval(intervalId);
-  }, [pollAnalysisStatus]);
+  }, [analysisId, pollAnalysisStatus]);
 
   return <LoadingPage />;
 }
