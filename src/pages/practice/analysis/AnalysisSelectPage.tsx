@@ -8,7 +8,7 @@ import { computeMeasureTimings } from '@/utils/musicXmlTiming';
 import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { getAnalysisContext, requestAnalysis } from '@/apis/analysis';
-import { usePracticeResultStore } from '@/stores/practiceResultStore';
+import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
 import AnalysisLoadingPage from './AnalysisLoadingPage';
 
 export default function AnalysisSelectPage() {
@@ -105,7 +105,13 @@ export default function AnalysisSelectPage() {
 
     const [beatsPerBar, beatType] = (contextData.timeSignature ?? '4/4').split('/').map(Number);
     try {
-      const generatedXml = buildMusicXmlFromRecording(recording, {
+      const adjustedRecording = recording.map((note: PlayedNote) => ({
+        ...note,
+        onSec: Math.max(0, note.onSec - (latencyMs ?? 0) / 1000),
+        offSec: note.offSec !== null ? Math.max(0, note.offSec - (latencyMs ?? 0) / 1000) : null,
+      }));
+
+      const generatedXml = buildMusicXmlFromRecording(adjustedRecording, {
         bpm: contextData.bpm,
         beatsPerBar,
         beatType,
