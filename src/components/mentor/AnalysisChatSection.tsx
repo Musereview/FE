@@ -21,30 +21,11 @@ interface ChatMessage {
   text: string;
 }
 
-const MOCK_ANALYSIS_RESPONSE: AnalysisReportData = {
-  analysisId: 10,
-  summary: '긴장감을 오래 유지하는 흐름이 많았어요.',
-  report: {
-    content:
-      '## 긴장감을 오래 유지하는 흐름이 많았어요.\n\n' +
-      '이번 연주에서는 코드톤에 바로 해결하기보다, 텐션 계열의 음을 유지하며 분위기를 끌고 가는 흐름이 자주 보였습니다.\n' +
-      '특히 CM7 구간에서 안정감보다는 살짝 떠 있는 듯한 느낌을 반복적으로 선택하는 경향이 있었습니다.\n\n' +
-      '### 강약 조절\n' +
-      '초반에는 비교적 일정한 세기로 연주가 이어졌지만, 후반부로 갈수록 특정한 음을 더 강하게 강조하는 패턴이 나타났습니다.\n' +
-      '특히 코드가 전환되는 순간마다 타건 강도가 자연스럽게 올라가는 흐름이 보였습니다.\n\n' +
-      '### 멜로디 진행\n' +
-      '오른손 멜로디는 큰 도약보다는 인접한 음들을 중심으로 연결되며 비교적 부드러운 흐름을 만들고 있었습니다.\n' +
-      '비슷한 음역대를 반복적으로 사용하면서 전체적인 분위기를 안정적으로 유지하고 있습니다.\n\n' +
-      '### 템포 유지력\n' +
-      '양손이 동시에 눌러야 하는 지점에서 오른손이 살짝 앞서는 경향이 있습니다. 두 손의 호흡을 한 정바에 맞춰보세요.',
-  },
-};
-
 export default function AnalysisChatSection({
   analysisId,
   summaryTitle,
   reportContent,
-  analysisData = MOCK_ANALYSIS_RESPONSE,
+  analysisData,
 }: AnalysisChatSectionProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -53,9 +34,9 @@ export default function AnalysisChatSection({
 
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
 
-  const resolvedSummary = summaryTitle || analysisData?.summary || '긴장감을 오래 유지하는 흐름이 많았어요.';
-  const resolvedContent = reportContent || analysisData?.report?.content || MOCK_ANALYSIS_RESPONSE.report!.content!;
-  const resolvedAnalysisId = analysisId || analysisData?.analysisId || 10;
+  const resolvedSummary = summaryTitle || analysisData?.summary || '';
+  const resolvedContent = reportContent || analysisData?.report?.content || '';
+  const resolvedAnalysisId = analysisId || analysisData?.analysisId;
 
   const parseMarkdownContent = (content: string) => {
     const parts = content.split('### ').filter(Boolean);

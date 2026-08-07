@@ -1,76 +1,141 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import PlayIcon from '@/assets/practice/play.svg?react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
 import { useScoreCursorSync } from '@/hooks/music/useScoreCursorSync';
 import { computeMeasureTimings } from '@/utils/musicXmlTiming';
-import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
-import { usePracticeResultStore } from '@/stores/practiceResultStore';
-import { ALL_TRACKS, RECOMMENDED_TRACKS } from '@/pages/practice/mockTracks';
-import LoadingPage from '@/pages/common/LoadingPage';
-import PlayIcon from '@/assets/practice/play.svg?react';
+import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
+import { getAnalysisContext, requestAnalysis } from '@/apis/analysis';
+import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
+import AnalysisLoadingPage from './AnalysisLoadingPage';
 
 export default function AnalysisSelectPage() {
   const navigate = useNavigate();
-  const { practiceId } = useParams<{ practiceId: string }>();
+  const location = useLocation();
+
+  const { practiceId, trackId } = useParams<{ practiceId?: string; trackId?: string }>();
+
+  const {
+    recording: storeRecording,
+    latencyMs: storeLatencyMs,
+    trackId: storeTrackId,
+    audioBlob,
+  } = usePracticeResultStore();
+
+  const recording = location.state?.recording ?? storeRecording;
+  const latencyMs = location.state?.latencyMs ?? storeLatencyMs ?? 0;
+
+  const targetId = practiceId ?? trackId ?? storeTrackId;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [startMeasure, setStartMeasure] = useState('1마디');
-  const [endMeasure, setEndMeasure] = useState('30마디');
+  const [endMeasure, setEndMeasure] = useState('20마디');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const [xmlContent, setXmlContent] = useState('');
   const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
-  const [totalMeasures, setTotalMeasures] = useState<number>(30);
+  const [totalBars, setTotalBars] = useState<number>(20);
 
-  const scoreViewerRef = useRef<ScoreViewerHandle>(null);
+  const scoreViewerRef = useRef<ScoreViewerHandle | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const { recording, trackId, audioBlob } = usePracticeResultStore();
 
   // 언마운트 시 토스트 타이머 정리
   useEffect(() => {
     return () => {
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
     };
   }, []);
 
+  const triggerToast = useCallback((msg: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastMessage(msg);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
+  }, []);
+
+  const { data: contextData, isError: isContextError } = useQuery({
+    queryKey: ['analysisContext', targetId],
+    queryFn: () => getAnalysisContext(Number(targetId)),
+    enabled: !!targetId,
+  });
+
+  const src = audioBlob
+    ? URL.createObjectURL(audioBlob)
+    : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+
   // 1) 연주 화면에서 저장된 recording을 MusicXML로 변환해 악보를 그린다
+
   useEffect(() => {
-    const track =
-      [...ALL_TRACKS, ...RECOMMENDED_TRACKS].find((t) => t.id === (trackId ?? practiceId)) ?? RECOMMENDED_TRACKS[0];
-    const [beatsPerBar, beatType] = track.timeSignature.split('/').map(Number);
-
-    const text = buildMusicXmlFromRecording(recording, {
-      bpm: track.bpm,
-      beatsPerBar,
-      beatType,
-      key: track.key,
-      mode: track.mode,
-      title: track.title,
-    });
-
-    setXmlContent(text);
-    const timings = computeMeasureTimings(text);
-    setMeasureStartTimes(timings.measureStartTimes);
-    if (timings.measureStartTimes.length > 0) {
-      const measuresCount = timings.measureStartTimes.length;
-      setTotalMeasures(measuresCount);
-      setEndMeasure(`${measuresCount}마디`);
+    if (contextData?.totalBars) {
+      setTotalBars(contextData.totalBars);
+      setEndMeasure(`${contextData.totalBars}마디`);
     }
-  }, [recording, trackId, practiceId]);
+  }, [contextData]);
 
-  // 2) 오디오 엘리먼트 (페이지 진입 시 프리로드 적용으로 재생 딜레이 방지)
-  // 연습 화면에서 녹음된 blob을 API 없이 바로 재생 (없으면 목업 mp3로 폴백)
   useEffect(() => {
-    const src = audioBlob
-      ? URL.createObjectURL(audioBlob)
-      : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-    const audio = new Audio(src);
+    if (isContextError) {
+      triggerToast('분석 컨텍스트 조회에 실패했습니다.');
+    }
+  }, [isContextError, triggerToast]);
+
+  //audioBlob을 useMemo로 감싸서 한 번만 생성되도록 최적화
+
+  const passedAudioUrl = useMemo(() => {
+    if (audioBlob) {
+      return URL.createObjectURL(audioBlob);
+    }
+    return contextData?.backingTrackAudioFileUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+  }, [audioBlob, contextData?.backingTrackAudioFileUrl]);
+  //컴포넌트 언마운트 시 Blob URL 메모리 해제 정리
+  useEffect(() => {
+    return () => {
+      if (audioBlob && passedAudioUrl) {
+        URL.revokeObjectURL(passedAudioUrl);
+      }
+    };
+  }, [audioBlob, passedAudioUrl]);
+
+  // 녹음된 연주 데이터를 프론트엔드에서 MusicXML 악보로 변환
+  useEffect(() => {
+    if (!recording || !contextData) return;
+
+    const [beatsPerBar, beatType] = (contextData.timeSignature ?? '4/4').split('/').map(Number);
+    try {
+      const adjustedRecording = recording.map((note: PlayedNote) => ({
+        ...note,
+        onSec: Math.max(0, note.onSec - (latencyMs ?? 0) / 1000),
+        offSec: note.offSec !== null ? Math.max(0, note.offSec - (latencyMs ?? 0) / 1000) : null,
+      }));
+
+      const generatedXml = buildMusicXmlFromRecording(adjustedRecording, {
+        bpm: contextData.bpm,
+        beatsPerBar,
+        beatType,
+        key: contextData.key,
+        title: contextData.title,
+        latencyMs,
+      });
+      setXmlContent(generatedXml);
+    } catch (error) {
+      console.error('녹음 데이터 악보 변환 실패:', error);
+    }
+  }, [recording, contextData, latencyMs]);
+
+  useEffect(() => {
+    if (!xmlContent) return;
+    const timings = computeMeasureTimings(xmlContent);
+    setMeasureStartTimes(timings.measureStartTimes);
+  }, [xmlContent]);
+
+  // 오디오 엘리먼트 초기화 및 재생 준비
+  useEffect(() => {
+    if (!passedAudioUrl) return;
+
+    const audio = new Audio(passedAudioUrl);
     audio.preload = 'auto';
     audio.load();
     audioRef.current = audio;
@@ -78,7 +143,7 @@ export default function AnalysisSelectPage() {
     audio.onerror = () => {
       console.error('오디오 로드 실패', {
         src,
-        error: audio.error, // MediaError: code(1~4), message
+        error: audio.error,
         networkState: audio.networkState,
       });
     };
@@ -88,7 +153,7 @@ export default function AnalysisSelectPage() {
       if (audioBlob) URL.revokeObjectURL(src);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audioBlob]);
+  }, [passedAudioUrl]);
 
   useEffect(() => {
     if (!audioRef.current) return;
@@ -96,7 +161,6 @@ export default function AnalysisSelectPage() {
     else audioRef.current.pause();
   }, [isPlaying]);
 
-  // 3) 오디오 진행 시간 -> 현재 마디 인덱스 (커서 싱크)
   const { currentMeasureIndex } = useScoreCursorSync({
     audioRef,
     measureStartTimes,
@@ -125,14 +189,11 @@ export default function AnalysisSelectPage() {
     return isNaN(num) ? 0 : num;
   };
 
-  const triggerToast = useCallback((msg: string) => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToastMessage(msg);
-    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
-  }, []);
+  const requestAnalysisMutation = useMutation({
+    mutationFn: requestAnalysis,
+  });
 
-  // 4) 분석하기 버튼 클릭 시 유효성 검사 및 로딩/이동 처리
-  const handleStartAnalysis = () => {
+  const handleStartAnalysis = async () => {
     const startNum = getMeasureNumber(startMeasure);
     const endNum = getMeasureNumber(endMeasure);
     const diff = endNum - startNum + 1;
@@ -152,43 +213,54 @@ export default function AnalysisSelectPage() {
       return;
     }
 
-    if (startNum > totalMeasures || endNum > totalMeasures) {
+    if (startNum > totalBars || endNum > totalBars) {
       triggerToast('선택한 마디가 악보 범위를 벗어났습니다.');
       return;
     }
 
     audioRef.current?.pause();
 
-    const parsedPlayingId = practiceId ? parseInt(practiceId, 10) : 31;
-    const audioUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    const parsedPlayingId = targetId ? parseInt(String(targetId), 10) : NaN;
 
-    const mockAnalysisData = {
-      analysisId: 10,
-      playingId: isNaN(parsedPlayingId) ? 31 : parsedPlayingId,
-      status: 'PENDING',
-      startBar: startNum,
-      endBar: endNum,
-      createdAt: new Date().toISOString(),
-    };
+    if (isNaN(parsedPlayingId)) {
+      triggerToast('유효한 연주 세션 정보를 찾을 수 없습니다.');
+      return;
+    }
 
-    const rangeXml = extractMeasureRange(xmlContent, startNum, endNum);
+    const rangeXml = await extractMeasureRange(xmlContent, startNum, endNum);
 
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate(`/practice/${practiceId || '1'}/analysis/result?start=${startNum}&end=${endNum}`, {
-        state: { rangeXml, analysisData: mockAnalysisData, audioUrl },
+    try {
+      const analysisResponse = await requestAnalysisMutation.mutateAsync({
+        playingId: parsedPlayingId,
+        startBar: startNum,
+        endBar: endNum,
       });
-    }, 2000);
+
+      const realAnalysisId = analysisResponse.analysisId;
+
+      navigate(`/practice/${parsedPlayingId}/analysis/loading?start=${startNum}&end=${endNum}`, {
+        state: {
+          rangeXml,
+          analysisData: analysisResponse,
+          analysisId: realAnalysisId,
+          recording,
+          latencyMs,
+          audioUrl: passedAudioUrl,
+        },
+      });
+    } catch (error: unknown) {
+      console.error('분석 요청 실패:', error);
+      const errMessage = error instanceof Error ? error.message : '분석 요청 중 오류가 발생했습니다.';
+      triggerToast(errMessage);
+    }
   };
 
   return (
     <div className="relative min-h-screen w-full min-w-[1280px] bg-gray-950 px-4 py-[60px] font-sans text-gray-100 select-none md:px-16 xl:px-[120px]">
-      {isLoading && (
+      {requestAnalysisMutation.isPending && (
         <div className="absolute inset-0 z-50 bg-gray-950">
           <div className="sticky top-0 h-screen">
-            <LoadingPage />
+            <AnalysisLoadingPage />
           </div>
         </div>
       )}
@@ -293,7 +365,7 @@ export default function AnalysisSelectPage() {
                 type="text"
                 value={endMeasure}
                 onFocus={() => handleFocus(endMeasure, setEndMeasure)}
-                onBlur={() => handleBlur(endMeasure, setEndMeasure, `${totalMeasures}마디`)}
+                onBlur={() => handleBlur(endMeasure, setEndMeasure, `${totalBars}마디`)}
                 onChange={(e) => handleChange(e.target.value, setEndMeasure)}
                 className="button-label1 focus:border-primary-400 h-[48px] w-[140px] rounded-[8px] border border-gray-800/60 bg-gray-900 px-[16px] text-center text-gray-100 focus:outline-none"
               />
@@ -303,7 +375,8 @@ export default function AnalysisSelectPage() {
             <button
               type="button"
               onClick={handleStartAnalysis}
-              className="button-label1 bg-primary-400 hover:bg-primary-500 flex h-[48px] cursor-pointer items-center gap-[8px] rounded-[8px] px-[24px] text-gray-950 transition-all active:scale-[0.98]">
+              disabled={requestAnalysisMutation.isPending}
+              className="button-label1 bg-primary-400 hover:bg-primary-500 flex h-[48px] cursor-pointer items-center gap-[8px] rounded-[8px] px-[24px] text-gray-950 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50">
               분석하기
               <svg
                 xmlns="http://www.w3.org/2000/svg"

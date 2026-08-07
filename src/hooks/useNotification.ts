@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import { analysisDetail } from '@/apis/analysis';
+import { getAnalysisDetail } from '@/apis/analysis';
 import {
   notificationList,
   notificationUnreadStatus,
@@ -85,7 +85,7 @@ export function useNotificationClick() {
 
       try {
         // 알림에는 analysisId만 담겨 있어 연주 상세 경로에 필요한 playingId를 조회
-        const { playingId } = await analysisDetail(item.targetId);
+        const { playingId } = await getAnalysisDetail(item.targetId);
         navigate(`/history/${playingId}`);
       } catch {
         navigate('/history');
