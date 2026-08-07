@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -82,21 +82,42 @@ export default function AnalysisSelectPage() {
     }
   }, [isContextError, triggerToast]);
 
-  // audioBlob 우선, 없으면 서버 URL
-  const passedAudioUrl = audioBlob
-    ? URL.createObjectURL(audioBlob)
-    : contextData?.backingTrackAudioFileUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+  //audioBlob을 useMemo로 감싸서 한 번만 생성되도록 최적화
+
+  const passedAudioUrl = useMemo(() => {
+    if (audioBlob) {
+      return URL.createObjectURL(audioBlob);
+    }
+    return contextData?.backingTrackAudioFileUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+  }, [audioBlob, contextData?.backingTrackAudioFileUrl]);
+  //컴포넌트 언마운트 시 Blob URL 메모리 해제 정리
+  useEffect(() => {
+    return () => {
+      if (audioBlob && passedAudioUrl) {
+        URL.revokeObjectURL(passedAudioUrl);
+      }
+    };
+  }, [audioBlob, passedAudioUrl]);
 
   // 녹음된 연주 데이터를 프론트엔드에서 MusicXML 악보로 변환
   useEffect(() => {
-    if (!recording) return;
+    if (!recording || !contextData) return;
+
+    const [beatsPerBar, beatType] = (contextData.timeSignature ?? '4/4').split('/').map(Number);
     try {
-      const generatedXml = buildMusicXmlFromRecording(recording, latencyMs);
+      const generatedXml = buildMusicXmlFromRecording(recording, {
+        bpm: contextData.bpm,
+        beatsPerBar,
+        beatType,
+        key: contextData.key,
+        title: contextData.title,
+        latencyMs,
+      });
       setXmlContent(generatedXml);
     } catch (error) {
       console.error('녹음 데이터 악보 변환 실패:', error);
     }
-  }, [recording, latencyMs]);
+  }, [recording, contextData, latencyMs]);
 
   useEffect(() => {
     if (!xmlContent) return;
