@@ -1,9 +1,10 @@
 // 학습 결과 저장 API 타입
+import type { ParsedMidiData } from '@/utils/midiData';
 
 // 요청 바디 — POST /api/learnings/{learningId}/result
 export interface SaveLearningResultRequest {
   score: number; // 최종 점수
-  learningStep: number; // 학습 스텝 번호
+  learningStepId: number; // 학습 스텝 ID
 }
 
 // 응답 data
@@ -22,7 +23,15 @@ export interface LearningResultResponse {
 export interface PracticeDataResponse {
   bpm: number;
   keySignature: string; // 예: 'C'
-  midiData: string; // 채점용 MIDI 데이터 (JSON 문자열)
+  // 채점용 MIDI 데이터 — 명세는 JSON 문자열이지만 실제로는 이미 파싱된 객체로 내려오기도 함 (utils/midiData.ts에서 둘 다 처리)
+  midiData: string | Partial<ParsedMidiData>;
+}
+
+// 학습 진행률 조회 응답 data — GET /api/learnings/{learningId}/progress
+// 완료(score>=90) 단계 수 / 전체 단계 수 기준 패키지 단위 진행률
+export interface LearningProgressResponse {
+  learningId: number;
+  progressRate: number; // 0~100
 }
 
 // ──────────────────────────────────────────────────────────────────────────

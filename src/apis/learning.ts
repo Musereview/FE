@@ -4,6 +4,7 @@ import type {
   AccompanimentListResponse,
   LearningCurriculumResponse,
   LearningHomeResponse,
+  LearningProgressResponse,
   LearningResultResponse,
   LearningStepDetailResponse,
   PracticeDataResponse,
@@ -30,6 +31,14 @@ export async function saveLearningResult(
 export async function getPracticeData(learningId: number, learningStepId: number): Promise<PracticeDataResponse> {
   const { data } = await axiosInstance.get<ApiResponse<PracticeDataResponse>>(
     `/api/learnings/${learningId}/steps/${learningStepId}/practice-data`,
+  );
+  return data.data;
+}
+
+// 학습 진행률 조회 — GET /api/learnings/{learningId}/progress
+export async function getLearningProgress(learningId: number): Promise<LearningProgressResponse> {
+  const { data } = await axiosInstance.get<ApiResponse<LearningProgressResponse>>(
+    `/api/learnings/${learningId}/progress`,
   );
   return data.data;
 }

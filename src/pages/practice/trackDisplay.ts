@@ -117,5 +117,6 @@ export function mapDetailToTrack(detail: BackingTrackDetail): Track {
     createdAt: '',
     creator: detail.creatorName,
     chordProgression: buildChordMeasures(detail.chordProgression, numerator),
+    audioFileUrl: detail.audioFileUrl,
   };
 }

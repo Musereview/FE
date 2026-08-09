@@ -30,7 +30,7 @@ function TrackDetailModal({
   isStartingPractice = false,
   startError = false,
 }: TrackDetailModalProps) {
-  const { id, title, key, mode, timeSignature, genre, bpm, difficulty, creator, chords } = track;
+  const { id, title, key, mode, timeSignature, genre, bpm, difficulty, creator, chords, audioFileUrl } = track;
   const numerator = getChordsPerMeasure(timeSignature);
   const isOwnTrack = creator === CURRENT_USER;
 
@@ -47,26 +47,51 @@ function TrackDetailModal({
   const [hasFinished, setHasFinished] = useState(false);
   const [beatCursor, setBeatCursor] = useState(0);
 
+  // 반주 음원(audioFileUrl)을 메트로놈과 같은 Tone.Transport 타임라인에 동기화해 함께 재생
+  const playerRef = useRef<Tone.Player | null>(null);
+  const isPlaybackActiveRef = useRef(false); // 실제 재생 중인지 (지연 로딩 콜백이 재생 중이 아닐 때 끼어들지 않도록)
   useEffect(() => {
+    if (!audioFileUrl) return;
+    // 로딩(fetch+decode)이 재생 시작보다 늦게 끝나는 경우를 대비 — 이미 재생 중이라면 그 시점에 뒤늦게라도 동기화해 재생
+    const player = new Tone.Player(audioFileUrl, () => {
+      if (playerRef.current === player && isPlaybackActiveRef.current) player.sync().start(0);
+    }).toDestination();
+    playerRef.current = player;
+    return () => {
+      player.unsync();
+      player.dispose();
+      playerRef.current = null;
+    };
+  }, [audioFileUrl]);
+
+  const stopAll = () => {
+    isPlaybackActiveRef.current = false; // 지연 로딩 onload가 이후엔 재생을 시작하지 않도록
     stop();
     Tone.getDraw().cancel();
+    const player = playerRef.current;
+    if (player) {
+      player.unsync();
+      if (player.state === 'started') player.stop();
+    }
+  };
+
+  useEffect(() => {
+    stopAll();
     beatCountRef.current = 0;
     setIsPlaying(false);
     setHasFinished(false);
     setBeatCursor(0);
-  }, [id, stop]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   useEffect(() => {
-    return () => {
-      stop();
-      Tone.getDraw().cancel();
-    };
-  }, [stop]);
+    return () => stopAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleTogglePlay = () => {
     if (isPlaying) {
-      stop();
-      Tone.getDraw().cancel();
+      stopAll();
       setIsPlaying(false);
       setBeatCursor(0);
       return;
@@ -77,14 +102,16 @@ function TrackDetailModal({
     beatCountRef.current = 0;
     setBeatCursor(0);
     setIsPlaying(true);
+    isPlaybackActiveRef.current = true; // 실제 재생 시작 — 이 시점부턴 지연 로딩 onload도 재생을 시작해도 됨
 
+    // 메트로놈 start()가 내부적으로 transport.stop()/cancel()을 먼저 실행하므로 그보다 먼저 반주를 sync하면
+    // 방금 건 예약(0초 재생)이 cancel()에 지워짐 — 그래서 metronome start()가 끝난 뒤에 sync().start(0)를 건다.
     start(bpm, numerator, (time) => {
       const current = beatCountRef.current;
       const next = current + 1;
 
       if (next >= totalBeats) {
-        stop();
-        Tone.getDraw().cancel();
+        stopAll();
         beatCountRef.current = 0;
         setIsPlaying(false);
         setHasFinished(true);
@@ -95,6 +122,9 @@ function TrackDetailModal({
       beatCountRef.current = next;
       Tone.getDraw().schedule(() => setBeatCursor(current), time);
     });
+
+    const player = playerRef.current;
+    if (player?.loaded) player.sync().start(0);
   };
 
   const activeBeatIndex = isPlaying ? beatCursor : -1;

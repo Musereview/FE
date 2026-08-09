@@ -1,23 +1,19 @@
 // 단계별 학습 설정 페이지 — 배경은 학습 플레이 화면과 동일한 UI(정적), 그 위에 설정 모달
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import Piano from '@/components/piano/Piano';
 import LearningScoreView from '@/components/score/LearningScoreView';
 import MetronomeDots from '@/components/metronome/MetronomeDots';
 import BackingTrack from '@/components/practice/BackingTrack';
-import { buildFallbackProgression } from '@/pages/practice/trackDisplay';
 import { useSettingStore } from '@/stores/settingsStore';
 import { useLearningCurriculum } from '@/hooks/useLearningCurriculum';
 import { usePracticeData } from '@/hooks/usePracticeData';
 import { getLearningIds, parseStepId } from '@/utils/learningId';
-import { getScorePath } from './mockCurriculum';
+import { parseMidiData, midiDataToMusicXml, midiDataMeasureCount, midiDataChordsToMeasures } from '@/utils/midiData';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import RefreshIcon from '@/assets/restart.svg?react';
 import SettingsIcon from '@/assets/setting.svg?react';
-
-// TODO(mock): 백킹트랙 코드 진행 — 학습 플레이 화면과 동일
-const MOCK_CHORDS = ['Cm7(#11)', 'CM7(#11)', 'Dm7', 'Am7'];
 
 function StepLearningSettingsPage() {
   const navigate = useNavigate();
@@ -25,7 +21,7 @@ function StepLearningSettingsPage() {
   const { keyCount, setBpm, setBeatsPerBar } = useSettingStore();
 
   const { data: curriculum } = useLearningCurriculum(curriculumId);
-  // bpm 실습 데이터는 커리큘럼/단계별 조회에 없음 — practice-data API(민서 담당, 아직 mock) 사용
+  // bpm/박자/악보는 커리큘럼/단계별 조회에 없음 — practice-data API(midiData) 사용
   const { learningId } = getLearningIds(curriculumId);
   const { data: practiceData } = usePracticeData(learningId, parseStepId(stepId));
 
@@ -34,9 +30,16 @@ function StepLearningSettingsPage() {
   const title = chapterNo ? `${curriculumTitle}-chapter ${chapterNo}` : curriculumTitle;
   const difficulty = curriculum?.difficulty ?? 'beginner';
   const bpm = practiceData?.bpm ?? 120;
-  // TODO: 박자(timeSignature) 필드가 practice-data 응답에도 없음 — 확인 필요, 우선 4/4 고정
-  const beatsPerBar = 4;
-  const measures = buildFallbackProgression(MOCK_CHORDS, beatsPerBar);
+
+  // midiData 파싱 → 악보(MusicXML)/백킹트랙(코드 그리드)/박자/전체 마디 수. 로딩 중엔 null.
+  const parsedMidiData = useMemo(() => (practiceData ? parseMidiData(practiceData.midiData) : null), [practiceData]);
+  const xmlContent = useMemo(() => (parsedMidiData ? midiDataToMusicXml(parsedMidiData) : undefined), [parsedMidiData]);
+  const measureCount = useMemo(() => (parsedMidiData ? midiDataMeasureCount(parsedMidiData) : 0), [parsedMidiData]);
+  const beatsPerBar = parsedMidiData?.options.beatsPerBar ?? 4;
+  const measures = useMemo(
+    () => (parsedMidiData ? midiDataChordsToMeasures(parsedMidiData.chords, measureCount, beatsPerBar) : []),
+    [parsedMidiData, measureCount, beatsPerBar],
+  );
   const progress = curriculum?.progress.progressRate ?? 0;
 
   useEffect(() => {
@@ -86,7 +89,7 @@ function StepLearningSettingsPage() {
         {/* 악보 영역 (정적 — 진행/판정 없음) */}
         <div className="mx-auto mt-8 flex w-full max-w-[1510px] flex-1 items-center">
           <LearningScoreView
-            xmlPath={getScorePath(curriculumId)}
+            xmlContent={xmlContent}
             currentMeasureIndex={0}
             bpm={bpm}
             difficulty={difficulty}
