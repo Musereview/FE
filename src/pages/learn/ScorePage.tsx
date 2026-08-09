@@ -29,10 +29,16 @@ function ScorePage() {
   const stepIndex = curriculum?.steps.findIndex((s) => s.learningStepId === Number(stepId)) ?? -1;
   const nextStep = stepIndex >= 0 ? curriculum?.steps[stepIndex + 1] : undefined;
 
+  // 연습을 완료하지 않고 점수 화면에 직접 진입한 경우(URL 직접 접근/새로고침) — result가 null이므로 저장하지 않고 되돌림
+  useEffect(() => {
+    if (result === null) navigate(`/learn/curriculum/${curriculumId}`, { replace: true });
+  }, [result, curriculumId, navigate]);
+
   // 점수 화면 진입 시 결과를 1회 저장 (StrictMode 이중 호출/재렌더로 인한 중복 저장 방지)
   const savedRef = useRef(false);
   useEffect(() => {
     if (savedRef.current) return;
+    if (result === null) return;
     savedRef.current = true;
     const { learningId } = getLearningIds(curriculumId);
     const learningStepId = Number(stepId);
@@ -42,7 +48,9 @@ function ScorePage() {
       { onError: (err) => console.warn('[ScorePage] 학습 결과 저장 실패:', err) },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [result]);
+
+  if (result === null) return null;
 
   const stats = [
     { label: '정확도', value: `${result.accuracy}%` },
