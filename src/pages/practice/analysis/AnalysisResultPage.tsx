@@ -78,7 +78,6 @@ export default function AnalysisResultPage() {
 
       if (!text) {
         text = await fetch('/sample.xml').then((r) => r.text());
-        console.log('[디버깅] /sample.xml에서 불러온 텍스트:', text?.substring(0, 100));
       }
       if (!text) throw new Error('악보 데이터를 찾을 수 없습니다.');
 
@@ -161,14 +160,10 @@ export default function AnalysisResultPage() {
 
   // audioUrl이 있을 경우 Audio 객체 초기화
   useEffect(() => {
-    console.log('[디버깅] 현재 들어온 audioUrl:', audioUrl);
-
     if (!audioUrl) return;
     const audio = new Audio(audioUrl);
     audio.preload = 'auto';
     audioRef.current = audio;
-
-    console.log('[디버깅] audioRef에 오디오 객체 세팅 완료:', audioRef.current);
 
     return () => {
       audio.pause();
@@ -204,7 +199,9 @@ export default function AnalysisResultPage() {
     //오디오 객체가 있다면 일시정지 후 재생 위치를 0으로 초기화
     if (audioRef.current) {
       audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+
+      const startOffset = scoreData?.sectionStartOffsetSec ?? 0;
+      audioRef.current.currentTime = startOffset;
     }
 
     const targetMeasureIndex = scoreData?.startIndex ?? Math.max(0, startBar - 1);
