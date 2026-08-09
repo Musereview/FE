@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import * as Tone from 'tone';
 
 import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
 import { computeMeasureTimings, findMeasureIndexAtTime } from '@/utils/musicXmlTiming';
@@ -9,6 +10,7 @@ import { toPlayedNotes } from '@/utils/midiEventPayload';
 import { isValidHistoryId } from '@/utils/historyId';
 import { historyDetailErrorMessage } from '@/utils/historyError';
 import { useHistoryDetail } from '@/hooks/useHistory';
+import { useMetronome } from '@/hooks/useMetronome';
 import LoadingPage from '@/pages/common/LoadingPage';
 
 import HistoryHeader from '@/components/history/HistoryHeader';
@@ -59,6 +61,8 @@ export default function HistoryDetailPage() {
   const backingAudioRef = useRef<HTMLAudioElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { start: startMetronome, stop: stopMetronome } = useMetronome();
 
   const bpm = historyData?.bpm || 120;
   const [beatsPerBar, beatType] = parseTimeSignature(historyData?.timeSignature);
@@ -155,7 +159,6 @@ export default function HistoryDetailPage() {
 
     const handleEnded = () => {
       handleRewind();
-      triggerToast('재생이 완료되었습니다.');
     };
 
     audio.addEventListener('ended', handleEnded);
@@ -181,26 +184,15 @@ export default function HistoryDetailPage() {
     }
   }, [isPlaying, recordingUrl, backingTrackUrl, triggerToast, refetch]);
 
-  // 3) 오디오 진행 시간 → 커서 위치 + 박자 인디케이터
+  // 3) 오디오 진행 시간 → 커서 위치
   useEffect(() => {
-    if (!isPlaying) {
-      setBeatInBar(-1);
-      return;
-    }
+    if (!isPlaying || measureStartTimes.length === 0) return;
 
     const tick = () => {
       const audio = audioRef.current;
       if (audio) {
-        const elapsed = audio.currentTime;
-
-        if (measureStartTimes.length > 0) {
-          const idx = findMeasureIndexAtTime(measureStartTimes, elapsed);
-          setCurrentMeasureIndex((prev) => (prev !== idx ? idx : prev));
-        }
-
-        const beatsPerSecond = (bpm / 60) * (beatType / 4);
-        const beat = Math.floor(elapsed * beatsPerSecond) % beatsPerBar;
-        setBeatInBar((prev) => (prev !== beat ? beat : prev));
+        const idx = findMeasureIndexAtTime(measureStartTimes, audio.currentTime);
+        setCurrentMeasureIndex((prev) => (prev !== idx ? idx : prev));
       }
       rafRef.current = requestAnimationFrame(tick);
     };
@@ -209,14 +201,30 @@ export default function HistoryDetailPage() {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [isPlaying, measureStartTimes, bpm, beatsPerBar, beatType]);
+  }, [isPlaying, measureStartTimes]);
 
-  const handleTogglePlay = () => {
+  // 4) 메트로놈
+  useEffect(() => {
+    if (!isPlaying) {
+      stopMetronome();
+      setBeatInBar(-1);
+      return;
+    }
+
+    startMetronome(bpm, beatsPerBar, (time, beat) => {
+      Tone.getDraw().schedule(() => setBeatInBar(beat), time);
+    });
+
+    return () => stopMetronome();
+  }, [isPlaying, bpm, beatsPerBar, startMetronome, stopMetronome]);
+
+  const handleTogglePlay = async () => {
     if (isScoreLoading) return;
     if (!canPlay) {
       triggerToast('저장된 연주 음원이 없습니다.');
       return;
     }
+    await Tone.start(); // 메트로놈용 오디오 잠금 해제
     setIsPlaying((p) => !p);
   };
 
