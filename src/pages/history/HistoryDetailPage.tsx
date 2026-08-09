@@ -1,25 +1,34 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { isAxiosError } from 'axios';
-import * as Tone from 'tone';
 
 import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
-import {
-  computeMeasureTimings,
-  findMeasureIndexAtTime,
-  extractActiveTempoMeterAtMeasure,
-} from '@/utils/musicXmlTiming';
+import { computeMeasureTimings, findMeasureIndexAtTime } from '@/utils/musicXmlTiming';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
+import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
+import { toPlayedNotes } from '@/utils/midiEventPayload';
 import { isValidHistoryId } from '@/utils/historyId';
-import { useMetronome } from '@/hooks/useMetronome';
+import { historyDetailErrorMessage } from '@/utils/historyError';
 import { useHistoryDetail } from '@/hooks/useHistory';
 import LoadingPage from '@/pages/common/LoadingPage';
 
-// 분리한 컴포넌트들 임포트
 import HistoryHeader from '@/components/history/HistoryHeader';
 import HistoryPlayerBar from '@/components/history/HistoryPlayerBar';
 import AnalysisReportList from '@/components/history/AnalysisReportList';
 import MeasureSelectForm from '@/components/history/MeasureSelectForm';
+
+// '4/4' → [4, 4]. 값이 없거나 형식이 깨지면 4/4로 폴백.
+function parseTimeSignature(raw?: string): [number, number] {
+  const [beats, beatType] = (raw ?? '').split('/').map(Number);
+  return [beats > 0 ? beats : 4, beatType > 0 ? beatType : 4];
+}
+
+// 백킹트랙 keySignature → MusicXML 조표용 key/mode
+function parseKeySignature(raw?: string): { key: string; mode: 'major' | 'minor' } {
+  const value = (raw ?? 'C').trim();
+  const isMinor = /m(inor|in)?$/i.test(value);
+  const key = value.replace(/\s*(major|minor|maj|min|m)$/i, '').trim() || 'C';
+  return { key, mode: isMinor ? 'minor' : 'major' };
+}
 
 export default function HistoryDetailPage() {
   const navigate = useNavigate();
@@ -33,30 +42,31 @@ export default function HistoryDetailPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isScoreReady, setIsScoreReady] = useState(false);
   const [startMeasure, setStartMeasure] = useState('1마디');
-  const [endMeasure, setEndMeasure] = useState('30마디');
+  const [endMeasure, setEndMeasure] = useState('1마디');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [xmlContent, setXmlContent] = useState('');
-  const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
-  const [sectionStartOffsetSec, setSectionStartOffsetSec] = useState(0);
-  const [sectionDurationSec, setSectionDurationSec] = useState(0);
-  const [totalMeasures, setTotalMeasures] = useState<number>(30);
-
   const [currentMeasureIndex, setCurrentMeasureIndex] = useState(0);
   const [beatInBar, setBeatInBar] = useState(-1);
-  const [beatsPerBar, setBeatsPerBar] = useState(4);
-
-  const [xmlBpm, setXmlBpm] = useState(0);
-  const bpm = historyData?.bpm || xmlBpm || 120;
 
   const scoreViewerRef = useRef<ScoreViewerHandle>(null);
-  const playbackTimeRef = useRef(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null); // 커서 기준이 되는 주 오디오
+  const backingAudioRef = useRef<HTMLAudioElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { start, stop, pause } = useMetronome();
-  const isScoreLoading = !isScoreReady;
+  const bpm = historyData?.bpm || 120;
+  const [beatsPerBar, beatType] = parseTimeSignature(historyData?.timeSignature);
+
+  const recordingUrl = historyData?.recordingFileUrl ?? null;
+  const backingTrackUrl = historyData?.backingTrackAudioFileUrl ?? null;
+  const canPlay = Boolean(recordingUrl || backingTrackUrl);
+
+  const triggerToast = useCallback((msg: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastMessage(msg);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -64,87 +74,114 @@ export default function HistoryDetailPage() {
     };
   }, []);
 
-  // MusicXML 로드 및 타이밍 계산
+  // 1) 응답의 midiEvents를 MusicXML로 변환해 실제 연주 악보를 그린다
+  const xmlContent = useMemo(() => {
+    if (!historyData) return '';
+
+    const notes = toPlayedNotes(historyData.midiEvents ?? []);
+    if (notes.length === 0) return '';
+
+    const { key, mode } = parseKeySignature(historyData.key);
+    return buildMusicXmlFromRecording(notes, {
+      bpm: historyData.bpm || 120,
+      beatsPerBar,
+      beatType,
+      key,
+      mode,
+      title: historyData.title,
+    });
+  }, [historyData, beatsPerBar, beatType]);
+
+  const measureStartTimes = useMemo(
+    () => (xmlContent ? computeMeasureTimings(xmlContent).measureStartTimes : []),
+    [xmlContent],
+  );
+
+  // 총 마디 수는 서버의 totalBars 우선, null이면 변환된 악보에서 계산
+  const totalMeasures = historyData?.totalBars ?? measureStartTimes.length;
+  const isScoreLoading = Boolean(xmlContent) && !isScoreReady;
+
   useEffect(() => {
-    let cancelled = false;
+    if (totalMeasures > 0) setEndMeasure(`${totalMeasures}마디`);
+  }, [totalMeasures]);
 
-    async function loadScoreInfo() {
-      try {
-        const text = await fetch('/sample.xml').then((r) => r.text());
-        if (cancelled || !text) return;
-        setXmlContent(text);
-
-        const timings = computeMeasureTimings(text);
-        setMeasureStartTimes(timings.measureStartTimes);
-
-        if (timings.measureStartTimes.length > 0) {
-          const measuresCount = timings.measureStartTimes.length;
-          setTotalMeasures(measuresCount);
-          setEndMeasure(`${measuresCount}마디`);
-        }
-
-        const sIdx = 0;
-        const offsetSec = timings.measureStartTimes[sIdx] ?? 0;
-        const endSec = timings.totalDuration;
-
-        setSectionStartOffsetSec(offsetSec);
-        playbackTimeRef.current = offsetSec;
-        setSectionDurationSec(Math.max(2, endSec - offsetSec));
-        setCurrentMeasureIndex(sIdx);
-
-        const { bpm: activeBpm, beats } = extractActiveTempoMeterAtMeasure(text, 1);
-        setXmlBpm(activeBpm);
-        setBeatsPerBar(beats);
-      } catch (e) {
-        console.error('MusicXML 분석 실패:', e);
-      }
-    }
-
-    loadScoreInfo();
-    return () => {
-      cancelled = true;
+  // 2) 오디오 엘리먼트 준비 (녹음 음원 + 백킹트랙)
+  useEffect(() => {
+    const createAudio = (src: string | null) => {
+      if (!src) return null;
+      const audio = new Audio(src);
+      audio.preload = 'auto';
+      audio.load();
+      return audio;
     };
+
+    audioRef.current = createAudio(recordingUrl) ?? createAudio(backingTrackUrl);
+    backingAudioRef.current = recordingUrl ? createAudio(backingTrackUrl) : null;
+
+    return () => {
+      audioRef.current?.pause();
+      backingAudioRef.current?.pause();
+      audioRef.current = null;
+      backingAudioRef.current = null;
+    };
+  }, [recordingUrl, backingTrackUrl]);
+
+  const handleRewind = useCallback(() => {
+    setIsPlaying(false);
+    [audioRef.current, backingAudioRef.current].forEach((audio) => {
+      if (!audio) return;
+      audio.pause();
+      audio.currentTime = 0;
+    });
+    setCurrentMeasureIndex(0);
+    setBeatInBar(-1);
+    scoreViewerRef.current?.jumpToMeasure(0);
   }, []);
 
   useEffect(() => {
-    if (isPlaying) {
-      start(bpm, beatsPerBar, (time, bib) => {
-        Tone.getDraw().schedule(() => {
-          setBeatInBar(bib);
-        }, time);
-      });
-    } else {
-      pause();
-    }
-  }, [isPlaying, bpm, beatsPerBar, start, pause]);
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleEnded = () => {
+      handleRewind();
+      triggerToast('재생이 완료되었습니다.');
+    };
+
+    audio.addEventListener('ended', handleEnded);
+    return () => audio.removeEventListener('ended', handleEnded);
+  }, [recordingUrl, backingTrackUrl, handleRewind, triggerToast]);
 
   useEffect(() => {
-    if (!isPlaying || measureStartTimes.length === 0) return;
+    const audios = [audioRef.current, backingAudioRef.current].filter((a): a is HTMLAudioElement => a !== null);
+    if (audios.length === 0) return;
 
-    let lastTime = performance.now();
+    if (isPlaying) {
+      audios.forEach((audio) => audio.play().catch((err) => console.error('오디오 재생 실패', err)));
+    } else {
+      audios.forEach((audio) => audio.pause());
+    }
+  }, [isPlaying]);
 
-    const tick = (now: number) => {
-      const deltaSec = (now - lastTime) / 1000;
-      lastTime = now;
+  // 3) 오디오 진행 시간 → 커서 위치 + 박자 인디케이터
+  useEffect(() => {
+    if (!isPlaying) {
+      setBeatInBar(-1);
+      return;
+    }
 
-      playbackTimeRef.current += deltaSec;
-      const elapsed = playbackTimeRef.current;
-      const rangeEndSec = sectionStartOffsetSec + sectionDurationSec;
+    const tick = () => {
+      const audio = audioRef.current;
+      if (audio) {
+        const elapsed = audio.currentTime;
 
-      if (elapsed >= rangeEndSec) {
-        setIsPlaying(false);
-        stop();
-        playbackTimeRef.current = sectionStartOffsetSec;
-        setCurrentMeasureIndex(0);
-        scoreViewerRef.current?.jumpToMeasure(0);
-        setToastMessage('재생이 완료되었습니다.');
-        toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
-        return;
+        if (measureStartTimes.length > 0) {
+          const idx = findMeasureIndexAtTime(measureStartTimes, elapsed);
+          setCurrentMeasureIndex((prev) => (prev !== idx ? idx : prev));
+        }
+
+        const beat = Math.floor((elapsed * bpm) / 60) % beatsPerBar;
+        setBeatInBar((prev) => (prev !== beat ? beat : prev));
       }
-
-      const idx = findMeasureIndexAtTime(measureStartTimes, Math.max(0, elapsed));
-      setCurrentMeasureIndex((prev) => (prev !== idx ? idx : prev));
-
       rafRef.current = requestAnimationFrame(tick);
     };
 
@@ -152,24 +189,16 @@ export default function HistoryDetailPage() {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [isPlaying, measureStartTimes, sectionStartOffsetSec, sectionDurationSec, stop]);
+  }, [isPlaying, measureStartTimes, bpm, beatsPerBar]);
 
-  const handleTogglePlay = async () => {
+  const handleTogglePlay = () => {
     if (isScoreLoading) return;
-    await Tone.start();
+    if (!canPlay) {
+      triggerToast('저장된 연주 음원이 없습니다.');
+      return;
+    }
     setIsPlaying((p) => !p);
   };
-
-  const handleRewind = useCallback(() => {
-    setIsPlaying(false);
-    stop();
-
-    playbackTimeRef.current = sectionStartOffsetSec;
-    setCurrentMeasureIndex(0);
-    setBeatInBar(-1);
-
-    scoreViewerRef.current?.jumpToMeasure(0);
-  }, [sectionStartOffsetSec, stop]);
 
   const handleRewindClick = () => {
     if (isScoreLoading) return;
@@ -192,12 +221,6 @@ export default function HistoryDetailPage() {
     return isNaN(num) ? 0 : num;
   };
 
-  const triggerToast = useCallback((msg: string) => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToastMessage(msg);
-    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
-  }, []);
-
   const handleAddAnalysis = () => {
     const startNum = getMeasureNumber(startMeasure);
     const endNum = getMeasureNumber(endMeasure);
@@ -215,13 +238,13 @@ export default function HistoryDetailPage() {
       triggerToast('분석 구간은 최대 32마디까지 선택할 수 있습니다.');
       return;
     }
-    if (startNum > totalMeasures || endNum > totalMeasures) {
+    // totalBars가 null이고 악보도 비어 있으면 상한을 알 수 없으므로 범위 검사를 건너뛴다
+    if (totalMeasures > 0 && (startNum > totalMeasures || endNum > totalMeasures)) {
       triggerToast('선택한 마디가 악보 범위를 벗어났습니다.');
       return;
     }
 
     setIsPlaying(false);
-    stop();
     setIsLoading(true);
 
     const rangeXml = extractMeasureRange(xmlContent, startNum, endNum);
@@ -248,10 +271,9 @@ export default function HistoryDetailPage() {
   }
 
   if (isError) {
-    const isNotFound = isAxiosError(error) && error.response?.status === 404;
     return (
       <div className="flex min-h-screen w-full items-center justify-center text-gray-500">
-        {isNotFound ? '연주 히스토리가 없습니다.' : '연주 히스토리를 불러오지 못했습니다.'}
+        {historyDetailErrorMessage(error)}
       </div>
     );
   }
@@ -308,13 +330,15 @@ export default function HistoryDetailPage() {
           genre={historyData?.genre}
           keySig={historyData?.key}
           bpm={bpm}
+          timeSignature={historyData?.timeSignature}
+          durationMinutes={historyData?.durationMinutes}
           playedAt={historyData?.playedAt}
         />
 
         {/* 플레이어 컨트롤 바 컴포넌트 */}
         <HistoryPlayerBar
           isPlaying={isPlaying}
-          isScoreLoading={isScoreLoading}
+          isScoreLoading={isScoreLoading || !canPlay}
           beatsPerBar={beatsPerBar}
           beatInBar={beatInBar}
           onTogglePlay={handleTogglePlay}
@@ -324,10 +348,10 @@ export default function HistoryDetailPage() {
 
       {/* 악보 뷰어 영역 */}
       <div className="mx-auto mt-[24px] w-full max-w-[1280px] px-6 md:px-12 xl:px-0">
-        {xmlContent && (
+        {xmlContent ? (
           <ScoreViewer
             ref={scoreViewerRef}
-            xmlPath={'/sample.xml'}
+            xmlContent={xmlContent}
             currentMeasureIndex={currentMeasureIndex}
             followPlayback={isPlaying}
             height={440}
@@ -338,6 +362,10 @@ export default function HistoryDetailPage() {
               scoreViewerRef.current?.jumpToMeasure(0);
             }}
           />
+        ) : (
+          <div className="flex h-[440px] items-center justify-center rounded-[6px] bg-gray-900 text-gray-500">
+            연주 기록이 없어 악보를 표시할 수 없습니다.
+          </div>
         )}
       </div>
 
