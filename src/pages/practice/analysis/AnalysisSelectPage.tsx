@@ -88,7 +88,7 @@ export default function AnalysisSelectPage() {
     if (audioBlob) {
       return URL.createObjectURL(audioBlob);
     }
-    return contextData?.backingTrackAudioFileUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    return contextData?.backingTrackAudioFileUrl || '';
   }, [audioBlob, contextData?.backingTrackAudioFileUrl]);
   //컴포넌트 언마운트 시 Blob URL 메모리 해제 정리
   useEffect(() => {
@@ -125,6 +125,7 @@ export default function AnalysisSelectPage() {
     }
   }, [recording, contextData, latencyMs]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!xmlContent) return;
     const timings = computeMeasureTimings(xmlContent);

@@ -293,7 +293,8 @@ function PracticePlayPage() {
       }
     }
 
-    navigate(`/practice/${practiceId}/analysis`);
+    const targetId = playingId ?? practiceId;
+    navigate(`/practice/${targetId}/analysis`);
   };
 
   // 연습 중 기기 연결이 끊기면 재생을 멈추고 모달을 띄운다

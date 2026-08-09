@@ -1,4 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchMentorMessages, streamMentorQuestion, type MentorMessageItem } from '../../apis/mentor';
+import type { ErrorEventData } from '../../types/mentor';
 
 interface AnalysisReportData {
   analysisId?: number;
@@ -37,6 +40,26 @@ export default function AnalysisChatSection({
   const resolvedSummary = summaryTitle || analysisData?.summary || '';
   const resolvedContent = reportContent || analysisData?.report?.content || '';
   const resolvedAnalysisId = analysisId || analysisData?.analysisId;
+  const token = localStorage.getItem('accessToken') || '';
+
+  // 1. [GET] TanStack Query로 대화 내역 조회
+  const { data: serverMessages } = useQuery<MentorMessageItem[]>({
+    queryKey: ['mentorMessages', resolvedAnalysisId],
+    queryFn: () => fetchMentorMessages(resolvedAnalysisId!, token),
+    enabled: !!resolvedAnalysisId,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  useEffect(() => {
+    if (serverMessages && Array.isArray(serverMessages)) {
+      const loadedMessages: ChatMessage[] = serverMessages.map((msg: MentorMessageItem) => ({
+        id: msg.id,
+        sender: msg.sender,
+        text: msg.text,
+      }));
+      setMessages(loadedMessages);
+    }
+  }, [serverMessages]);
 
   const parseMarkdownContent = (content: string) => {
     const parts = content.split('### ').filter(Boolean);
@@ -70,11 +93,7 @@ export default function AnalysisChatSection({
   const handleScroll = () => {
     if (chatScrollRef.current) {
       const { scrollTop } = chatScrollRef.current;
-      if (scrollTop > 20) {
-        setShowScrollTop(true);
-      } else {
-        setShowScrollTop(false);
-      }
+      setShowScrollTop(scrollTop > 20);
     }
   };
 
@@ -90,50 +109,74 @@ export default function AnalysisChatSection({
     }
   };
 
+  // 2. [POST + SSE] 질문 전송 및 실시간 스트리밍 수신
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || isStreaming) return;
+    if (!inputText.trim() || isStreaming || !resolvedAnalysisId) return;
 
     const userQuestion = inputText.trim();
     setInputText('');
-
-    const userMsg: ChatMessage = {
-      id: Date.now(),
-      sender: 'user',
-      text: userQuestion,
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
     setIsStreaming(true);
 
-    const aiMsgId = Date.now() + 1;
-    const initialAiMsg: ChatMessage = {
-      id: aiMsgId,
-      sender: 'ai',
-      text: '',
-    };
-    setMessages((prev) => [...prev, initialAiMsg]);
+    const tempUserId = Date.now();
+    const tempAiId = Date.now() + 1;
+
+    setMessages((prev: ChatMessage[]) => [
+      ...prev,
+      { id: tempUserId, sender: 'user', text: userQuestion },
+      { id: tempAiId, sender: 'ai', text: '' },
+    ]);
 
     try {
-      const simulatedChunks = [
-        '선택하신 마디 구간(#' + resolvedAnalysisId + ')의 ',
-        '연주 패턴을 분석해 본 결과, ',
-        '텐션 음을 조금 더 부드럽게 해결하면 ',
-        '훨씬 완성도 높은 사운드가 될 것입니다! 🎵',
-      ];
-
-      for (const chunk of simulatedChunks) {
-        await new Promise((resolve) => setTimeout(resolve, 350));
-        setMessages((prev) => prev.map((msg) => (msg.id === aiMsgId ? { ...msg, text: msg.text + chunk } : msg)));
-      }
-    } catch (err) {
+      await streamMentorQuestion({
+        analysisId: resolvedAnalysisId,
+        content: userQuestion,
+        accessToken: token,
+        onStart: (data: unknown) => {
+          const typedData = data as { userMessage?: { mentorMessageId: number } };
+          if (typedData && typedData.userMessage) {
+            setMessages((prev: ChatMessage[]) =>
+              prev.map((msg) => (msg.id === tempUserId ? { ...msg, id: typedData.userMessage!.mentorMessageId } : msg)),
+            );
+          }
+        },
+        onChunk: (chunkText: string) => {
+          setMessages((prev: ChatMessage[]) =>
+            prev.map((msg) => (msg.id === tempAiId ? { ...msg, text: msg.text + chunkText } : msg)),
+          );
+        },
+        onComplete: (assistantMessage: unknown) => {
+          const typedMsg = assistantMessage as { mentorMessageId: number; content: string };
+          if (typedMsg) {
+            setMessages((prev: ChatMessage[]) =>
+              prev.map((msg) =>
+                msg.id === tempAiId
+                  ? {
+                      id: typedMsg.mentorMessageId,
+                      sender: 'ai',
+                      text: typedMsg.content,
+                    }
+                  : msg,
+              ),
+            );
+          }
+          setIsStreaming(false);
+        },
+        onError: (errorData: ErrorEventData) => {
+          alert(errorData.message);
+          setMessages((prev: ChatMessage[]) =>
+            prev.map((msg) => (msg.id === tempAiId ? { ...msg, text: `[오류] ${errorData.message}` } : msg)),
+          );
+          setIsStreaming(false);
+        },
+      });
+    } catch (err: unknown) {
       console.error('SSE 스트리밍 에러:', err);
-      setMessages((prev) =>
+      setMessages((prev: ChatMessage[]) =>
         prev.map((msg) =>
-          msg.id === aiMsgId ? { ...msg, text: '죄송합니다. 답변을 불러오는 중 오류가 발생했습니다.' } : msg,
+          msg.id === tempAiId ? { ...msg, text: '죄송합니다. 답변을 불러오는 중 오류가 발생했습니다.' } : msg,
         ),
       );
-    } finally {
       setIsStreaming(false);
     }
   };
