@@ -9,7 +9,7 @@ import BackingTrack from '@/components/practice/BackingTrack';
 import { useSettingStore } from '@/stores/settingsStore';
 import { useLearningCurriculum } from '@/hooks/useLearningCurriculum';
 import { usePracticeData } from '@/hooks/usePracticeData';
-import { getLearningIds } from '@/utils/learningId';
+import { getLearningIds, parseStepId } from '@/utils/learningId';
 import { parseMidiData, midiDataToMusicXml, midiDataMeasureCount, midiDataChordsToMeasures } from '@/utils/midiData';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import RefreshIcon from '@/assets/restart.svg?react';
@@ -23,7 +23,7 @@ function StepLearningSettingsPage() {
   const { data: curriculum } = useLearningCurriculum(curriculumId);
   // bpm/박자/악보는 커리큘럼/단계별 조회에 없음 — practice-data API(midiData) 사용
   const { learningId } = getLearningIds(curriculumId);
-  const { data: practiceData } = usePracticeData(learningId, Number(stepId));
+  const { data: practiceData } = usePracticeData(learningId, parseStepId(stepId));
 
   const chapterNo = curriculumId.match(/\d+/)?.[0] ?? ''; // 'chapter-1' → '1'
   const curriculumTitle = curriculum?.title ?? '';

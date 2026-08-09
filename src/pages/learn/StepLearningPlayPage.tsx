@@ -13,7 +13,7 @@ import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
 import { useLearningScoreStore } from '@/stores/learningScoreStore';
 import type { PlayedNote } from '@/stores/practiceResultStore';
-import { getLearningIds } from '@/utils/learningId';
+import { getLearningIds, parseStepId } from '@/utils/learningId';
 import { usePracticeData } from '@/hooks/usePracticeData';
 import { useLearningProgress } from '@/hooks/useLearningProgress';
 import { useLearningCurriculum } from '@/hooks/useLearningCurriculum';
@@ -45,7 +45,7 @@ function StepLearningPlayPage() {
     isError: isPracticeDataError,
     isFetching: isPracticeDataFetching,
     refetch: refetchPracticeData,
-  } = usePracticeData(learningId, Number(stepId));
+  } = usePracticeData(learningId, parseStepId(stepId));
   const bpm = practiceData?.bpm ?? 0; // 실습 데이터 로딩 전엔 재생이 시작되지 않으므로 표시용 기본값
 
   // midiData 파싱 → 악보(MusicXML)/백킹트랙(코드 그리드)/전체 마디 수. 로딩 중엔 null.
