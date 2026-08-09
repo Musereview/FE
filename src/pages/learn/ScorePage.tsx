@@ -1,9 +1,10 @@
 // 학습 결과(점수) 페이지 — 프론트 채점 결과를 표시 + 진입 시 결과를 DB에 1회 저장
 import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getCurriculum, getNextCurriculumId } from './mockCurriculum';
+import { getNextCurriculumId } from './mockCurriculum';
 import { useLearningScoreStore } from '@/stores/learningScoreStore';
 import { useSaveLearningResult } from '@/hooks/useSaveLearningResult';
+import { useLearningStep } from '@/hooks/useLearningStep';
 import { getLearningIds } from '@/utils/learningId';
 import { buildFeedback } from '@/constants/scoreFeedback';
 import RefreshIcon from '@/assets/restart.svg?react';
@@ -13,11 +14,11 @@ import StarIcon from '@/assets/Star.svg?react';
 function ScorePage() {
   const navigate = useNavigate();
   const { curriculumId = '', stepId = '' } = useParams();
-  const curriculum = getCurriculum(curriculumId);
+  const { data: step } = useLearningStep(curriculumId, stepId);
   const { result } = useLearningScoreStore();
   const { mutate: saveResult } = useSaveLearningResult();
 
-  const title = `${curriculum.stepDescription.replace(/^-\s*/, '')} - 학습 결과`;
+  const title = step?.stepTitle ? `${step.stepTitle} - 학습 결과` : '학습 결과';
   const nextCurriculumId = getNextCurriculumId(curriculumId); // 다음 단계 (없으면 null)
 
   // 점수 화면 진입 시 결과를 1회 저장 (StrictMode 이중 호출/재렌더로 인한 중복 저장 방지)
