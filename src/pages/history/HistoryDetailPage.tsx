@@ -22,6 +22,11 @@ function parseTimeSignature(raw?: string): [number, number] {
   return [beats > 0 ? beats : 4, beatType > 0 ? beatType : 4];
 }
 
+// 서버가 더미 문자열이나 빈 값을 내려보내는 경우가 있어 재생 가능한 URL만 통과
+function toPlayableUrl(url?: string | null): string | null {
+  return url && /^https?:\/\//.test(url) ? url : null;
+}
+
 // 백킹트랙 keySignature → MusicXML 조표용 key/mode
 function parseKeySignature(raw?: string): { key: string; mode: 'major' | 'minor' } {
   const value = (raw ?? 'C').trim();
@@ -37,7 +42,7 @@ export default function HistoryDetailPage() {
   const isValidId = isValidHistoryId(parsedHistoryId);
 
   // 히스토리 상세보기 조회
-  const { data: historyData, isPending, isError, error } = useHistoryDetail(isValidId ? parsedHistoryId : 0);
+  const { data: historyData, isPending, isError, error, refetch } = useHistoryDetail(isValidId ? parsedHistoryId : 0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isScoreReady, setIsScoreReady] = useState(false);
@@ -58,8 +63,8 @@ export default function HistoryDetailPage() {
   const bpm = historyData?.bpm || 120;
   const [beatsPerBar, beatType] = parseTimeSignature(historyData?.timeSignature);
 
-  const recordingUrl = historyData?.recordingFileUrl ?? null;
-  const backingTrackUrl = historyData?.backingTrackAudioFileUrl ?? null;
+  const recordingUrl = toPlayableUrl(historyData?.recordingFileUrl);
+  const backingTrackUrl = toPlayableUrl(historyData?.backingTrackAudioFileUrl);
   const canPlay = Boolean(recordingUrl || backingTrackUrl);
 
   const triggerToast = useCallback((msg: string) => {
@@ -152,15 +157,19 @@ export default function HistoryDetailPage() {
   }, [recordingUrl, backingTrackUrl, handleRewind, triggerToast]);
 
   useEffect(() => {
-    const audios = [audioRef.current, backingAudioRef.current].filter((a): a is HTMLAudioElement => a !== null);
-    if (audios.length === 0) return;
-
     if (isPlaying) {
-      audios.forEach((audio) => audio.play().catch((err) => console.error('오디오 재생 실패', err)));
+      audioRef.current?.play().catch((err) => {
+        console.error('오디오 재생 실패', err);
+        setIsPlaying(false);
+        triggerToast('음원을 재생하지 못했어요. 잠시 후 다시 시도해 주세요.');
+        refetch();
+      });
+      backingAudioRef.current?.play().catch((err) => console.error('백킹트랙 재생 실패', err));
     } else {
-      audios.forEach((audio) => audio.pause());
+      audioRef.current?.pause();
+      backingAudioRef.current?.pause();
     }
-  }, [isPlaying]);
+  }, [isPlaying, refetch, triggerToast]);
 
   // 3) 오디오 진행 시간 → 커서 위치 + 박자 인디케이터
   useEffect(() => {
@@ -222,6 +231,11 @@ export default function HistoryDetailPage() {
   };
 
   const handleAddAnalysis = () => {
+    if (!xmlContent) {
+      triggerToast('연주 기록이 없어 분석 구간을 선택할 수 없습니다.');
+      return;
+    }
+
     const startNum = getMeasureNumber(startMeasure);
     const endNum = getMeasureNumber(endMeasure);
     const diff = endNum - startNum + 1;
@@ -331,7 +345,7 @@ export default function HistoryDetailPage() {
           keySig={historyData?.key}
           bpm={bpm}
           timeSignature={historyData?.timeSignature}
-          durationMinutes={historyData?.durationMinutes}
+          durationSec={historyData?.durationSec}
           playedAt={historyData?.playedAt}
         />
 

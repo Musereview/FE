@@ -21,6 +21,9 @@ export function useHistoryList() {
   });
 }
 
+// 만료 전에 stale 처리해 새로 발급
+const RECORDING_URL_STALE_TIME = 5 * 60 * 1000;
+
 // 히스토리 상세보기 조회
 export function useHistoryDetail(playingId: number) {
   return useQuery({
@@ -28,6 +31,7 @@ export function useHistoryDetail(playingId: number) {
     queryFn: () => historyDetail(playingId),
     enabled: playingId >= 1,
     retry: retryExceptClientError,
+    staleTime: RECORDING_URL_STALE_TIME,
   });
 }
 

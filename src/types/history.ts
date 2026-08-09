@@ -59,7 +59,7 @@ export interface HistoryDetailData {
   recordingFileUrl: string | null; // 저장된 녹음 음원이 없으면 null
   backingTrackAudioFileUrl: string | null; // 백킹트랙 또는 음원이 없으면 null
   midiEvents: MidiEventsData[];
-  backingTrackMidiData: Record<string, unknown>;
+  backingTrackMidiData: Record<string, unknown> | null; // 백킹트랙이 없거나 midiData가 비면 null
   totalBars: number | null;
   analyses: HistoryAnalysisItem[];
 }
