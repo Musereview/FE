@@ -98,9 +98,17 @@ export async function streamMentorQuestion({
     const decoder = new TextDecoder();
     let buffer = '';
 
+    let hasCompletedOrErrored = false;
+
     while (true) {
       const { value, done } = await reader.read();
-      if (done) break;
+      if (done) {
+        if (!hasCompletedOrErrored) {
+          isFinished = true;
+          onError({ code: 'STREAM_CLOSED', message: '스트림이 예기치 않게 종료되었습니다.' });
+        }
+        break;
+      }
 
       buffer += decoder.decode(value, { stream: true });
       const events = buffer.split('\n\n');
@@ -136,15 +144,18 @@ export async function streamMentorQuestion({
             onChunk(parsedData.content);
             break;
           case 'complete':
+            hasCompletedOrErrored = true;
             isFinished = true;
             onComplete(parsedData.assistantMessage);
-            return;
+            break;
           case 'error':
+            hasCompletedOrErrored = true;
             isFinished = true;
             onError(parsedData);
-            return;
+            break;
         }
       }
+      if (hasCompletedOrErrored) break;
     }
     isFinished = true;
   } catch (err: unknown) {
@@ -153,9 +164,9 @@ export async function streamMentorQuestion({
       isFinished = true;
     }
   } finally {
-    if (!isFinished && reader) {
+    isFinished = true;
+    if (reader) {
       await reader.cancel().catch(() => {});
-      onError({ code: 'STREAM_CLOSED', message: '스트림이 예기치 않게 종료되었습니다.' });
     }
   }
 }
