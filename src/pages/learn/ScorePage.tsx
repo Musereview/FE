@@ -15,7 +15,11 @@ function ScorePage() {
   const navigate = useNavigate();
   const { curriculumId = '', stepId = '' } = useParams();
   const { data: step } = useLearningStep(curriculumId, stepId);
-  const { data: curriculum } = useLearningCurriculum(curriculumId);
+  const {
+    data: curriculum,
+    isSuccess: hasCurriculum,
+    isError: hasCurriculumError,
+  } = useLearningCurriculum(curriculumId);
   const { result } = useLearningScoreStore();
   const { mutate: saveResult } = useSaveLearningResult();
 
@@ -66,22 +70,29 @@ function ScorePage() {
             다시하기
             <RefreshIcon className="ml-2 h-[24px] w-[24px]" />
           </button>
-          {/* 다음 스텝의 이론 화면으로 이동 (마지막 스텝이면 커리큘럼 상세로) */}
+          {/* 다음 스텝의 이론 화면으로 이동 (마지막 스텝이면 커리큘럼 상세로) — 커리큘럼 조회 성공 전에는 nextStep을 신뢰할 수 없어 이동 차단 */}
           <button
             type="button"
+            disabled={!hasCurriculum}
             onClick={() =>
+              hasCurriculum &&
               navigate(
                 nextStep
                   ? `/learn/curriculum/${curriculumId}/steps/${nextStep.learningStepId}/theory`
                   : `/learn/curriculum/${curriculumId}`,
               )
             }
-            className="button-large2 bg-primary-400 flex h-[60px] w-[174px] cursor-pointer items-center justify-center rounded-[6px] py-1.5 pr-3 pl-3.5 text-gray-950">
+            className="button-large2 bg-primary-400 flex h-[60px] w-[174px] cursor-pointer items-center justify-center rounded-[6px] py-1.5 pr-3 pl-3.5 text-gray-950 disabled:cursor-not-allowed disabled:opacity-50">
             다음 학습으로
             <ChevronRightIcon className="ml-2 h-[24px] w-[24px]" />
           </button>
         </div>
       </header>
+      {hasCurriculumError && (
+        <p className="text-error button-label1 absolute top-[132px] w-full px-[80px] text-right">
+          커리큘럼 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+        </p>
+      )}
 
       {/* 결과 */}
       <div className="flex flex-1 flex-col items-center justify-center gap-12">
