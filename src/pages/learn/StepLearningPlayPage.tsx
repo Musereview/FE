@@ -40,7 +40,12 @@ function StepLearningPlayPage() {
 
   // 실습 데이터(bpm/keySignature/midiData) — '이 이론으로 실습하기'에서 조회.
   const { learningId } = getLearningIds(curriculumId);
-  const { data: practiceData, isLoading: isPracticeDataLoading } = usePracticeData(learningId, Number(stepId));
+  const {
+    data: practiceData,
+    isError: isPracticeDataError,
+    isFetching: isPracticeDataFetching,
+    refetch: refetchPracticeData,
+  } = usePracticeData(learningId, Number(stepId));
   const bpm = practiceData?.bpm ?? 0; // 실습 데이터 로딩 전엔 재생이 시작되지 않으므로 표시용 기본값
 
   // midiData 파싱 → 악보(MusicXML)/백킹트랙(코드 그리드)/전체 마디 수. 로딩 중엔 null.
@@ -66,6 +71,8 @@ function StepLearningPlayPage() {
     [parsedMidiData, measureCount, beatsPerBar],
   );
   const totalCells = measureCount * beatsPerBar;
+  // 실습 데이터가 유효하게 준비됐는지(양수 bpm·전체 셀 수) — 로딩 실패/미조회 시 재생 시작을 막는 기준
+  const isPracticeReady = !!practiceData && bpm > 0 && totalCells > 0;
 
   // 진행률: 화면 진입 시 DB에서 받는 값(실시간 아님). 스텝 완료/다음 스텝 이동 시 현재 진행률을 DB에 반영.
   const { data: progressData } = useLearningProgress(learningId);
@@ -157,6 +164,7 @@ function StepLearningPlayPage() {
 
   // 카운트다운(4,3,2,1)
   const runCountdown = async () => {
+    if (!isPracticeReady) return; // 실습 데이터 미확보 시 재생 시작 금지
     cancelPendingStarts(); // 대기 중인 자동재생·재시작 타이머 취소 (중복 시작 방지)
     setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
     countdownEndedRef.current = false;
@@ -186,6 +194,7 @@ function StepLearningPlayPage() {
   };
 
   const startPlayback = async () => {
+    if (!isPracticeReady) return; // 실습 데이터 미확보 시 재생 시작 금지
     cancelPendingStarts(); // 대기 중인 자동재생·재시작 타이머 취소 (중복 시작 방지)
     setCountdown(null);
     await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
@@ -260,9 +269,9 @@ function StepLearningPlayPage() {
   }, [stop]);
 
   // 진입 시 카운트다운(4,3,2,1) →자동 재생
-  // bpm 확정(실습 데이터 로딩 완료) 후 시작 — 로딩 중 fallback bpm으로 카운트다운이 시작되는 것 방지
+  // 실습 데이터가 유효하게 준비된 후에만 시작 — 로딩 중/조회 실패 fallback(bpm=0)으로 재생이 시작되는 것 방지
   useEffect(() => {
-    if (isPracticeDataLoading) return;
+    if (!isPracticeReady) return;
     isMountedRef.current = true;
     runCountdown();
     return () => {
@@ -270,7 +279,7 @@ function StepLearningPlayPage() {
       cancelPendingStarts();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPracticeDataLoading]);
+  }, [isPracticeReady]);
 
   // 악보 현재 음 하이라이트를 소수 박 해상도로 갱신 (정박 아닌 8·16분음표도 정확히 현재 음이 되도록).
   // state 갱신 없이 imperative tick 호출 → 리렌더 없음. 박 = transport ticks/PPQ (tempo 독립, onBeat 단위와 일치)
@@ -288,6 +297,22 @@ function StepLearningPlayPage() {
 
   return (
     <div className="flex h-full flex-col bg-gray-950">
+      {/* 상단 알림 토스트 — 실습 데이터 조회 실패 시 재시도 */}
+      {isPracticeDataError && (
+        <div
+          role="alert"
+          className="bg-error body-small fixed top-[40px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-[12px] rounded-[12px] px-[24px] py-[16px] text-gray-100 shadow-2xl">
+          <span>⚠️</span> 실습 데이터를 불러오지 못했습니다.
+          <button
+            type="button"
+            onClick={() => refetchPracticeData()}
+            disabled={isPracticeDataFetching}
+            className="cursor-pointer rounded-[6px] bg-gray-100/20 px-3 py-1 whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">
+            재시도
+          </button>
+        </div>
+      )}
+
       {/* 헤더 */}
       <header className="relative flex h-[154px] w-full items-center justify-between bg-gray-900 px-[160px] py-[28px]">
         {/* 카운트다운 배경 블러 + 클릭 차단 */}
@@ -297,8 +322,9 @@ function StepLearningPlayPage() {
           <button
             type="button"
             onClick={handlePlayToggle}
+            disabled={!isPracticeReady}
             aria-label={isPlaying ? '정지' : '재생'}
-            className="text-primary-400 flex cursor-pointer items-center">
+            className="text-primary-400 flex cursor-pointer items-center disabled:cursor-not-allowed disabled:opacity-50">
             {isPlaying ? <StopIcon className="h-[52px] w-[52px]" /> : <PlayIcon className="h-[52px] w-[52px]" />}
           </button>
           <div className="flex flex-col items-start gap-6">
@@ -314,7 +340,8 @@ function StepLearningPlayPage() {
           <button
             type="button"
             onClick={handleRestart}
-            className="button-large2 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300">
+            disabled={!isPracticeReady}
+            className="button-large2 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-gray-800 px-3 py-[6px] text-gray-300 disabled:cursor-not-allowed disabled:opacity-50">
             재시작
             <RefreshIcon className="h-6 w-6" />
           </button>
