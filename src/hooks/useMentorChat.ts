@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchMentorMessages, streamMentorQuestion, type MentorMessageItem } from '@/apis/mentor';
 import type { ErrorEventData } from '@/types/mentor';
 
@@ -21,25 +21,27 @@ export function useMentorChat({ resolvedAnalysisId, token }: UseMentorChatProps)
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
+  const queryClient = useQueryClient();
 
   // TanStack Query로 대화 내역 조회
   const { data: serverMessages } = useQuery<MentorMessageItem[]>({
     queryKey: ['mentorMessages', resolvedAnalysisId],
     queryFn: () => fetchMentorMessages(resolvedAnalysisId!, token),
-    enabled: !!resolvedAnalysisId,
+    enabled: !!resolvedAnalysisId && !!token,
     staleTime: 1000 * 60 * 5,
   });
 
   useEffect(() => {
+    if (isStreaming) return; //스트리밍 중엔 덮어쓰기 차단
     if (serverMessages && Array.isArray(serverMessages)) {
       const loadedMessages: ChatMessage[] = serverMessages.map((msg: MentorMessageItem) => ({
         id: msg.id,
-        sender: msg.sender,
+        sender: msg.sender === 'USER' || msg.sender === 'user' ? 'user' : 'ai',
         text: msg.text,
       }));
       setMessages(loadedMessages);
     }
-  }, [serverMessages]);
+  }, [serverMessages, isStreaming]);
 
   // 스크롤 위치 감지
   const handleScroll = () => {
@@ -71,6 +73,10 @@ export function useMentorChat({ resolvedAnalysisId, token }: UseMentorChatProps)
   // 질문 전송 및 스트리밍
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!token) {
+      alert('로그인이 필요하거나 인증 정보가 만료되었습니다.');
+      return;
+    }
     if (!inputText.trim() || isStreaming || !resolvedAnalysisId) return;
 
     const userQuestion = inputText.trim();
@@ -114,6 +120,8 @@ export function useMentorChat({ resolvedAnalysisId, token }: UseMentorChatProps)
             );
           }
           setIsStreaming(false);
+
+          queryClient.invalidateQueries({ queryKey: ['mentorMessages', resolvedAnalysisId] });
         },
         onError: (errorData: ErrorEventData) => {
           alert(errorData.message);
