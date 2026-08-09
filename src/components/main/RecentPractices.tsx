@@ -46,7 +46,7 @@ export default function RecentPractices({ data }: RecentPracticesProps) {
           return (
             <div
               key={item.playingId}
-              onClick={() => navigate(`/practice/${item.playingId}`)}
+              onClick={() => navigate(`/history/${item.playingId}`)}
               className="flex h-[86px] w-full cursor-pointer items-center justify-between self-stretch rounded-[4px] border-y-[0.3px] border-y-white/[0.05] bg-gray-900 px-6 py-3 text-white transition-colors select-none hover:opacity-90">
               <div className="mr-4 flex w-0 flex-1 items-center gap-4">
                 <button
