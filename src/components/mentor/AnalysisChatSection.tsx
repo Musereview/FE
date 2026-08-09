@@ -45,7 +45,7 @@ export default function AnalysisChatSection({
   const removeMarkdown = (text?: string): string => {
     if (!text) return '';
     return text
-      .replace(/#{1,6}\s?/g, '') // #, ##, ### 등 헤더 기호 제거
+      .replace(/#{1,6}[ \t]+/gm, '') // #, ##, ### 등 헤더 기호 제거
       .replace(/\*\*/g, '') // ** 볼드 기호 제거
       .replace(/^\s*[-*]\s+/gm, '') // 줄 맨 앞의 불릿 기호(* 또는 -) 제거
       .replace(/\*/g, '') // 단독 * 별표 제거
