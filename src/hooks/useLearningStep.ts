@@ -2,12 +2,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { getLearningStep } from '@/apis/learning';
 import { retryExceptClientError } from '@/apis/learningMappers';
-import { getLearningIds } from '@/utils/learningId';
+import { getLearningIds, parseStepId } from '@/utils/learningId';
 import type { LearningStepDetailResponse } from '@/types/learning';
 
 export const useLearningStep = (curriculumId: string, stepId: string) => {
   const { learningId } = getLearningIds(curriculumId);
-  const learningStepId = Number(stepId);
+  const learningStepId = parseStepId(stepId);
 
   return useQuery({
     queryKey: ['learningStep', learningId, learningStepId],

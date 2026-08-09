@@ -38,6 +38,7 @@
     "react-hook-form": "^7.80.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.0",
+    "remark-breaks": "^4.0.0",
     "tailwindcss": "^4.3.1",
     "tone": "^15.1.22",
     "vexflow": "^5.0.0",
