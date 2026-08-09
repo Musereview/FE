@@ -113,8 +113,6 @@ export default function HistoryDetailPage() {
 
   // 2) 오디오 엘리먼트 준비 (녹음 음원 + 백킹트랙)
   useEffect(() => {
-    // 로드 실패는 예외가 아니라 error 이벤트로 온다.
-    // code 4(MEDIA_ERR_SRC_NOT_SUPPORTED)면 소스 자체 문제(만료된 URL, 잘못된 키, 미지원 포맷)다.
     const createAudio = (src: string | null, label: string) => {
       if (!src) return null;
       const audio = new Audio(src);
@@ -169,15 +167,15 @@ export default function HistoryDetailPage() {
     if (audios.length === 0) return;
 
     if (isPlaying) {
-      audios.forEach((audio) =>
-        audio.play().catch((err) => {
-          console.error('오디오 재생 실패', err);
-          setIsPlaying(false);
-          triggerToast('음원을 재생하지 못했습니다.');
-          // 녹음 URL은 만료 600초짜리 presigned URL이라 만료가 가장 흔한 실패 원인이다 — 새 URL을 받아둔다
-          refetch();
-        }),
-      );
+      audioRef.current?.play().catch((err) => {
+        console.error('오디오 재생 실패', err);
+        setIsPlaying(false);
+        triggerToast('음원을 재생하지 못했습니다.');
+        refetch();
+      });
+
+      // 백킹트랙 실패 -> 오디오는 재생
+      backingAudioRef.current?.play().catch((err) => console.error('백킹트랙 재생 실패', err));
     } else {
       audios.forEach((audio) => audio.pause());
     }
