@@ -74,6 +74,21 @@ function PracticePlayPage() {
   const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
   const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
 
+  // 반주 음원(audioFileUrl)을 메트로놈/녹음과 같은 Tone.Transport 타임라인에 동기화해 함께 재생
+  // (카운트인 중엔 sync하지 않음 — 실제 곡 재생이 시작되는 startPlayback()에서만 sync)
+  const playerRef = useRef<Tone.Player | null>(null);
+  useEffect(() => {
+    const url = track?.audioFileUrl;
+    if (!url) return;
+    const player = new Tone.Player(url).toDestination();
+    playerRef.current = player;
+    return () => {
+      player.unsync();
+      player.dispose();
+      playerRef.current = null;
+    };
+  }, [track?.audioFileUrl]);
+
   // 친 음: 소리 재생 + 노트바 생성(성장 시작) → 뗄 때 소리·길이 확정 후 위로 사라짐
   const handleNoteOn = (note: number, velocity = 100) => {
     playNote(note, velocity); // 즉시 소리 (범위와 무관하게 실제 친 음)
@@ -146,6 +161,11 @@ function PracticePlayPage() {
     finalizeOpenNotes(performance.now()); // stop() 전에 (stop이 transport 위치를 0으로 리셋하므로)
     stop();
     Tone.getDraw().cancel();
+    const player = playerRef.current;
+    if (player) {
+      player.unsync();
+      if (player.state === 'started') player.stop();
+    }
     setIsPlaying(false);
     setBeatInBar(-1);
     setCurrentBeat(-1);
@@ -199,6 +219,9 @@ function PracticePlayPage() {
       triggerToast('현재 브라우저에서는 연주 녹음을 지원하지 않습니다.');
     }
     setIsPlaying(true);
+    // 녹음 시작과 같은 동기 실행 블록 안에서 반주 재생도 같이 트리거 (카운트인 이후 0박 = 여기서 sync)
+    const player = playerRef.current;
+    if (player?.loaded) player.sync().start(0);
     start(track?.bpm ?? 0, beatsPerBar, (time, bib) => {
       const beat = totalBeatRef.current % totalCells;
       Tone.getDraw().schedule(() => {
@@ -307,6 +330,11 @@ function PracticePlayPage() {
     return () => {
       stop();
       Tone.getDraw().cancel();
+      const player = playerRef.current;
+      if (player) {
+        player.unsync();
+        if (player.state === 'started') player.stop();
+      }
       if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
