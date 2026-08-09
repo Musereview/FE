@@ -6,7 +6,7 @@ interface DashboardNotiProps {
 }
 
 export default function DashboardNoti({ data, onNotificationClick }: DashboardNotiProps) {
-  //알림 데이터가 없을떄 초기 상태
+  // 알림 데이터가 없을때 초기 상태
   if (!data || data.length === 0) {
     return (
       <div className="flex h-[356px] w-full flex-col items-center justify-center self-stretch rounded-[6px] bg-gray-800 p-[32px] text-center select-none">
@@ -27,20 +27,26 @@ export default function DashboardNoti({ data, onNotificationClick }: DashboardNo
             className="flex h-[86px] w-full cursor-pointer items-center justify-between rounded bg-gray-900 px-6 py-3 transition-colors select-none hover:opacity-90">
             <div className="flex min-w-0 flex-1 items-center gap-4">
               <div
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                  item.isRead ? 'bg-gray-700' : 'bg-secondary-400'
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                  item.isRead ? 'bg-[#868A91]' : 'bg-secondary-400'
                 }`}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
+                  height="15"
+                  viewBox="0 0 18 15"
                   fill="none"
-                  stroke={item.isRead ? 'stroke-gray-500' : 'stroke-white'}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  className="block shrink-0">
+                  <g transform="translate(1, 1)">
+                    <path
+                      d="M0 1C0 0.447716 0.447715 0 1 0H17C17.5523 0 18 0.447715 18 1V11.3938C18 11.9461 17.5523 12.3938 17 12.3938H3.71616C3.49498 12.3938 3.28004 12.4672 3.10498 12.6023L0.161118 14.8756C0.0953826 14.9263 0 14.8795 0 14.7964V12.3938V1Z"
+                      fill={item.isRead ? '#F0F1F1' : '#EBD3FF'}
+                    />
+                    {/* 내부 위쪽 선 (긴 선) */}
+                    <rect x="4" y="4" width="8" height="1" fill={item.isRead ? '#868A91' : '#AF5DF1'} />
+                    {/* 내부 아래쪽 선 (짧은 선) */}
+                    <rect x="4" y="7.5" width="4.5" height="1" fill={item.isRead ? '#868A91' : '#AF5DF1'} />
+                  </g>
                 </svg>
               </div>
 

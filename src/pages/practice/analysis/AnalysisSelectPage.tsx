@@ -238,9 +238,6 @@ export default function AnalysisSelectPage() {
       });
 
       const realAnalysisId = analysisResponse.analysisId;
-      // 🔍 여기 콘솔을 찍어서 데이터가 잘 들어오는지 확인해보세요!
-      console.log('📌 분석 요청 응답 데이터:', analysisResponse);
-      console.log('📌 추출된 실질적 analysisId:', realAnalysisId);
 
       navigate(`/practice/${parsedPlayingId}/analysis/loading?start=${startNum}&end=${endNum}`, {
         state: {
