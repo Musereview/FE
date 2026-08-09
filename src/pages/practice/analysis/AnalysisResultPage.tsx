@@ -15,19 +15,35 @@ import {
 import MetronomeDots from '@/components/metronome/MetronomeDots';
 import AnalysisChatSection from '@/components/mentor/AnalysisChatSection';
 import { usePracticeResultStore } from '@/stores/practiceResultStore';
+import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
+import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
+import { toPlayedNotes } from '@/utils/midiEventPayload';
+import { historyDetail } from '@/apis/history';
+import type { HistoryDetailData } from '@/types/history';
+
+function parseTimeSignature(raw?: string): [number, number] {
+  const [beats, beatType] = (raw ?? '').split('/').map(Number);
+  return [beats > 0 ? beats : 4, beatType > 0 ? beatType : 4];
+}
+
+function parseKeySignature(raw?: string): { key: string; mode: 'major' | 'minor' } {
+  const value = (raw ?? 'C').trim();
+  const isMinor = /m(inor|in)?$/i.test(value);
+  const key = value.replace(/\s*(major|minor|maj|min|m)$/i, '').trim() || 'C';
+  return { key, mode: isMinor ? 'minor' : 'major' };
+}
 
 export default function AnalysisResultPage() {
   const navigate = useNavigate();
 
   const location = useLocation();
-  //라우터 state에서 받아온 값들
   const {
     analysisId: passedAnalysisId,
     analysisData: passedAnalysisData,
     rangeXml: passedRangeXml,
     audioUrl: passedAudioUrl,
+    audioStartOffsetSec: passedAudioOffset,
   } = location.state || {};
-  //방금 녹음한 세션의 스토어 데이터
   const { audioBlob } = usePracticeResultStore();
 
   const queryParams = new URLSearchParams(location.search);
@@ -49,8 +65,8 @@ export default function AnalysisResultPage() {
   const playbackTimeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
 
-  //진입 경로 확인
-  const isFromHistory = location.state?.fromHistory || false;
+  // 진입 경로 확인 (히스토리에서 왔는지 여부)
+  const isFromHistory = location.state?.fromHistory || !!queryAnalysisId;
 
   const { start, stop, pause } = useMetronome();
 
@@ -72,14 +88,64 @@ export default function AnalysisResultPage() {
     isLoading: isScoreLoading,
     isError: isScoreError,
   } = useQuery({
-    queryKey: ['scoreXmlAndTimings', passedRangeXml, startBar, endBar],
+    queryKey: ['scoreXmlAndTimings', passedRangeXml, realAnalysisId, startBar, endBar, analysisData?.playingId],
     queryFn: async () => {
       let text = passedRangeXml;
 
-      if (!text) {
-        text = await fetch('/sample.xml').then((r) => r.text());
+      // 1. state에 없더라도 analysisData(또는 realAnalysisId로 조회된 데이터)에 playingId가 있다면 히스토리 상세를 가져와서 악보를 만듦
+      let targetPlayingId = analysisData?.playingId;
+      let detailResponse = null as HistoryDetailData | null;
+
+      if (!text && !targetPlayingId && realAnalysisId) {
+        try {
+          const detail = await getAnalysisDetail(realAnalysisId);
+          targetPlayingId = detail?.playingId;
+          detailResponse = detail as unknown as HistoryDetailData; // 분석 상세 데이터 보관
+        } catch (e) {
+          console.error('분석 상세 조회 실패:', e);
+        }
       }
-      if (!text) throw new Error('악보 데이터를 찾을 수 없습니다.');
+
+      let calculatedOffset = passedAudioOffset ?? 0; // 오디오 오프셋 변수
+
+      if (!text && targetPlayingId) {
+        try {
+          // 아직 detailResponse가 없거나 midiEvents가 없다면 historyDetail 호출
+          if (!detailResponse || !detailResponse.midiEvents) {
+            detailResponse = await historyDetail(targetPlayingId);
+          }
+
+          const notes = toPlayedNotes(detailResponse.midiEvents ?? []);
+          if (notes.length > 0) {
+            // 히스토리 데이터의 박자표와 조성을 파싱해서 적용
+            const [beatsPerBar, beatType] = parseTimeSignature(detailResponse.timeSignature);
+            const { key, mode } = parseKeySignature(detailResponse.key);
+
+            const rawXml = buildMusicXmlFromRecording(notes, {
+              bpm: detailResponse.bpm || 120,
+              beatsPerBar,
+              beatType,
+              key,
+              mode,
+              title: detailResponse.title || 'Practice',
+            });
+
+            // 전체 마디 타이밍에서 시작 마디의 절대 시간 오프셋 계산
+            const fullTimings = computeMeasureTimings(rawXml);
+            calculatedOffset = fullTimings.measureStartTimes[startBar - 1] ?? 0;
+
+            // 렌더링할 구간 악보 추출
+            text = extractMeasureRange(rawXml, startBar, endBar);
+          }
+        } catch (e) {
+          console.error('히스토리 기반 악보 생성 실패:', e);
+        }
+      }
+
+      // 2. 끝까지 악보를 만들 수 없다면 sample.xml을 띄우지 않고 null 반환 (악보 영역이 비거나 숨겨지도록)
+      if (!text) {
+        return null;
+      }
 
       text = text.replace(/<\?xml[^>]*>\s*/g, '');
       text = `<?xml version="1.0" encoding="UTF-8"?>\n` + text;
@@ -92,34 +158,28 @@ export default function AnalysisResultPage() {
       }
 
       const timings = computeMeasureTimings(text);
-      const sIdx = passedRangeXml ? 0 : Math.max(0, startBar - 1);
-      const offsetSec = timings.measureStartTimes[sIdx] ?? 0;
-
-      const endSec = passedRangeXml
-        ? timings.totalDuration
-        : endBar >= timings.measureStartTimes.length
-          ? timings.totalDuration
-          : (timings.measureStartTimes[endBar] ?? timings.totalDuration);
+      const sIdx = 0;
+      const endSec = timings.totalDuration;
 
       const { bpm: activeBpm, beats } = extractActiveTempoMeterAtMeasure(text, startBar);
 
       return {
         scoreXml: text,
         measureStartTimes: timings.measureStartTimes,
-        sectionStartOffsetSec: offsetSec,
-        sectionDurationSec: Math.max(2, endSec - offsetSec),
+        sectionStartOffsetSec: calculatedOffset, //계산된 절대 오디오 오프셋 반영
+        sectionDurationSec: Math.max(2, endSec - calculatedOffset),
         activeBpm,
         beatsPerBar: beats,
         startIndex: sIdx,
       };
     },
-    enabled: true,
+    // realAnalysisId가 있거나 passedRangeXml이 있을 때만 쿼리를 활성화하여 무한 로딩/샘플행 방지
+    enabled: Boolean(passedRangeXml || realAnalysisId),
   });
-  //서버 URL이 없을 때 로컬 bloBlob을 안전하게 다루기 위한 상태
+
   const [localBlobUrl, setLocalBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    // 서버 URL이 없고, 로컬 audioBlob이 존재할 때만 안전하게 생성
     if (!analysisData?.recordingFileUrl && !analysisData?.backingTrackAudioFileUrl && audioBlob) {
       const url = URL.createObjectURL(audioBlob);
       setLocalBlobUrl(url);
@@ -131,34 +191,15 @@ export default function AnalysisResultPage() {
     }
   }, [audioBlob, analysisData?.recordingFileUrl, analysisData?.backingTrackAudioFileUrl]);
 
-  //최종 오디오 Url 결정
   const audioUrl = useMemo(() => {
-    // 1순위: 서버 API에서 내려준 실제 연주 녹음 파일 URL
-    if (analysisData?.recordingFileUrl) {
-      return analysisData.recordingFileUrl;
-    }
-    // 2순위: 서버에서 내려준 백킹트랙 URL
-    if (analysisData?.backingTrackAudioFileUrl) {
-      return analysisData.backingTrackAudioFileUrl;
-    }
-    // 3순위: 이전 페이지에서 넘겨받은 state URL
-    if (localBlobUrl) {
-      return localBlobUrl;
-    }
-    // 4순위: 기타 전달받은 URL
+    if (analysisData?.recordingFileUrl) return analysisData.recordingFileUrl;
+    if (analysisData?.backingTrackAudioFileUrl) return analysisData.backingTrackAudioFileUrl;
+    if (localBlobUrl) return localBlobUrl;
     return passedAudioUrl || null;
-  }, [
-    passedAudioUrl,
-    analysisData?.recordingFileUrl,
-    analysisData?.backingTrackAudioFileUrl,
-    localBlobUrl,
-    passedAudioUrl,
-  ]);
+  }, [passedAudioUrl, analysisData?.recordingFileUrl, analysisData?.backingTrackAudioFileUrl, localBlobUrl]);
 
-  //오디오 객체를 담을 ref 추가
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // audioUrl이 있을 경우 Audio 객체 초기화
   useEffect(() => {
     if (!audioUrl) return;
     const audio = new Audio(audioUrl);
@@ -175,16 +216,12 @@ export default function AnalysisResultPage() {
   const scoreXml = scoreData?.scoreXml ?? '';
   const isLoading = isQueryLoading || isScoreLoading;
   const isError = isQueryError || isScoreError;
-
   const bpm = analysisData?.bpm || scoreData?.activeBpm || 120;
 
   useEffect(() => {
-    if (scoreData) {
-      setBeatsPerBar(scoreData.beatsPerBar);
-    }
+    if (scoreData) setBeatsPerBar(scoreData.beatsPerBar);
   }, [scoreData]);
 
-  // scoreData가 준비되면 시작 마디로 커서/재생 시간 초기화
   useEffect(() => {
     if (!scoreData) return;
     playbackTimeRef.current = scoreData.sectionStartOffsetSec;
@@ -196,10 +233,8 @@ export default function AnalysisResultPage() {
     setIsPlaying(false);
     stop();
 
-    //오디오 객체가 있다면 일시정지 후 재생 위치를 0으로 초기화
     if (audioRef.current) {
       audioRef.current.pause();
-
       const startOffset = scoreData?.sectionStartOffsetSec ?? 0;
       audioRef.current.currentTime = startOffset;
     }
@@ -210,13 +245,11 @@ export default function AnalysisResultPage() {
     playbackTimeRef.current = targetOffset;
     setCurrentMeasureIndex(targetMeasureIndex);
     setBeatInBar(-1);
-
     scoreViewerRef.current?.jumpToMeasure(targetMeasureIndex);
 
     setTimeout(() => setToastMessage(null), 3000);
   }, [startBar, measureStartTimes, scoreData, stop]);
 
-  //메트로놈 시작/정지
   useEffect(() => {
     if (isPlaying) {
       start(bpm, beatsPerBar, (time, bib) => {
@@ -229,7 +262,6 @@ export default function AnalysisResultPage() {
     }
   }, [isPlaying, bpm, beatsPerBar, start, pause]);
 
-  //  currentMeasureIndex 갱신 + 구간 종료 시 자동 정지
   useEffect(() => {
     if (!isPlaying || !scoreData || scoreData.measureStartTimes.length === 0) return;
 
@@ -266,7 +298,6 @@ export default function AnalysisResultPage() {
     };
   }, [isPlaying, scoreData, stop]);
 
-  // 재생/정지 토글 함수 수정
   const handleTogglePlay = async () => {
     if (isLoading || isError) return;
     await Tone.start();
@@ -308,19 +339,19 @@ export default function AnalysisResultPage() {
         </div>
       )}
 
-      {/* 상단 헤더 영역 */}
-      <div className="mb-[36px] flex w-full max-w-[1280px] flex-wrap items-start justify-between gap-4">
-        <div>
-          {/* 히스토리에서 들어온 경우에만 뒤로 가기 버튼(아이콘 포함) 노출 */}
-          {isFromHistory && (
+      {/* 상단 헤더 영역 (원본 구조 유지) */}
+      <div className="mb-[36px] flex w-full max-w-[1280px] flex-col gap-4">
+        {/* 히스토리에서 온 경우에만 노출되는 뒤로가기 버튼 */}
+        {isFromHistory && (
+          <div>
             <button
               onClick={() => navigate('/history')}
-              className="mb-4 flex cursor-pointer items-center gap-[6px] text-[15px] font-medium text-gray-500 transition-colors hover:text-white">
+              className="flex w-fit cursor-pointer items-center gap-[6px] text-[15px] font-medium text-gray-500 transition-colors hover:text-white">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
                 fill="none"
-                className="aspect-square h-6 w-6 text-[#CECFD1]">
+                className="h-6 w-6 text-[#CECFD1]">
                 <path
                   d="M16 19.5L7 12L16 4.5"
                   stroke="currentColor"
@@ -329,22 +360,29 @@ export default function AnalysisResultPage() {
                   strokeLinejoin="round"
                 />
               </svg>
-              <span>히스토리로 돌아가기</span>
+              <span>히스토리</span>
             </button>
-          )}
-          <h1 className="heading-medium-b mb-3 text-white">{analysisData?.title || 'Jazz Standard Practice'}</h1>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">
-              {analysisData?.genre ? analysisData.genre.toUpperCase() : 'JAZZ'}
-            </span>
-            <span className="rounded bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">
-              {analysisData?.key || 'C Major'}
-            </span>
-            <span className="rounded bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">{bpm}BPM</span>
+          </div>
+        )}
+
+        <div className="flex w-full flex-wrap items-end justify-between gap-8">
+          <div className="flex flex-col gap-3">
+            <h1 className="heading-medium-b text-white">{analysisData?.title || 'Jazz Standard Practice'}</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">
+                {analysisData?.genre ? analysisData.genre.toUpperCase() : 'JAZZ'}
+              </span>
+              <span className="rounded bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">
+                {analysisData?.key || 'C Major'}
+              </span>
+              <span className="rounded bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">{bpm}BPM</span>
+            </div>
+          </div>
+
+          <div className="caption-regular whitespace-nowrap text-gray-600">
+            {formatPlayedAt(analysisData?.playedAt)}
           </div>
         </div>
-
-        <div className="caption-regular mt-1 text-gray-600">{formatPlayedAt(analysisData?.playedAt)}</div>
       </div>
 
       {/* 플레이어 컨트롤 및 악보 영역 */}

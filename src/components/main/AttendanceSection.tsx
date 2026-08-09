@@ -20,7 +20,12 @@ export default function AttendanceSection({ data }: AttendanceSectionProps) {
   const todayIndex = todayItem ? dayOrder.indexOf(todayItem.dayOfWeek) : -1;
 
   return (
-    <div className="w-full bg-gradient-to-b from-gray-900 to-gray-950">
+    <div
+      className="w-full"
+      // bg-gradient-to-b from-gray-900 to-gray-950
+      style={{
+        background: 'linear-gradient(0deg, var(--color-gray-900, #1B1E27) 0%, var(--color-gray-950, #0B0F19) 100%)',
+      }}>
       <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-8 px-10 py-11 font-sans tracking-tight text-white select-none lg:flex-row lg:items-center lg:justify-between lg:gap-12">
         {/* 좌측 영역: 타이틀 + 일주일 출석 현황 */}
         <div className="flex flex-col gap-5">
