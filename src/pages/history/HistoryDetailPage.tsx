@@ -42,7 +42,7 @@ export default function HistoryDetailPage() {
   const isValidId = isValidHistoryId(parsedHistoryId);
 
   // 히스토리 상세보기 조회
-  const { data: historyData, isPending, isError, error, refetch } = useHistoryDetail(isValidId ? parsedHistoryId : 0);
+  const { data: historyData, isPending, isError, error } = useHistoryDetail(isValidId ? parsedHistoryId : 0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isScoreReady, setIsScoreReady] = useState(false);
@@ -158,19 +158,21 @@ export default function HistoryDetailPage() {
   }, [recordingUrl, backingTrackUrl, handleRewind, triggerToast]);
 
   useEffect(() => {
+    const audios = [audioRef.current, backingAudioRef.current].filter((a): a is HTMLAudioElement => a !== null);
+    if (audios.length === 0) return;
+
     if (isPlaying) {
-      audioRef.current?.play().catch((err) => {
-        console.error('오디오 재생 실패', err);
-        setIsPlaying(false);
-        triggerToast('음원을 재생하지 못했어요. 잠시 후 다시 시도해 주세요.');
-        refetch();
-      });
-      backingAudioRef.current?.play().catch((err) => console.error('백킹트랙 재생 실패', err));
+      audios.forEach((audio) =>
+        audio.play().catch((err) => {
+          console.error('오디오 재생 실패', err);
+          setIsPlaying(false);
+          triggerToast('음원을 재생하지 못했습니다.');
+        }),
+      );
     } else {
-      audioRef.current?.pause();
-      backingAudioRef.current?.pause();
+      audios.forEach((audio) => audio.pause());
     }
-  }, [isPlaying, refetch, triggerToast]);
+  }, [isPlaying, recordingUrl, backingTrackUrl, triggerToast]);
 
   // 3) 오디오 진행 시간 → 커서 위치 + 박자 인디케이터
   useEffect(() => {
