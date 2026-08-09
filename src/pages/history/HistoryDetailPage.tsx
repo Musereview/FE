@@ -102,8 +102,9 @@ export default function HistoryDetailPage() {
     [xmlContent],
   );
 
-  // 총 마디 수는 서버의 totalBars 우선, null이면 변환된 악보에서 계산
-  const totalMeasures = historyData?.totalBars ?? measureStartTimes.length;
+  // 분석 구간은 실제로 그려진 악보 안에서만 고를 수 있음
+  // totalBars는 백킹트랙 길이 기준이라 연주 길이보다 클 수 있어 폴백으로만 씀
+  const totalMeasures = measureStartTimes.length || (historyData?.totalBars ?? 0);
   const isScoreLoading = Boolean(xmlContent) && !isScoreReady;
 
   useEffect(() => {
