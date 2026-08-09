@@ -49,9 +49,13 @@ function TrackDetailModal({
 
   // 반주 음원(audioFileUrl)을 메트로놈과 같은 Tone.Transport 타임라인에 동기화해 함께 재생
   const playerRef = useRef<Tone.Player | null>(null);
+  const isPlaybackActiveRef = useRef(false); // 실제 재생 중인지 (지연 로딩 콜백이 재생 중이 아닐 때 끼어들지 않도록)
   useEffect(() => {
     if (!audioFileUrl) return;
-    const player = new Tone.Player(audioFileUrl).toDestination();
+    // 로딩(fetch+decode)이 재생 시작보다 늦게 끝나는 경우를 대비 — 이미 재생 중이라면 그 시점에 뒤늦게라도 동기화해 재생
+    const player = new Tone.Player(audioFileUrl, () => {
+      if (playerRef.current === player && isPlaybackActiveRef.current) player.sync().start(0);
+    }).toDestination();
     playerRef.current = player;
     return () => {
       player.unsync();
@@ -61,6 +65,7 @@ function TrackDetailModal({
   }, [audioFileUrl]);
 
   const stopAll = () => {
+    isPlaybackActiveRef.current = false; // 지연 로딩 onload가 이후엔 재생을 시작하지 않도록
     stop();
     Tone.getDraw().cancel();
     const player = playerRef.current;
@@ -97,10 +102,10 @@ function TrackDetailModal({
     beatCountRef.current = 0;
     setBeatCursor(0);
     setIsPlaying(true);
+    isPlaybackActiveRef.current = true; // 실제 재생 시작 — 이 시점부턴 지연 로딩 onload도 재생을 시작해도 됨
 
-    const player = playerRef.current;
-    if (player?.loaded) player.sync().start(0);
-
+    // 메트로놈 start()가 내부적으로 transport.stop()/cancel()을 먼저 실행하므로 그보다 먼저 반주를 sync하면
+    // 방금 건 예약(0초 재생)이 cancel()에 지워짐 — 그래서 metronome start()가 끝난 뒤에 sync().start(0)를 건다.
     start(bpm, numerator, (time) => {
       const current = beatCountRef.current;
       const next = current + 1;
@@ -117,6 +122,9 @@ function TrackDetailModal({
       beatCountRef.current = next;
       Tone.getDraw().schedule(() => setBeatCursor(current), time);
     });
+
+    const player = playerRef.current;
+    if (player?.loaded) player.sync().start(0);
   };
 
   const activeBeatIndex = isPlaying ? beatCursor : -1;
