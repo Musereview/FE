@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import * as Tone from 'tone';
 import { useQuery } from '@tanstack/react-query';
@@ -14,17 +14,21 @@ import {
 
 import MetronomeDots from '@/components/metronome/MetronomeDots';
 import AnalysisChatSection from '@/components/mentor/AnalysisChatSection';
+import { usePracticeResultStore } from '@/stores/practiceResultStore';
 
 export default function AnalysisResultPage() {
   const navigate = useNavigate();
 
   const location = useLocation();
-
+  //라우터 state에서 받아온 값들
   const {
     analysisId: passedAnalysisId,
     analysisData: passedAnalysisData,
     rangeXml: passedRangeXml,
+    audioUrl: passedAudioUrl,
   } = location.state || {};
+  //방금 녹음한 세션의 스토어 데이터
+  const { audioBlob } = usePracticeResultStore();
 
   const queryParams = new URLSearchParams(location.search);
   const queryAnalysisId = queryParams.get('analysisId');
@@ -74,7 +78,6 @@ export default function AnalysisResultPage() {
 
       if (!text) {
         text = await fetch('/sample.xml').then((r) => r.text());
-        console.log('[디버깅] /sample.xml에서 불러온 텍스트:', text?.substring(0, 100));
       }
       if (!text) throw new Error('악보 데이터를 찾을 수 없습니다.');
 
@@ -112,6 +115,61 @@ export default function AnalysisResultPage() {
     },
     enabled: true,
   });
+  //서버 URL이 없을 때 로컬 bloBlob을 안전하게 다루기 위한 상태
+  const [localBlobUrl, setLocalBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // 서버 URL이 없고, 로컬 audioBlob이 존재할 때만 안전하게 생성
+    if (!analysisData?.recordingFileUrl && !analysisData?.backingTrackAudioFileUrl && audioBlob) {
+      const url = URL.createObjectURL(audioBlob);
+      setLocalBlobUrl(url);
+
+      return () => {
+        URL.revokeObjectURL(url);
+        setLocalBlobUrl(null);
+      };
+    }
+  }, [audioBlob, analysisData?.recordingFileUrl, analysisData?.backingTrackAudioFileUrl]);
+
+  //최종 오디오 Url 결정
+  const audioUrl = useMemo(() => {
+    // 1순위: 서버 API에서 내려준 실제 연주 녹음 파일 URL
+    if (analysisData?.recordingFileUrl) {
+      return analysisData.recordingFileUrl;
+    }
+    // 2순위: 서버에서 내려준 백킹트랙 URL
+    if (analysisData?.backingTrackAudioFileUrl) {
+      return analysisData.backingTrackAudioFileUrl;
+    }
+    // 3순위: 이전 페이지에서 넘겨받은 state URL
+    if (localBlobUrl) {
+      return localBlobUrl;
+    }
+    // 4순위: 기타 전달받은 URL
+    return passedAudioUrl || null;
+  }, [
+    passedAudioUrl,
+    analysisData?.recordingFileUrl,
+    analysisData?.backingTrackAudioFileUrl,
+    localBlobUrl,
+    passedAudioUrl,
+  ]);
+
+  //오디오 객체를 담을 ref 추가
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // audioUrl이 있을 경우 Audio 객체 초기화
+  useEffect(() => {
+    if (!audioUrl) return;
+    const audio = new Audio(audioUrl);
+    audio.preload = 'auto';
+    audioRef.current = audio;
+
+    return () => {
+      audio.pause();
+      audioRef.current = null;
+    };
+  }, [audioUrl]);
 
   const measureStartTimes = scoreData?.measureStartTimes ?? [];
   const scoreXml = scoreData?.scoreXml ?? '';
@@ -137,6 +195,14 @@ export default function AnalysisResultPage() {
   const handleRewind = useCallback(() => {
     setIsPlaying(false);
     stop();
+
+    //오디오 객체가 있다면 일시정지 후 재생 위치를 0으로 초기화
+    if (audioRef.current) {
+      audioRef.current.pause();
+
+      const startOffset = scoreData?.sectionStartOffsetSec ?? 0;
+      audioRef.current.currentTime = startOffset;
+    }
 
     const targetMeasureIndex = scoreData?.startIndex ?? Math.max(0, startBar - 1);
     const targetOffset = measureStartTimes[targetMeasureIndex] ?? scoreData?.sectionStartOffsetSec ?? 0;
@@ -200,10 +266,22 @@ export default function AnalysisResultPage() {
     };
   }, [isPlaying, scoreData, stop]);
 
+  // 재생/정지 토글 함수 수정
   const handleTogglePlay = async () => {
     if (isLoading || isError) return;
     await Tone.start();
-    setIsPlaying((p) => !p);
+
+    setIsPlaying((prev) => {
+      const nextPlaying = !prev;
+      if (audioRef.current) {
+        if (nextPlaying) {
+          audioRef.current.play().catch((err) => console.error('오디오 재생 실패:', err));
+        } else {
+          audioRef.current.pause();
+        }
+      }
+      return nextPlaying;
+    });
   };
 
   const handleRewindClick = () => {

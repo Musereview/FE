@@ -12,10 +12,13 @@ export default function AnalysisLoadingPage() {
   const isPollingRef = useRef(false);
 
   useEffect(() => {
-    if (!analysisId) {
-      alert('분석 정보가 존재하지 않습니다. 이전 페이지로 돌아갑니다.');
-      navigate(-1);
-    }
+    const timer = setTimeout(() => {
+      if (!analysisId) {
+        alert('분석 정보가 존재하지 않습니다. 이전 페이지로 돌아갑니다.');
+        navigate(-1);
+      }
+    }, 100);
+    return () => clearTimeout(timer);
   }, [analysisId, navigate]);
 
   //무한 루프 및 무한 폴링 방지를 위한 최대 재시도 횟수 설정(2초 * 150번 =300초)

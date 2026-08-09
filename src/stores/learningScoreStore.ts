@@ -12,22 +12,13 @@ export interface LearningScore {
   total: number; // 정답 음 총 개수 (콤보 비율·풀콤보 판정용)
 }
 
-// TODO: 채점 로직(다음 단계) 붙기 전 임시 mock — UI 확인용. 채점 유틸에서 setScore로 덮어씀.
-const MOCK_SCORE: LearningScore = {
-  score: 95,
-  accuracy: 96,
-  timing: 92,
-  streak: 18,
-  missedNotes: 2,
-  total: 20,
-};
-
 interface LearningScoreState {
-  result: LearningScore;
+  // 실제 연습을 완료해 setScore가 호출되기 전에는 null — ScorePage가 URL 직접 접근/새로고침을 구분하는 데 사용
+  result: LearningScore | null;
   setScore: (result: LearningScore) => void;
 }
 
 export const useLearningScoreStore = create<LearningScoreState>((set) => ({
-  result: MOCK_SCORE,
+  result: null,
   setScore: (result) => set({ result }),
 }));

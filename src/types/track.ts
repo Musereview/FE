@@ -20,6 +20,8 @@ export interface Track {
   creator: string;
   /** 없으면 chords로 fallback 생성 */
   chordProgression?: ChordMeasure[];
+  /** 상세 조회에서만 내려옴 — 비어 있으면(업로드 전) 재생할 반주 음원 없음 */
+  audioFileUrl?: string;
 }
 
 export type BackingTrackGenre = string;
@@ -87,4 +89,41 @@ export interface BackingTrackDetail {
   creatorName: string;
   audioFileUrl: string;
   chordProgression: BackingTrackChordEntry[];
+}
+
+export type BackingTrackAccessLevel = 'PRIVATE' | 'ACADEMY' | 'PUBLIC';
+
+export interface SaveBackingTrackRequest {
+  title: string;
+  genre: BackingTrackGenre;
+  keySignature: string;
+  scaleType: BackingTrackScaleType;
+  timeSignature: string;
+  bpm: number;
+  playtimeSec: number;
+  audioFileUrl?: string;
+  accessLevel: BackingTrackAccessLevel;
+  level: BackingTrackLevel;
+  chordProgression: BackingTrackChordEntry[];
+}
+
+export interface CreateBackingTrackResponse {
+  backingTrackId: number;
+  title: string;
+  createdAt: string;
+}
+
+export interface UpdateBackingTrackResponse {
+  backingTrackId: number;
+  title: string;
+  updatedAt: string;
+}
+
+export interface IncreasePlayCountRequest {
+  analysisId: number;
+}
+
+export interface IncreasePlayCountResponse {
+  backingTrackId: number;
+  playCount: number;
 }

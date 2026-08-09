@@ -74,6 +74,25 @@ function PracticePlayPage() {
   const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
   const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
 
+  // 반주 음원(audioFileUrl)을 메트로놈/녹음과 같은 Tone.Transport 타임라인에 동기화해 함께 재생
+  // (카운트인 중엔 sync하지 않음 — 실제 곡 재생이 시작되는 startPlayback()에서만 sync)
+  const playerRef = useRef<Tone.Player | null>(null);
+  const isPlaybackActiveRef = useRef(false); // 카운트인이 아닌 '실제 곡 재생' 중인지 (지연 로딩 콜백이 카운트인 중엔 끼어들지 않도록)
+  useEffect(() => {
+    const url = track?.audioFileUrl;
+    if (!url) return;
+    // 로딩(fetch+decode)이 카운트다운보다 늦게 끝나는 경우를 대비 — 이미 재생이 시작된 뒤라면 그 시점에 뒤늦게라도 동기화해 재생
+    const player = new Tone.Player(url, () => {
+      if (playerRef.current === player && isPlaybackActiveRef.current) player.sync().start(0);
+    }).toDestination();
+    playerRef.current = player;
+    return () => {
+      player.unsync();
+      player.dispose();
+      playerRef.current = null;
+    };
+  }, [track?.audioFileUrl]);
+
   // 친 음: 소리 재생 + 노트바 생성(성장 시작) → 뗄 때 소리·길이 확정 후 위로 사라짐
   const handleNoteOn = (note: number, velocity = 100) => {
     playNote(note, velocity); // 즉시 소리 (범위와 무관하게 실제 친 음)
@@ -143,9 +162,15 @@ function PracticePlayPage() {
 
   const stopPlayback = () => {
     cancelAutoStart(); // 재시작/분석 등으로 정지 시 대기 중인 자동재생 취소
+    isPlaybackActiveRef.current = false; // 지연 로딩 onload가 이후엔 재생을 시작하지 않도록
     finalizeOpenNotes(performance.now()); // stop() 전에 (stop이 transport 위치를 0으로 리셋하므로)
     stop();
     Tone.getDraw().cancel();
+    const player = playerRef.current;
+    if (player) {
+      player.unsync();
+      if (player.state === 'started') player.stop();
+    }
     setIsPlaying(false);
     setBeatInBar(-1);
     setCurrentBeat(-1);
@@ -199,6 +224,9 @@ function PracticePlayPage() {
       triggerToast('현재 브라우저에서는 연주 녹음을 지원하지 않습니다.');
     }
     setIsPlaying(true);
+    isPlaybackActiveRef.current = true; // 실제 곡 재생 시작 — 이 시점부턴 지연 로딩 onload도 재생을 시작해도 됨
+    // 메트로놈 start()가 내부적으로 transport.stop()/cancel()을 먼저 실행하므로 그보다 먼저 반주를 sync하면
+    // 방금 건 예약(0초 재생)이 cancel()에 지워짐 — 그래서 metronome start()가 끝난 뒤에 sync().start(0)를 건다.
     start(track?.bpm ?? 0, beatsPerBar, (time, bib) => {
       const beat = totalBeatRef.current % totalCells;
       Tone.getDraw().schedule(() => {
@@ -207,6 +235,8 @@ function PracticePlayPage() {
       }, time);
       totalBeatRef.current += 1;
     });
+    const player = playerRef.current;
+    if (player?.loaded) player.sync().start(0);
   };
 
   // 정지: 화면 그대로 멈춤(진행 상태 유지) / 재생: 이어서
@@ -293,7 +323,8 @@ function PracticePlayPage() {
       }
     }
 
-    navigate(`/practice/${practiceId}/analysis`);
+    const targetId = playingId ?? practiceId;
+    navigate(`/practice/${targetId}/analysis`);
   };
 
   // 연습 중 기기 연결이 끊기면 재생을 멈추고 모달을 띄운다
@@ -307,6 +338,11 @@ function PracticePlayPage() {
     return () => {
       stop();
       Tone.getDraw().cancel();
+      const player = playerRef.current;
+      if (player) {
+        player.unsync();
+        if (player.state === 'started') player.stop();
+      }
       if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };

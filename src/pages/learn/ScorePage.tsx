@@ -1,7 +1,11 @@
-// 학습 결과(점수) 페이지 — 프론트 채점 결과를 표시 (채점 로직은 다음 단계)
+// 학습 결과(점수) 페이지 — 프론트 채점 결과를 표시 + 진입 시 결과를 DB에 1회 저장
+import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getCurriculum, getNextCurriculumId } from './mockCurriculum';
 import { useLearningScoreStore } from '@/stores/learningScoreStore';
+import { useSaveLearningResult } from '@/hooks/useSaveLearningResult';
+import { useLearningStep } from '@/hooks/useLearningStep';
+import { useLearningCurriculum } from '@/hooks/useLearningCurriculum';
+import { getLearningIds } from '@/utils/learningId';
 import { buildFeedback } from '@/constants/scoreFeedback';
 import RefreshIcon from '@/assets/restart.svg?react';
 import ChevronRightIcon from '@/assets/check.svg?react';
@@ -10,11 +14,43 @@ import StarIcon from '@/assets/Star.svg?react';
 function ScorePage() {
   const navigate = useNavigate();
   const { curriculumId = '', stepId = '' } = useParams();
-  const curriculum = getCurriculum(curriculumId);
+  const { data: step } = useLearningStep(curriculumId, stepId);
+  const {
+    data: curriculum,
+    isSuccess: hasCurriculum,
+    isError: hasCurriculumError,
+  } = useLearningCurriculum(curriculumId);
   const { result } = useLearningScoreStore();
+  const { mutate: saveResult } = useSaveLearningResult();
 
-  const title = `${curriculum.stepDescription.replace(/^-\s*/, '')} - 학습 결과`;
-  const nextCurriculumId = getNextCurriculumId(curriculumId); // 다음 단계 (없으면 null)
+  const title = step?.stepTitle ? `${step.stepTitle} - 학습 결과` : '학습 결과';
+
+  // 커리큘럼 스텝 목록(stepNo 오름차순)에서 현재 스텝 다음 항목을 찾음 — 없으면(마지막 스텝) 커리큘럼 상세로
+  const stepIndex = curriculum?.steps.findIndex((s) => s.learningStepId === Number(stepId)) ?? -1;
+  const nextStep = stepIndex >= 0 ? curriculum?.steps[stepIndex + 1] : undefined;
+
+  // 연습을 완료하지 않고 점수 화면에 직접 진입한 경우(URL 직접 접근/새로고침) — result가 null이므로 저장하지 않고 되돌림
+  useEffect(() => {
+    if (result === null) navigate(`/learn/curriculum/${curriculumId}`, { replace: true });
+  }, [result, curriculumId, navigate]);
+
+  // 점수 화면 진입 시 결과를 1회 저장 (StrictMode 이중 호출/재렌더로 인한 중복 저장 방지)
+  const savedRef = useRef(false);
+  useEffect(() => {
+    if (savedRef.current) return;
+    if (result === null) return;
+    savedRef.current = true;
+    const { learningId } = getLearningIds(curriculumId);
+    const learningStepId = Number(stepId);
+    if (learningId <= 0 || !learningStepId) return;
+    saveResult(
+      { learningId, body: { score: result.score, learningStepId } },
+      { onError: (err) => console.warn('[ScorePage] 학습 결과 저장 실패:', err) },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result]);
+
+  if (result === null) return null;
 
   const stats = [
     { label: '정확도', value: `${result.accuracy}%` },
@@ -42,16 +78,32 @@ function ScorePage() {
             다시하기
             <RefreshIcon className="ml-2 h-[24px] w-[24px]" />
           </button>
-          {/* 다음 단계의 단계별 학습 페이지로 이동 (마지막 단계면 커리큘럼 목록으로) */}
+          {/* 다음 스텝의 이론 화면으로 이동 (마지막 스텝이면 커리큘럼 상세로) — 커리큘럼 조회 성공 전에는 nextStep을 신뢰할 수 없어 이동 차단 */}
           <button
             type="button"
-            onClick={() => navigate(nextCurriculumId ? `/learn/curriculum/${nextCurriculumId}` : '/learn/curriculum')}
-            className="button-large2 bg-primary-400 flex h-[60px] w-[174px] cursor-pointer items-center justify-center rounded-[6px] py-1.5 pr-3 pl-3.5 text-gray-950">
+            disabled={!hasCurriculum}
+            onClick={() =>
+              hasCurriculum &&
+              navigate(
+                nextStep
+                  ? `/learn/curriculum/${curriculumId}/steps/${nextStep.learningStepId}/theory`
+                  : `/learn/curriculum/${curriculumId}`,
+              )
+            }
+            className="button-large2 bg-primary-400 flex h-[60px] w-[174px] cursor-pointer items-center justify-center rounded-[6px] py-1.5 pr-3 pl-3.5 text-gray-950 disabled:cursor-not-allowed disabled:opacity-50">
             다음 학습으로
             <ChevronRightIcon className="ml-2 h-[24px] w-[24px]" />
           </button>
         </div>
       </header>
+      {/* 상단 알림 토스트 메시지 */}
+      {hasCurriculumError && (
+        <div
+          role="alert"
+          className="bg-error body-small fixed top-[40px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-[12px] rounded-[12px] px-[24px] py-[16px] text-gray-100 shadow-2xl">
+          <span>⚠️</span> 커리큘럼 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+        </div>
+      )}
 
       {/* 결과 */}
       <div className="flex flex-1 flex-col items-center justify-center gap-12">
