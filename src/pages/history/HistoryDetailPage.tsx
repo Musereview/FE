@@ -42,7 +42,7 @@ export default function HistoryDetailPage() {
   const isValidId = isValidHistoryId(parsedHistoryId);
 
   // 히스토리 상세보기 조회
-  const { data: historyData, isPending, isError, error } = useHistoryDetail(isValidId ? parsedHistoryId : 0);
+  const { data: historyData, isPending, isError, error, refetch } = useHistoryDetail(isValidId ? parsedHistoryId : 0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isScoreReady, setIsScoreReady] = useState(false);
@@ -113,20 +113,27 @@ export default function HistoryDetailPage() {
 
   // 2) 오디오 엘리먼트 준비 (녹음 음원 + 백킹트랙)
   useEffect(() => {
-    const createAudio = (src: string | null) => {
+    // 로드 실패는 예외가 아니라 error 이벤트로 온다.
+    // code 4(MEDIA_ERR_SRC_NOT_SUPPORTED)면 소스 자체 문제(만료된 URL, 잘못된 키, 미지원 포맷)다.
+    const createAudio = (src: string | null, label: string) => {
       if (!src) return null;
       const audio = new Audio(src);
       audio.preload = 'auto';
-      audio.load();
+      audio.addEventListener('error', () => {
+        console.error(`${label} 로드 실패`, { code: audio.error?.code, message: audio.error?.message, src: audio.src });
+      });
       return audio;
     };
 
-    audioRef.current = createAudio(recordingUrl) ?? createAudio(backingTrackUrl);
-    backingAudioRef.current = recordingUrl ? createAudio(backingTrackUrl) : null;
+    audioRef.current = createAudio(recordingUrl, '녹음 음원') ?? createAudio(backingTrackUrl, '백킹트랙');
+    backingAudioRef.current = recordingUrl ? createAudio(backingTrackUrl, '백킹트랙') : null;
 
+    const created = [audioRef.current, backingAudioRef.current];
     return () => {
-      audioRef.current?.pause();
-      backingAudioRef.current?.pause();
+      created.forEach((audio) => {
+        audio?.pause();
+        audio?.removeAttribute('src'); // 남은 다운로드 중단
+      });
       audioRef.current = null;
       backingAudioRef.current = null;
     };
@@ -167,12 +174,14 @@ export default function HistoryDetailPage() {
           console.error('오디오 재생 실패', err);
           setIsPlaying(false);
           triggerToast('음원을 재생하지 못했습니다.');
+          // 녹음 URL은 만료 600초짜리 presigned URL이라 만료가 가장 흔한 실패 원인이다 — 새 URL을 받아둔다
+          refetch();
         }),
       );
     } else {
       audios.forEach((audio) => audio.pause());
     }
-  }, [isPlaying, recordingUrl, backingTrackUrl, triggerToast]);
+  }, [isPlaying, recordingUrl, backingTrackUrl, triggerToast, refetch]);
 
   // 3) 오디오 진행 시간 → 커서 위치 + 박자 인디케이터
   useEffect(() => {
@@ -202,7 +211,7 @@ export default function HistoryDetailPage() {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [isPlaying, measureStartTimes, bpm, beatsPerBar]);
+  }, [isPlaying, measureStartTimes, bpm, beatsPerBar, beatType]);
 
   const handleTogglePlay = () => {
     if (isScoreLoading) return;
