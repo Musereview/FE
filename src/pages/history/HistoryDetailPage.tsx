@@ -367,33 +367,32 @@ export default function HistoryDetailPage() {
         </div>
       )}
 
-      {/* [< 히스토리] 버튼  */}
-      <div className="absolute top-[74px] left-[10px] z-10 shrink-0 xl:left-[35px]">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="flex cursor-pointer items-center gap-[8px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300 transition-colors hover:text-white">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            className="aspect-square shrink-0">
-            <path
-              d="M16 19.5L7 12L16 4.5"
-              className="stroke-gray-400"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          히스토리
-        </button>
-      </div>
-
       {/* 중앙 정렬 래퍼 */}
       <div className="mx-auto flex w-full max-w-[1280px] flex-col px-6 md:px-12 xl:px-0">
+        {/* [< 히스토리] 버튼  */}
+        <div className="relative mb-6 w-full">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="flex cursor-pointer items-center gap-[8px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300 transition-colors hover:text-white">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="aspect-square shrink-0">
+              <path
+                d="M16 19.5L7 12L16 4.5"
+                className="stroke-gray-400"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            히스토리
+          </button>
+        </div>
         {/* 상단 헤더 컴포넌트 */}
         <HistoryHeader
           title={historyData?.title}
