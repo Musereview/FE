@@ -148,15 +148,14 @@ export async function streamMentorQuestion({
     }
     isFinished = true;
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : '스트리밍 중 알 수 없는 오류가 발생했습니다.';
-    onError({ code: 'STREAM_ERROR', message });
+    if (!isFinished) {
+      onError({ code: 'STREAM_ERROR', message: err instanceof Error ? err.message : '오류 발생' });
+      isFinished = true;
+    }
   } finally {
     if (!isFinished && reader) {
-      try {
-        await reader.cancel();
-      } catch {
-        // 무시
-      }
+      await reader.cancel().catch(() => {});
+      onError({ code: 'STREAM_CLOSED', message: '스트림이 예기치 않게 종료되었습니다.' });
     }
   }
 }
