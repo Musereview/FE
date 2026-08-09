@@ -88,10 +88,13 @@ function ScorePage() {
           </button>
         </div>
       </header>
+      {/* 상단 알림 토스트 메시지 */}
       {hasCurriculumError && (
-        <p className="text-error button-label1 absolute top-[132px] w-full px-[80px] text-right">
-          커리큘럼 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
-        </p>
+        <div
+          role="alert"
+          className="bg-error body-small fixed top-[40px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-[12px] rounded-[12px] px-[24px] py-[16px] text-gray-100 shadow-2xl">
+          <span>⚠️</span> 커리큘럼 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+        </div>
       )}
 
       {/* 결과 */}
