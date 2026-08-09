@@ -121,6 +121,7 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
   );
   const [selectedChordCell, setSelectedChordCell] = useState<ChordCell | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [openField, setOpenField] = useState<FilterKey | null>(null);
   const isSubmitting = createBackingTrack.isPending || updateBackingTrack.isPending;
@@ -140,6 +141,7 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!title.trim() || !isValidTitle(title)) return;
+    setSubmitError(null);
 
     const payload: SaveBackingTrackRequest = {
       title: title.trim(),
@@ -157,11 +159,12 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
     };
 
     const onSuccess = () => navigate('/practice');
+    const onError = () => setSubmitError('저장에 실패했어요. 잠시 후 다시 시도해 주세요.');
 
     if (mode === 'edit' && backingTrackId !== undefined) {
-      updateBackingTrack.mutate({ backingTrackId, body: payload }, { onSuccess });
+      updateBackingTrack.mutate({ backingTrackId, body: payload }, { onSuccess, onError });
     } else {
-      createBackingTrack.mutate(payload, { onSuccess });
+      createBackingTrack.mutate(payload, { onSuccess, onError });
     }
   };
 
@@ -284,6 +287,8 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
               className="w-[135px]"
             />
           </div>
+
+          {submitError && <p className="body-small text-error text-right">{submitError}</p>}
 
           <button
             type="submit"
