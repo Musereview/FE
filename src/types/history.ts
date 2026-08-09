@@ -56,6 +56,8 @@ export interface HistoryDetailData {
   playedAt: string;
   durationMinutes: number;
   durationSec: number;
+  recordingFileUrl: string | null; // 저장된 녹음 음원이 없으면 null
+  backingTrackAudioFileUrl: string | null; // 백킹트랙 또는 음원이 없으면 null
   midiEvents: MidiEventsData[];
   backingTrackMidiData: Record<string, unknown>;
   totalBars: number | null;
