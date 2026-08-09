@@ -21,17 +21,16 @@ export function useHistoryList() {
   });
 }
 
-// 만료 전에 stale 처리해 새로 발급
-const RECORDING_URL_STALE_TIME = 5 * 60 * 1000;
-
 // 히스토리 상세보기 조회
+// 응답의 recordingFileUrl은 만료가 있는 presigned URL이라 캐시를 오래 들고 있으면 안 된다.
+// staleTime은 요청을 예약하지 않으므로 기본값(0)으로 두어 마운트/포커스마다 새로 받고,
+// 실제 만료는 재생·로드 실패 시 refetch로 복구한다.
 export function useHistoryDetail(playingId: number) {
   return useQuery({
     queryKey: historyDetailQueryKey(playingId),
     queryFn: () => historyDetail(playingId),
     enabled: playingId >= 1,
     retry: retryExceptClientError,
-    staleTime: RECORDING_URL_STALE_TIME,
   });
 }
 

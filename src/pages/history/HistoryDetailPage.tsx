@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as Tone from 'tone';
-
 import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
 import { computeMeasureTimings, findMeasureIndexAtTime } from '@/utils/musicXmlTiming';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
@@ -12,7 +11,6 @@ import { historyDetailErrorMessage } from '@/utils/historyError';
 import { useHistoryDetail } from '@/hooks/useHistory';
 import { useMetronome } from '@/hooks/useMetronome';
 import LoadingPage from '@/pages/common/LoadingPage';
-
 import HistoryHeader from '@/components/history/HistoryHeader';
 import HistoryPlayerBar from '@/components/history/HistoryPlayerBar';
 import AnalysisReportList from '@/components/history/AnalysisReportList';
@@ -61,6 +59,7 @@ export default function HistoryDetailPage() {
   const backingAudioRef = useRef<HTMLAudioElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const urlRetryRef = useRef(0);
 
   const { start: startMetronome, stop: stopMetronome } = useMetronome();
 
@@ -82,6 +81,13 @@ export default function HistoryDetailPage() {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
+
+  const requestFreshUrl = useCallback(() => {
+    if (urlRetryRef.current >= 1) return false;
+    urlRetryRef.current += 1;
+    refetch();
+    return true;
+  }, [refetch]);
 
   // 1) 응답의 midiEvents를 MusicXML로 변환해 실제 연주 악보를 그린다
   const xmlContent = useMemo(() => {
@@ -123,6 +129,10 @@ export default function HistoryDetailPage() {
       audio.preload = 'auto';
       audio.addEventListener('error', () => {
         console.error(`${label} 로드 실패`, { code: audio.error?.code, message: audio.error?.message, src: audio.src });
+        requestFreshUrl();
+      });
+      audio.addEventListener('playing', () => {
+        urlRetryRef.current = 0;
       });
       return audio;
     };
@@ -139,7 +149,7 @@ export default function HistoryDetailPage() {
       audioRef.current = null;
       backingAudioRef.current = null;
     };
-  }, [recordingUrl, backingTrackUrl]);
+  }, [recordingUrl, backingTrackUrl, requestFreshUrl]);
 
   const handleRewind = useCallback(() => {
     setIsPlaying(false);
@@ -172,17 +182,22 @@ export default function HistoryDetailPage() {
     if (isPlaying) {
       audioRef.current?.play().catch((err) => {
         console.error('오디오 재생 실패', err);
+
+        if (requestFreshUrl()) {
+          return;
+        }
         setIsPlaying(false);
-        triggerToast('음원을 재생하지 못했습니다.');
-        refetch();
       });
 
-      // 백킹트랙 실패 -> 오디오는 재생
-      backingAudioRef.current?.play().catch((err) => console.error('백킹트랙 재생 실패', err));
+      // 백킹트랙은 부가 음원이라 실패해도 녹음 재생은 계속한다
+      backingAudioRef.current?.play().catch((err) => {
+        console.error('백킹트랙 재생 실패', err);
+        requestFreshUrl();
+      });
     } else {
       audios.forEach((audio) => audio.pause());
     }
-  }, [isPlaying, recordingUrl, backingTrackUrl, triggerToast, refetch]);
+  }, [isPlaying, recordingUrl, backingTrackUrl, triggerToast, requestFreshUrl]);
 
   // 3) 오디오 진행 시간 → 커서 위치
   useEffect(() => {
