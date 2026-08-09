@@ -313,6 +313,9 @@ export default function HistoryDetailPage() {
     setIsPlaying(false);
     setIsLoading(true);
 
+    const fullTimings = computeMeasureTimings(xmlContent);
+    const audioStartOffsetSec = fullTimings.measureStartTimes[startNum - 1] ?? 0;
+
     const rangeXml = extractMeasureRange(xmlContent, startNum, endNum);
 
     setTimeout(() => {
@@ -322,6 +325,9 @@ export default function HistoryDetailPage() {
           rangeXml,
           fromHistory: true,
           analysisData: historyData,
+          audioStartOffsetSec, // 오디오 탐색용 오프셋 전달
+          timeSignature: historyData?.timeSignature, // 박자표 전달
+          key: historyData?.key, // 조성 전달
         },
       });
     }, 2000);

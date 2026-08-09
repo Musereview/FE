@@ -19,6 +19,19 @@ import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
 import { toPlayedNotes } from '@/utils/midiEventPayload';
 import { historyDetail } from '@/apis/history';
+import type { HistoryDetailData } from '@/types/history';
+
+function parseTimeSignature(raw?: string): [number, number] {
+  const [beats, beatType] = (raw ?? '').split('/').map(Number);
+  return [beats > 0 ? beats : 4, beatType > 0 ? beatType : 4];
+}
+
+function parseKeySignature(raw?: string): { key: string; mode: 'major' | 'minor' } {
+  const value = (raw ?? 'C').trim();
+  const isMinor = /m(inor|in)?$/i.test(value);
+  const key = value.replace(/\s*(major|minor|maj|min|m)$/i, '').trim() || 'C';
+  return { key, mode: isMinor ? 'minor' : 'major' };
+}
 
 export default function AnalysisResultPage() {
   const navigate = useNavigate();
@@ -29,6 +42,7 @@ export default function AnalysisResultPage() {
     analysisData: passedAnalysisData,
     rangeXml: passedRangeXml,
     audioUrl: passedAudioUrl,
+    audioStartOffsetSec: passedAudioOffset,
   } = location.state || {};
   const { audioBlob } = usePracticeResultStore();
 
@@ -80,30 +94,47 @@ export default function AnalysisResultPage() {
 
       // 1. state에 없더라도 analysisData(또는 realAnalysisId로 조회된 데이터)에 playingId가 있다면 히스토리 상세를 가져와서 악보를 만듦
       let targetPlayingId = analysisData?.playingId;
+      let detailResponse = null as HistoryDetailData | null;
 
       if (!text && !targetPlayingId && realAnalysisId) {
-        // 만약 analysisData가 아직 안 불려왔다면 여기서 직접 분석 상세를 먼저 찔러서 playingId를 얻어올 수 있음
         try {
           const detail = await getAnalysisDetail(realAnalysisId);
           targetPlayingId = detail?.playingId;
+          detailResponse = detail as unknown as HistoryDetailData; // 분석 상세 데이터 보관
         } catch (e) {
           console.error('분석 상세 조회 실패:', e);
         }
       }
 
+      let calculatedOffset = passedAudioOffset ?? 0; // 오디오 오프셋 변수
+
       if (!text && targetPlayingId) {
         try {
-          const detailResponse = await historyDetail(targetPlayingId);
+          // 아직 detailResponse가 없거나 midiEvents가 없다면 historyDetail 호출
+          if (!detailResponse || !detailResponse.midiEvents) {
+            detailResponse = await historyDetail(targetPlayingId);
+          }
+
           const notes = toPlayedNotes(detailResponse.midiEvents ?? []);
           if (notes.length > 0) {
+            // 히스토리 데이터의 박자표와 조성을 파싱해서 적용
+            const [beatsPerBar, beatType] = parseTimeSignature(detailResponse.timeSignature);
+            const { key, mode } = parseKeySignature(detailResponse.key);
+
             const rawXml = buildMusicXmlFromRecording(notes, {
               bpm: detailResponse.bpm || 120,
-              beatsPerBar: 4,
-              beatType: 4,
-              key: detailResponse.key || 'C',
-              mode: 'major',
+              beatsPerBar,
+              beatType,
+              key,
+              mode,
               title: detailResponse.title || 'Practice',
             });
+
+            // 전체 마디 타이밍에서 시작 마디의 절대 시간 오프셋 계산
+            const fullTimings = computeMeasureTimings(rawXml);
+            calculatedOffset = fullTimings.measureStartTimes[startBar - 1] ?? 0;
+
+            // 렌더링할 구간 악보 추출
             text = extractMeasureRange(rawXml, startBar, endBar);
           }
         } catch (e) {
@@ -128,7 +159,6 @@ export default function AnalysisResultPage() {
 
       const timings = computeMeasureTimings(text);
       const sIdx = 0;
-      const offsetSec = timings.measureStartTimes[sIdx] ?? 0;
       const endSec = timings.totalDuration;
 
       const { bpm: activeBpm, beats } = extractActiveTempoMeterAtMeasure(text, startBar);
@@ -136,8 +166,8 @@ export default function AnalysisResultPage() {
       return {
         scoreXml: text,
         measureStartTimes: timings.measureStartTimes,
-        sectionStartOffsetSec: offsetSec,
-        sectionDurationSec: Math.max(2, endSec - offsetSec),
+        sectionStartOffsetSec: calculatedOffset, //계산된 절대 오디오 오프셋 반영
+        sectionDurationSec: Math.max(2, endSec - calculatedOffset),
         activeBpm,
         beatsPerBar: beats,
         startIndex: sIdx,
