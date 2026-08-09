@@ -41,25 +41,35 @@ export default function AnalysisChatSection({
     handleSendMessage,
   } = useMentorChat({ resolvedAnalysisId, token });
 
+  // 마크다운 및 불릿 기호 제거 유틸 함수
+  const removeMarkdown = (text?: string): string => {
+    if (!text) return '';
+    return text
+      .replace(/#{1,6}\s?/g, '') // #, ##, ### 등 헤더 기호 제거
+      .replace(/\*\*/g, '') // ** 볼드 기호 제거
+      .replace(/^\s*[-*]\s+/gm, '') // 줄 맨 앞의 불릿 기호(* 또는 -) 제거
+      .replace(/\*/g, '') // 단독 * 별표 제거
+      .trim();
+  };
+
   // 마크다운 파싱 함수
   const parseMarkdownContent = (content: string) => {
-    const parts = content.split('### ').filter(Boolean);
+    const parts = content.split('## ').filter(Boolean);
     let mainDesc = '';
     const sections: Array<{ title: string; text: string }> = [];
 
     parts.forEach((part, index) => {
-      if (
-        index === 0 &&
-        !part.startsWith('강약 조절') &&
-        !part.startsWith('멜로디 진행') &&
-        !part.startsWith('템포 유지력')
-      ) {
-        const cleanMain = part.replace(/^##\s*([^\n]+)\n+/, '').trim();
-        mainDesc = cleanMain;
+      const lines = part.split('\n').filter(Boolean);
+      const firstLine = lines[0]?.trim() || '';
+
+      // 첫 번째 파트이면서, '총평'이나 '잘한 점' 같은 섹션 타이틀이 아니라면 메인 설명으로 지정!
+      if (index === 0 && !['총평', '잘한 점', '진행 맥락', '개선 제안', '점수 요약'].includes(firstLine)) {
+        mainDesc = removeMarkdown(part);
       } else {
-        const lines = part.split('\n');
-        const title = lines[0].trim();
-        const text = lines.slice(1).join('\n').trim();
+        // 그 외에는 각각의 섹션 (제목 + 본문)으로 분리
+        const title = removeMarkdown(firstLine);
+        const text = removeMarkdown(lines.slice(1).join('\n'));
+
         if (title) {
           sections.push({ title, text });
         }
