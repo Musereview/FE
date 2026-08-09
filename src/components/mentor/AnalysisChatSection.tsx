@@ -54,7 +54,7 @@ export default function AnalysisChatSection({
 
   // 마크다운 파싱 함수
   const parseMarkdownContent = (content: string) => {
-    const parts = content.split('## ').filter(Boolean);
+    const parts = content.split(/(?:^|\r?\n)##[ \t]+/).filter(Boolean);
     let mainDesc = '';
     const sections: Array<{ title: string; text: string }> = [];
 
