@@ -4,3 +4,10 @@ export function getLearningIds(curriculumId: string): { learningId: number; lear
   const n = Number(curriculumId.match(/\d+/)?.[0]);
   return { learningId: Number.isFinite(n) && n > 0 ? n : 0, learningStepId: 1 };
 }
+
+// 라우트 :stepId(문자열) → 검증된 양의 정수. 소수/Infinity/음수 등 잘못된 값은 0을 반환해
+// enabled: stepId > 0 가드가 API 호출을 막도록 함
+export function parseStepId(stepId: string): number {
+  const n = Number(stepId);
+  return Number.isInteger(n) && n > 0 ? n : 0;
+}

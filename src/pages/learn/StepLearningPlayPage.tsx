@@ -18,7 +18,7 @@ import { useSettingStore } from '@/stores/settingsStore';
 import { useLearningScoreStore } from '@/stores/learningScoreStore';
 import type { PlayedNote } from '@/stores/practiceResultStore';
 import { getCurriculum, getCurriculumProgress, getScorePath } from './mockCurriculum';
-import { getLearningIds } from '@/utils/learningId';
+import { getLearningIds, parseStepId } from '@/utils/learningId';
 import { usePracticeData } from '@/hooks/usePracticeData';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import StopIcon from '@/assets/practice/stop.svg?react';
@@ -45,7 +45,7 @@ function StepLearningPlayPage() {
   // 실습 데이터(bpm/keySignature/midiData) — '이 이론으로 실습하기'에서 조회. 지금은 mock.
   // TODO: midiData를 채점 정답 데이터로 사용(현재는 악보(OSMD)에서 추출). keySignature도 필요 시 활용.
   const { learningId } = getLearningIds(curriculumId);
-  const { data: practiceData, isLoading: isPracticeDataLoading } = usePracticeData(learningId, Number(stepId));
+  const { data: practiceData, isLoading: isPracticeDataLoading } = usePracticeData(learningId, parseStepId(stepId));
   const bpm = practiceData?.bpm ?? curriculum.bpm; // 실습 데이터 우선, 로딩 중엔 커리큘럼 값
 
   // 입력 레이턴시 보정값 (레이턴시 체크에서 측정한 값). 미측정/실패면 0
