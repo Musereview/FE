@@ -98,8 +98,15 @@ export default function AnalysisChatSection({
   };
 
   useEffect(() => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    if (chatScrollRef.current && messages.length > 0) {
+      // 사용자가 채팅을 입력했거나 AI가 답변 중일 때만 스크롤 하단 이동
+      const isUserAtBottom =
+        chatScrollRef.current.scrollHeight - chatScrollRef.current.scrollTop <=
+        chatScrollRef.current.clientHeight + 200;
+
+      if (isStreaming || isUserAtBottom) {
+        chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+      }
     }
   }, [messages, isStreaming]);
 
