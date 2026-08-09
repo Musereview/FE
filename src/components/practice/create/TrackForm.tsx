@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { KeyMode, TrackDifficulty } from '@/types/track';
+import type {
+  BackingTrackAccessLevel,
+  BackingTrackLevel,
+  KeyMode,
+  SaveBackingTrackRequest,
+  TrackDifficulty,
+} from '@/types/track';
 import { GENRES } from '@/pages/practice/mockTracks';
 import ChevronLeftIcon from '@/assets/practice/chevron-left.svg?react';
 import TitleField from './TitleField';
@@ -9,11 +15,35 @@ import SelectDropdown from '../SelectDropdown';
 import BpmDropdown from '../BpmDropdown';
 import ChordProgressionGrid, { type ChordCell } from './ChordProgressionGrid';
 import ChordEditorPanel from './ChordEditorPanel';
-import { createInitialMeasures, resizeMeasures, applyChordCascade, getDisplayMeasures } from './chordGrid';
+import {
+  createInitialMeasures,
+  resizeMeasures,
+  applyChordCascade,
+  getDisplayMeasures,
+  toChordProgressionEntries,
+} from './chordGrid';
 import AudioUploadField from './AudioUploadField';
+import { useCreateBackingTrack } from '@/hooks/useCreateBackingTrack';
+import { useUpdateBackingTrack } from '@/hooks/useUpdateBackingTrack';
 
 export type TimeSignature = '4/4' | '3/4';
 type TrackAccess = 'private' | 'public';
+
+// TODO: 백킹트랙 오디오 업로드 API가 아직 없어 실제 업로드가 불가능 — 생성 시 항상 빈 문자열 전송(선택 필드)
+const DEFAULT_AUDIO_FILE_URL = '';
+// TODO: 폼에 트랙 길이(초) 입력 필드가 없어 임시 고정값 사용 — 실제 값 입력 UI는 추후 추가
+const DEFAULT_PLAYTIME_SEC = 180;
+
+const DIFFICULTY_TO_LEVEL: Record<TrackDifficulty, BackingTrackLevel> = {
+  beginner: 'BASIC',
+  intermediate: 'MED',
+  advanced: 'ADVANCED',
+};
+
+const ACCESS_TO_LEVEL: Record<TrackAccess, BackingTrackAccessLevel> = {
+  private: 'PRIVATE',
+  public: 'PUBLIC',
+};
 
 const GENRE_OPTIONS = GENRES.map((genre) => ({ value: genre, label: genre }));
 
@@ -57,6 +87,9 @@ export interface TrackFormInitialValues {
   timeSignature: TimeSignature;
   difficulty: TrackDifficulty;
   measures: string[][];
+  access?: TrackAccess;
+  playtimeSec?: number;
+  audioFileUrl?: string;
 }
 
 interface TrackFormProps {
@@ -64,10 +97,14 @@ interface TrackFormProps {
   submitLabel: string;
   initialValues?: TrackFormInitialValues;
   backTrackId?: string;
+  mode: 'create' | 'edit';
+  backingTrackId?: number;
 }
 
-function TrackForm({ heading, submitLabel, initialValues, backTrackId }: TrackFormProps) {
+function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, backingTrackId }: TrackFormProps) {
   const navigate = useNavigate();
+  const createBackingTrack = useCreateBackingTrack();
+  const updateBackingTrack = useUpdateBackingTrack();
 
   const [title, setTitle] = useState(initialValues?.title ?? '');
   const [genre, setGenre] = useState(initialValues?.genre ?? GENRE_OPTIONS[0].value);
@@ -78,14 +115,16 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId }: TrackFo
     initialValues?.timeSignature ?? TIME_SIGNATURE_OPTIONS[0].value,
   );
   const [difficulty, setDifficulty] = useState<TrackDifficulty>(initialValues?.difficulty ?? 'beginner');
-  const [access, setAccess] = useState<TrackAccess>('private');
+  const [access, setAccess] = useState<TrackAccess>(initialValues?.access ?? 'private');
   const [measures, setMeasures] = useState(
     () => initialValues?.measures ?? createInitialMeasures(TIME_SIGNATURE_OPTIONS[0].value),
   );
   const [selectedChordCell, setSelectedChordCell] = useState<ChordCell | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [openField, setOpenField] = useState<FilterKey | null>(null);
+  const isSubmitting = createBackingTrack.isPending || updateBackingTrack.isPending;
 
   const handleTimeSignatureChange = (next: TimeSignature) => {
     setTimeSignature(next);
@@ -102,8 +141,31 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId }: TrackFo
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!title.trim() || !isValidTitle(title)) return;
+    setSubmitError(null);
 
-    navigate('/practice');
+    const payload: SaveBackingTrackRequest = {
+      title: title.trim(),
+      genre,
+      keySignature: keyNote,
+      scaleType: keyMode === 'major' ? 'MAJOR' : 'MINOR',
+      timeSignature,
+      bpm,
+      // 수정 시엔 원래 있던 값을 유지(PUT은 전체 교체라 빈 값을 보내면 기존 데이터가 지워짐), 생성 시엔 임시 고정값
+      playtimeSec: initialValues?.playtimeSec ?? DEFAULT_PLAYTIME_SEC,
+      audioFileUrl: initialValues?.audioFileUrl ?? DEFAULT_AUDIO_FILE_URL,
+      accessLevel: ACCESS_TO_LEVEL[access],
+      level: DIFFICULTY_TO_LEVEL[difficulty],
+      chordProgression: toChordProgressionEntries(measures),
+    };
+
+    const onSuccess = () => navigate('/practice');
+    const onError = () => setSubmitError('저장에 실패했어요. 잠시 후 다시 시도해 주세요.');
+
+    if (mode === 'edit' && backingTrackId !== undefined) {
+      updateBackingTrack.mutate({ backingTrackId, body: payload }, { onSuccess, onError });
+    } else {
+      createBackingTrack.mutate(payload, { onSuccess, onError });
+    }
   };
 
   const handleBack = () => {
@@ -226,10 +288,13 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId }: TrackFo
             />
           </div>
 
+          {submitError && <p className="body-small text-error text-right">{submitError}</p>}
+
           <button
             type="submit"
-            className="button-medium bg-primary-400 mt-3 flex h-12 w-[288px] items-center justify-center self-end rounded-[6px] text-gray-950">
-            {submitLabel}
+            disabled={isSubmitting}
+            className="button-medium bg-primary-400 mt-3 flex h-12 w-[288px] items-center justify-center self-end rounded-[6px] text-gray-950 disabled:opacity-50">
+            {isSubmitting ? '처리 중...' : submitLabel}
           </button>
         </form>
       </div>

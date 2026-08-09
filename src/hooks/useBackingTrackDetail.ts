@@ -2,9 +2,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { getBackingTrackDetail } from '@/apis/backingTrack';
 
+export const backingTrackDetailQueryKey = (backingTrackId: number | null) =>
+  ['backingTrackDetail', backingTrackId] as const;
+
 export function useBackingTrackDetail(backingTrackId: number | null) {
   return useQuery({
-    queryKey: ['backingTrackDetail', backingTrackId],
+    queryKey: backingTrackDetailQueryKey(backingTrackId),
     queryFn: () => getBackingTrackDetail(backingTrackId as number),
     enabled: backingTrackId !== null,
   });

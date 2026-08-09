@@ -88,3 +88,40 @@ export interface BackingTrackDetail {
   audioFileUrl: string;
   chordProgression: BackingTrackChordEntry[];
 }
+
+export type BackingTrackAccessLevel = 'PRIVATE' | 'ACADEMY' | 'PUBLIC';
+
+export interface SaveBackingTrackRequest {
+  title: string;
+  genre: BackingTrackGenre;
+  keySignature: string;
+  scaleType: BackingTrackScaleType;
+  timeSignature: string;
+  bpm: number;
+  playtimeSec: number;
+  audioFileUrl?: string;
+  accessLevel: BackingTrackAccessLevel;
+  level: BackingTrackLevel;
+  chordProgression: BackingTrackChordEntry[];
+}
+
+export interface CreateBackingTrackResponse {
+  backingTrackId: number;
+  title: string;
+  createdAt: string;
+}
+
+export interface UpdateBackingTrackResponse {
+  backingTrackId: number;
+  title: string;
+  updatedAt: string;
+}
+
+export interface IncreasePlayCountRequest {
+  analysisId: number;
+}
+
+export interface IncreasePlayCountResponse {
+  backingTrackId: number;
+  playCount: number;
+}
