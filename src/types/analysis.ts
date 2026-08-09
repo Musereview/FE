@@ -105,6 +105,8 @@ export interface AnalysisDetailData {
   status: AnalysisStatus;
   startBar: number;
   endBar: number;
+  recordingFileUrl: string | null;
+  backingTrackAudioFileUrl: string | null;
   totalScore: number;
   grade: AnalysisGrade;
   summary: string;
