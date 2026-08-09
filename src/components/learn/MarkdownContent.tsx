@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 
 interface MarkdownContentProps {
   content: string;
@@ -10,6 +11,7 @@ function MarkdownContent({ content, className = '' }: MarkdownContentProps) {
   return (
     <div className={`flex flex-col gap-3 ${className}`}>
       <ReactMarkdown
+        remarkPlugins={[remarkBreaks]}
         components={{
           p: ({ children }) => <p className="body-regular2 text-gray-300">{children}</p>,
           ul: ({ children }) => (
