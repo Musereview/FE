@@ -253,6 +253,12 @@ export default function HistoryDetailPage() {
       triggerToast('분석 구간은 최대 32마디까지 선택할 수 있습니다.');
       return;
     }
+
+    if (!xmlContent) {
+      triggerToast('연주 기록이 없어 분석을 시작할 수 없습니다.');
+      return;
+    }
+
     // totalBars가 null이고 악보도 비어 있으면 상한을 알 수 없으므로 범위 검사를 건너뛴다
     if (totalMeasures > 0 && (startNum > totalMeasures || endNum > totalMeasures)) {
       triggerToast('선택한 마디가 악보 범위를 벗어났습니다.');
