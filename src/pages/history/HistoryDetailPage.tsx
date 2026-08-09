@@ -318,7 +318,11 @@ export default function HistoryDetailPage() {
     setTimeout(() => {
       setIsLoading(false);
       navigate(`/history/${parsedHistoryId}/analysis/result?start=${startNum}&end=${endNum}`, {
-        state: { rangeXml },
+        state: {
+          rangeXml,
+          fromHistory: true,
+          analysisData: historyData,
+        },
       });
     }, 2000);
   };
