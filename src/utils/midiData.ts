@@ -43,15 +43,55 @@ const DEFAULT_OPTIONS: MidiDataOptions = {
   title: '',
 };
 
+function isFinitePositive(n: unknown): n is number {
+  return typeof n === 'number' && Number.isFinite(n) && n > 0;
+}
+
+// null/필드 누락/문자열 등 구조가 깨진 노트는 이후 계산(beatToSec, measureCount 등)에서 크래시로 이어지므로 걸러냄
+function isValidNote(n: unknown): n is MidiDataNote {
+  if (typeof n !== 'object' || n === null) return false;
+  const note = n as Partial<MidiDataNote>;
+  return (
+    typeof note.midi === 'number' &&
+    Number.isFinite(note.midi) &&
+    typeof note.velocity === 'number' &&
+    Number.isFinite(note.velocity) &&
+    typeof note.start === 'number' &&
+    Number.isFinite(note.start) &&
+    note.start >= 0 &&
+    isFinitePositive(note.duration)
+  );
+}
+
+function isValidChord(c: unknown): c is MidiDataChord {
+  if (typeof c !== 'object' || c === null) return false;
+  const chord = c as Partial<MidiDataChord>;
+  return isFinitePositive(chord.bar) && isFinitePositive(chord.beat) && typeof chord.symbol === 'string';
+}
+
+// bpm/beatsPerBar/beatType은 0 이하·NaN·Infinity면 나눗셈(beatToSec)과 배열 길이(Array.from) 계산이
+// Infinity/NaN으로 새서 무한 루프·RangeError로 이어지므로, 필드별로 유효성 검증 후 기본값으로 대체
+function sanitizeOptions(raw: Partial<MidiDataOptions> | undefined): MidiDataOptions {
+  const o = raw ?? {};
+  return {
+    bpm: isFinitePositive(o.bpm) ? o.bpm : DEFAULT_OPTIONS.bpm,
+    beatsPerBar: isFinitePositive(o.beatsPerBar) ? o.beatsPerBar : DEFAULT_OPTIONS.beatsPerBar,
+    beatType: isFinitePositive(o.beatType) ? o.beatType : DEFAULT_OPTIONS.beatType,
+    key: typeof o.key === 'string' ? o.key : DEFAULT_OPTIONS.key,
+    mode: o.mode === 'minor' ? 'minor' : DEFAULT_OPTIONS.mode,
+    title: typeof o.title === 'string' ? o.title : DEFAULT_OPTIONS.title,
+  };
+}
+
 // midiData 파싱. 명세는 JSON 문자열이지만 백엔드가 이미 파싱된 객체로 내려주는 경우도 있어 둘 다 허용.
 // 형식이 깨졌거나 비어있으면(예: mock '{}') 빈 곡으로 안전 처리.
 export function parseMidiData(raw: string | Partial<ParsedMidiData>): ParsedMidiData {
   try {
     const parsed = (typeof raw === 'string' ? JSON.parse(raw) : raw) as Partial<ParsedMidiData>;
     return {
-      recording: Array.isArray(parsed.recording) ? parsed.recording : [],
-      options: { ...DEFAULT_OPTIONS, ...parsed.options },
-      chords: Array.isArray(parsed.chords) ? parsed.chords : [],
+      recording: Array.isArray(parsed.recording) ? parsed.recording.filter(isValidNote) : [],
+      options: sanitizeOptions(parsed.options),
+      chords: Array.isArray(parsed.chords) ? parsed.chords.filter(isValidChord) : [],
     };
   } catch (err) {
     console.warn('[midiData] 파싱 실패, 빈 곡으로 대체:', err);
