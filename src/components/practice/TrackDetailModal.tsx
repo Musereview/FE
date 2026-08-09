@@ -30,7 +30,7 @@ function TrackDetailModal({
   isStartingPractice = false,
   startError = false,
 }: TrackDetailModalProps) {
-  const { id, title, key, mode, timeSignature, genre, bpm, difficulty, creator, chords } = track;
+  const { id, title, key, mode, timeSignature, genre, bpm, difficulty, creator, chords, audioFileUrl } = track;
   const numerator = getChordsPerMeasure(timeSignature);
   const isOwnTrack = creator === CURRENT_USER;
 
@@ -47,26 +47,46 @@ function TrackDetailModal({
   const [hasFinished, setHasFinished] = useState(false);
   const [beatCursor, setBeatCursor] = useState(0);
 
+  // 반주 음원(audioFileUrl)을 메트로놈과 같은 Tone.Transport 타임라인에 동기화해 함께 재생
+  const playerRef = useRef<Tone.Player | null>(null);
   useEffect(() => {
+    if (!audioFileUrl) return;
+    const player = new Tone.Player(audioFileUrl).toDestination();
+    playerRef.current = player;
+    return () => {
+      player.unsync();
+      player.dispose();
+      playerRef.current = null;
+    };
+  }, [audioFileUrl]);
+
+  const stopAll = () => {
     stop();
     Tone.getDraw().cancel();
+    const player = playerRef.current;
+    if (player) {
+      player.unsync();
+      if (player.state === 'started') player.stop();
+    }
+  };
+
+  useEffect(() => {
+    stopAll();
     beatCountRef.current = 0;
     setIsPlaying(false);
     setHasFinished(false);
     setBeatCursor(0);
-  }, [id, stop]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   useEffect(() => {
-    return () => {
-      stop();
-      Tone.getDraw().cancel();
-    };
-  }, [stop]);
+    return () => stopAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleTogglePlay = () => {
     if (isPlaying) {
-      stop();
-      Tone.getDraw().cancel();
+      stopAll();
       setIsPlaying(false);
       setBeatCursor(0);
       return;
@@ -78,13 +98,15 @@ function TrackDetailModal({
     setBeatCursor(0);
     setIsPlaying(true);
 
+    const player = playerRef.current;
+    if (player?.loaded) player.sync().start(0);
+
     start(bpm, numerator, (time) => {
       const current = beatCountRef.current;
       const next = current + 1;
 
       if (next >= totalBeats) {
-        stop();
-        Tone.getDraw().cancel();
+        stopAll();
         beatCountRef.current = 0;
         setIsPlaying(false);
         setHasFinished(true);

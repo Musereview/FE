@@ -20,6 +20,8 @@ export interface Track {
   creator: string;
   /** 없으면 chords로 fallback 생성 */
   chordProgression?: ChordMeasure[];
+  /** 상세 조회에서만 내려옴 — 비어 있으면(업로드 전) 재생할 반주 음원 없음 */
+  audioFileUrl?: string;
 }
 
 export type BackingTrackGenre = string;
