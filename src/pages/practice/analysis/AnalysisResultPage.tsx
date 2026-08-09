@@ -116,8 +116,23 @@ export default function AnalysisResultPage() {
     },
     enabled: true,
   });
+  //서버 URL이 없을 때 로컬 bloBlob을 안전하게 다루기 위한 상태
+  const [localBlobUrl, setLocalBlobUrl] = useState<string | null>(null);
 
-  //새로고침 및 히스토리 진입 대응 통합 audioUrl 결정 로직
+  useEffect(() => {
+    // 서버 URL이 없고, 로컬 audioBlob이 존재할 때만 안전하게 생성
+    if (!analysisData?.recordingFileUrl && !analysisData?.backingTrackAudioFileUrl && audioBlob) {
+      const url = URL.createObjectURL(audioBlob);
+      setLocalBlobUrl(url);
+
+      return () => {
+        URL.revokeObjectURL(url);
+        setLocalBlobUrl(null);
+      };
+    }
+  }, [audioBlob, analysisData?.recordingFileUrl, analysisData?.backingTrackAudioFileUrl]);
+
+  //최종 오디오 Url 결정
   const audioUrl = useMemo(() => {
     // 1순위: 서버 API에서 내려준 실제 연주 녹음 파일 URL
     if (analysisData?.recordingFileUrl) {
@@ -128,15 +143,18 @@ export default function AnalysisResultPage() {
       return analysisData.backingTrackAudioFileUrl;
     }
     // 3순위: 이전 페이지에서 넘겨받은 state URL
-    if (passedAudioUrl) {
-      return passedAudioUrl;
+    if (localBlobUrl) {
+      return localBlobUrl;
     }
-    // 4순위: 방금 녹음한 직후여서 서버 URL이 아직 없을 때만 로컬 Blob 생성
-    if (audioBlob) {
-      return URL.createObjectURL(audioBlob);
-    }
-    return null;
-  }, [passedAudioUrl, analysisData?.recordingFileUrl, analysisData?.backingTrackAudioFileUrl, audioBlob]);
+    // 4순위: 기타 전달받은 URL
+    return passedAudioUrl || null;
+  }, [
+    passedAudioUrl,
+    analysisData?.recordingFileUrl,
+    analysisData?.backingTrackAudioFileUrl,
+    localBlobUrl,
+    passedAudioUrl,
+  ]);
 
   //오디오 객체를 담을 ref 추가
   const audioRef = useRef<HTMLAudioElement | null>(null);
