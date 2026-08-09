@@ -189,7 +189,8 @@ export default function HistoryDetailPage() {
           setCurrentMeasureIndex((prev) => (prev !== idx ? idx : prev));
         }
 
-        const beat = Math.floor((elapsed * bpm) / 60) % beatsPerBar;
+        const beatsPerSecond = (bpm / 60) * (beatType / 4);
+        const beat = Math.floor(elapsed * beatsPerSecond) % beatsPerBar;
         setBeatInBar((prev) => (prev !== beat ? beat : prev));
       }
       rafRef.current = requestAnimationFrame(tick);
