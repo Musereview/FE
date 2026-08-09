@@ -199,15 +199,28 @@ export default function HistoryDetailPage() {
     }
   }, [isPlaying, recordingUrl, backingTrackUrl, triggerToast, requestFreshUrl]);
 
-  // 3) 오디오 진행 시간 → 커서 위치
+  // 3) 오디오 진행 시간 -> 커서 위치 + 박자 인디케이터
   useEffect(() => {
-    if (!isPlaying || measureStartTimes.length === 0) return;
+    if (!isPlaying) {
+      setBeatInBar(-1);
+      return;
+    }
+
+    // BPM은 4분음표 기준 -> 박자표 분모로 환산 (6/8이면 8분음표가 한 박)
+    const beatsPerSecond = (bpm / 60) * (beatType / 4);
 
     const tick = () => {
       const audio = audioRef.current;
       if (audio) {
-        const idx = findMeasureIndexAtTime(measureStartTimes, audio.currentTime);
-        setCurrentMeasureIndex((prev) => (prev !== idx ? idx : prev));
+        const elapsed = audio.currentTime;
+
+        if (measureStartTimes.length > 0) {
+          const idx = findMeasureIndexAtTime(measureStartTimes, elapsed);
+          setCurrentMeasureIndex((prev) => (prev !== idx ? idx : prev));
+        }
+
+        const beat = Math.floor(elapsed * beatsPerSecond) % beatsPerBar;
+        setBeatInBar((prev) => (prev !== beat ? beat : prev));
       }
       rafRef.current = requestAnimationFrame(tick);
     };
@@ -216,22 +229,21 @@ export default function HistoryDetailPage() {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [isPlaying, measureStartTimes]);
+  }, [isPlaying, measureStartTimes, bpm, beatsPerBar, beatType]);
 
   // 4) 메트로놈
+  //    useMetronome은 4분음표(4n) 간격으로 클릭하므로, 박자표의 박 단위에 맞춰 BPM을 환산해 넘긴다.
+  //    (6/8: 8분음표가 한 박 → 클릭 간격이 절반)
   useEffect(() => {
     if (!isPlaying) {
       stopMetronome();
-      setBeatInBar(-1);
       return;
     }
 
-    startMetronome(bpm, beatsPerBar, (time, beat) => {
-      Tone.getDraw().schedule(() => setBeatInBar(beat), time);
-    });
+    startMetronome(bpm * (beatType / 4), beatsPerBar, () => {});
 
     return () => stopMetronome();
-  }, [isPlaying, bpm, beatsPerBar, startMetronome, stopMetronome]);
+  }, [isPlaying, bpm, beatsPerBar, beatType, startMetronome, stopMetronome]);
 
   const handleTogglePlay = async () => {
     if (isScoreLoading) return;
