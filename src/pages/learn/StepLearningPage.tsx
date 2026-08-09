@@ -26,8 +26,8 @@ function StepLearningPage() {
         <div className="flex flex-col gap-4">
           <CurriculumBanner title={title} difficulty={difficulty} description={description} />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex h-[270px] flex-col justify-between overflow-y-auto rounded-[6px] bg-gray-800 px-6 py-8">
+          <div className="grid grid-cols-2 items-stretch gap-4">
+            <div className="flex flex-col gap-4 rounded-[6px] bg-gray-800 px-6 py-8">
               <div className="body-large-b flex items-center gap-2 text-gray-200">
                 <span className="text-primary-400">📚</span>
                 이론 설명
@@ -35,7 +35,7 @@ function StepLearningPage() {
               <MarkdownContent content={theoryContent} />
             </div>
 
-            <div className="flex h-[270px] flex-col justify-between overflow-y-auto rounded-[6px] bg-gray-800 px-6 py-8">
+            <div className="flex flex-col gap-4 rounded-[6px] bg-gray-800 px-6 py-8">
               <div className="body-large-b flex items-center gap-2 text-gray-200">
                 <span className="text-primary-400">💡</span>
                 연습 팁
