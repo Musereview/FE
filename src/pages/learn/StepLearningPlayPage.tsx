@@ -16,10 +16,10 @@ import { usePianoSound } from '@/hooks/usePianoSound';
 import { useSettingStore } from '@/stores/settingsStore';
 import { useLearningScoreStore } from '@/stores/learningScoreStore';
 import type { PlayedNote } from '@/stores/practiceResultStore';
-import { getCurriculum, getCurriculumProgress } from './mockCurriculum';
 import { getLearningIds } from '@/utils/learningId';
 import { usePracticeData } from '@/hooks/usePracticeData';
 import { useLearningProgress } from '@/hooks/useLearningProgress';
+import { useLearningCurriculum } from '@/hooks/useLearningCurriculum';
 import { parseMidiData, midiDataToMusicXml, midiDataMeasureCount, midiDataChordsToMeasures } from '@/utils/midiData';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import StopIcon from '@/assets/practice/stop.svg?react';
@@ -37,14 +37,15 @@ function StepLearningPlayPage() {
   const { noteOn: playNote, noteOff: stopNote, releaseAll } = usePianoSound();
   const setScore = useLearningScoreStore((s) => s.setScore); // 채점 결과 → 점수 화면 전달
 
-  const curriculum = getCurriculum(curriculumId);
-  const chapterNo = curriculumId.match(/\d+/)?.[0] ?? ''; // 'chapter-1' → '1'
-  const title = chapterNo ? `${curriculum.title}-chapter ${chapterNo}` : curriculum.title;
+  // 커리큘럼 메타(title/difficulty) — 단계 상세 화면과 동일한 소스
+  const { data: curriculumData } = useLearningCurriculum(curriculumId);
+  const title = curriculumData?.title ?? '';
+  const difficulty = curriculumData?.difficulty ?? 'beginner';
 
   // 실습 데이터(bpm/keySignature/midiData) — '이 이론으로 실습하기'에서 조회.
   const { learningId } = getLearningIds(curriculumId);
   const { data: practiceData, isLoading: isPracticeDataLoading } = usePracticeData(learningId, Number(stepId));
-  const bpm = practiceData?.bpm ?? curriculum.bpm; // 실습 데이터 우선, 로딩 중엔 커리큘럼 값
+  const bpm = practiceData?.bpm ?? 0; // 실습 데이터 로딩 전엔 재생이 시작되지 않으므로 표시용 기본값
 
   // midiData 파싱 → 악보(MusicXML)/백킹트랙(코드 그리드)/전체 마디 수. 로딩 중엔 null.
   const parsedMidiData = useMemo(() => (practiceData ? parseMidiData(practiceData.midiData) : null), [practiceData]);
@@ -62,8 +63,8 @@ function StepLearningPlayPage() {
   // 입력 레이턴시 보정값 (레이턴시 체크에서 측정한 값). 미측정/실패면 0
   const rawLatency = inputId ? latencyByDevice[inputId] : undefined;
   const latencyMs = typeof rawLatency === 'number' ? rawLatency : 0;
-  // beatsPerBar: 실습 데이터 우선, 로딩 중엔 커리큘럼 값 (bpm과 동일한 fallback 패턴)
-  const beatsPerBar = parsedMidiData?.options.beatsPerBar ?? Number(curriculum.timeSignature.split('/')[0]);
+  // beatsPerBar: 실습 데이터 로딩 전엔 재생이 시작되지 않으므로 4/4 기본값
+  const beatsPerBar = parsedMidiData?.options.beatsPerBar ?? 4;
   const measures = useMemo(
     () => (parsedMidiData ? midiDataChordsToMeasures(parsedMidiData.chords, measureCount, beatsPerBar) : []),
     [parsedMidiData, measureCount, beatsPerBar],
@@ -73,7 +74,7 @@ function StepLearningPlayPage() {
   // 진행률: 화면 진입 시 DB에서 받는 값(실시간 아님). 스텝 완료/다음 스텝 이동 시 현재 진행률을 DB에 반영.
   // TODO: 저장(PATCH)은 채점/완료 플로우 배선 시 추가.
   const { data: progressData } = useLearningProgress(learningId);
-  const progress = progressData?.progressRate ?? getCurriculumProgress(curriculum.steps); // 로딩 중엔 mock 스냅샷
+  const progress = progressData?.progressRate ?? curriculumData?.progress.progressRate ?? 0;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [beatInBar, setBeatInBar] = useState(-1); // 진행점 (마디 내 0-based)
@@ -352,7 +353,7 @@ function StepLearningPlayPage() {
             xmlContent={xmlContent}
             currentMeasureIndex={measureIndex}
             bpm={bpm}
-            difficulty={curriculum.difficulty}
+            difficulty={difficulty}
             latencyMs={latencyMs}
             visibleMeasures={3}
             height={600}
