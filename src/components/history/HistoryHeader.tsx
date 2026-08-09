@@ -3,12 +3,29 @@ interface HistoryHeaderProps {
   genre?: string;
   keySig?: string;
   bpm: number;
+  timeSignature?: string;
+  durationSec?: number;
   playedAt?: string;
 }
 
-export default function HistoryHeader({ title, genre, keySig, bpm, playedAt }: HistoryHeaderProps) {
+function formatDuration(totalSec: number) {
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  if (min === 0) return `${sec}초`;
+  return sec === 0 ? `${min}분` : `${min}분 ${sec}초`;
+}
+
+export default function HistoryHeader({
+  title,
+  genre,
+  keySig,
+  bpm,
+  timeSignature,
+  durationSec,
+  playedAt,
+}: HistoryHeaderProps) {
   const formatPlayedAt = (isoString?: string) => {
-    if (!isoString) return '5월 4일 · 14:32';
+    if (!isoString) return '';
     const date = new Date(isoString);
     const month = date.getMonth() + 1;
     const day = date.getDate();
@@ -17,26 +34,29 @@ export default function HistoryHeader({ title, genre, keySig, bpm, playedAt }: H
     return `${month}월 ${day}일 · ${hours}:${minutes}`;
   };
 
+  const badges = [genre?.toUpperCase(), keySig, timeSignature, `${bpm}BPM`].filter(Boolean) as string[];
+
   return (
     <div className="flex items-start justify-between">
       <div className="flex flex-col">
-        <h1 className="text-[32px] leading-tight font-bold tracking-tight text-white">
-          {title || 'Jazz Standard Practice'}
-        </h1>
+        <h1 className="text-[32px] leading-tight font-bold tracking-tight text-white">{title ?? ''}</h1>
 
-        {/* 장르 및 BPM 뱃지 영역  */}
+        {/* 장르 / 조성 / 박자 / BPM 뱃지 영역 */}
         <div className="mt-4 flex w-fit items-center gap-6 rounded-[4px] bg-gray-400 px-3 py-1">
-          <span className="text-center text-[14px] font-normal tracking-[-0.28px] text-gray-900">
-            {genre ? genre.toUpperCase() : 'JAZZ'}
-          </span>
-          <span className="text-center text-[14px] font-normal tracking-[-0.28px] text-gray-900">
-            {keySig || 'C Major'}
-          </span>
-          <span className="text-center text-[14px] font-normal tracking-[-0.28px] text-gray-900">{bpm}BPM</span>
+          {badges.map((badge) => (
+            <span key={badge} className="text-center text-[14px] font-normal tracking-[-0.28px] text-gray-900">
+              {badge}
+            </span>
+          ))}
         </div>
       </div>
 
-      <span className="text-[15px] font-medium text-gray-400">{formatPlayedAt(playedAt)}</span>
+      <div className="flex flex-col items-end gap-1">
+        <span className="text-[15px] font-medium text-gray-400">{formatPlayedAt(playedAt)}</span>
+        {durationSec !== undefined && (
+          <span className="text-[14px] font-medium text-gray-500">연주 시간 {formatDuration(durationSec)}</span>
+        )}
+      </div>
     </div>
   );
 }
