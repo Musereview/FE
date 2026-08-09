@@ -77,10 +77,14 @@ function PracticePlayPage() {
   // 반주 음원(audioFileUrl)을 메트로놈/녹음과 같은 Tone.Transport 타임라인에 동기화해 함께 재생
   // (카운트인 중엔 sync하지 않음 — 실제 곡 재생이 시작되는 startPlayback()에서만 sync)
   const playerRef = useRef<Tone.Player | null>(null);
+  const isPlaybackActiveRef = useRef(false); // 카운트인이 아닌 '실제 곡 재생' 중인지 (지연 로딩 콜백이 카운트인 중엔 끼어들지 않도록)
   useEffect(() => {
     const url = track?.audioFileUrl;
     if (!url) return;
-    const player = new Tone.Player(url).toDestination();
+    // 로딩(fetch+decode)이 카운트다운보다 늦게 끝나는 경우를 대비 — 이미 재생이 시작된 뒤라면 그 시점에 뒤늦게라도 동기화해 재생
+    const player = new Tone.Player(url, () => {
+      if (playerRef.current === player && isPlaybackActiveRef.current) player.sync().start(0);
+    }).toDestination();
     playerRef.current = player;
     return () => {
       player.unsync();
@@ -158,6 +162,7 @@ function PracticePlayPage() {
 
   const stopPlayback = () => {
     cancelAutoStart(); // 재시작/분석 등으로 정지 시 대기 중인 자동재생 취소
+    isPlaybackActiveRef.current = false; // 지연 로딩 onload가 이후엔 재생을 시작하지 않도록
     finalizeOpenNotes(performance.now()); // stop() 전에 (stop이 transport 위치를 0으로 리셋하므로)
     stop();
     Tone.getDraw().cancel();
@@ -219,9 +224,9 @@ function PracticePlayPage() {
       triggerToast('현재 브라우저에서는 연주 녹음을 지원하지 않습니다.');
     }
     setIsPlaying(true);
-    // 녹음 시작과 같은 동기 실행 블록 안에서 반주 재생도 같이 트리거 (카운트인 이후 0박 = 여기서 sync)
-    const player = playerRef.current;
-    if (player?.loaded) player.sync().start(0);
+    isPlaybackActiveRef.current = true; // 실제 곡 재생 시작 — 이 시점부턴 지연 로딩 onload도 재생을 시작해도 됨
+    // 메트로놈 start()가 내부적으로 transport.stop()/cancel()을 먼저 실행하므로 그보다 먼저 반주를 sync하면
+    // 방금 건 예약(0초 재생)이 cancel()에 지워짐 — 그래서 metronome start()가 끝난 뒤에 sync().start(0)를 건다.
     start(track?.bpm ?? 0, beatsPerBar, (time, bib) => {
       const beat = totalBeatRef.current % totalCells;
       Tone.getDraw().schedule(() => {
@@ -230,6 +235,8 @@ function PracticePlayPage() {
       }, time);
       totalBeatRef.current += 1;
     });
+    const player = playerRef.current;
+    if (player?.loaded) player.sync().start(0);
   };
 
   // 정지: 화면 그대로 멈춤(진행 상태 유지) / 재생: 이어서
