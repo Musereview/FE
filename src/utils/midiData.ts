@@ -43,10 +43,11 @@ const DEFAULT_OPTIONS: MidiDataOptions = {
   title: '',
 };
 
-// midiData(JSON 문자열) 파싱. 형식이 깨졌거나 비어있으면(예: mock '{}') 빈 곡으로 안전 처리.
-export function parseMidiData(raw: string): ParsedMidiData {
+// midiData 파싱. 명세는 JSON 문자열이지만 백엔드가 이미 파싱된 객체로 내려주는 경우도 있어 둘 다 허용.
+// 형식이 깨졌거나 비어있으면(예: mock '{}') 빈 곡으로 안전 처리.
+export function parseMidiData(raw: string | Partial<ParsedMidiData>): ParsedMidiData {
   try {
-    const parsed = JSON.parse(raw) as Partial<ParsedMidiData>;
+    const parsed = (typeof raw === 'string' ? JSON.parse(raw) : raw) as Partial<ParsedMidiData>;
     return {
       recording: Array.isArray(parsed.recording) ? parsed.recording : [],
       options: { ...DEFAULT_OPTIONS, ...parsed.options },

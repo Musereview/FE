@@ -1,7 +1,4 @@
 // 단계별 학습 진행(시작) 페이지
-// 레이아웃 구조는 연습 플레이 화면과 동일하되, 중앙 노트바 대신 악보(OSMD, 다음 단계)를 넣는다.
-// - 헤더: 진행률(진입 시 DB 값, 실시간 아님) + BPM
-// - 백킹트랙/진행점/건반/소리/메트로놈은 연습화면과 동일
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as Tone from 'tone';
@@ -27,8 +24,7 @@ import RefreshIcon from '@/assets/restart.svg?react';
 import SettingsIcon from '@/assets/setting.svg?react';
 import DeviceDisconnectedModal from '@/components/common/DeviceDisconnectedModal';
 
-const COUNTDOWN_BEATS = 4; // 재생 전 카운트다운 박 수 (4,3,2,1)
-
+const COUNTDOWN_BEATS = 4;
 function StepLearningPlayPage() {
   const navigate = useNavigate();
   const { curriculumId = '', stepId = '' } = useParams();
@@ -37,7 +33,7 @@ function StepLearningPlayPage() {
   const { noteOn: playNote, noteOff: stopNote, releaseAll } = usePianoSound();
   const setScore = useLearningScoreStore((s) => s.setScore); // 채점 결과 → 점수 화면 전달
 
-  // 커리큘럼 메타(title/difficulty) — 단계 상세 화면과 동일한 소스
+  // 커리큘럼 메타(title/difficulty) — 단계 상세 화면과 동일
   const { data: curriculumData } = useLearningCurriculum(curriculumId);
   const title = curriculumData?.title ?? '';
   const difficulty = curriculumData?.difficulty ?? 'beginner';
@@ -72,7 +68,6 @@ function StepLearningPlayPage() {
   const totalCells = measureCount * beatsPerBar;
 
   // 진행률: 화면 진입 시 DB에서 받는 값(실시간 아님). 스텝 완료/다음 스텝 이동 시 현재 진행률을 DB에 반영.
-  // TODO: 저장(PATCH)은 채점/완료 플로우 배선 시 추가.
   const { data: progressData } = useLearningProgress(learningId);
   const progress = progressData?.progressRate ?? curriculumData?.progress.progressRate ?? 0;
 
@@ -147,7 +142,7 @@ function StepLearningPlayPage() {
     setCurrentBeat(-1);
     setMeasureIndex(0);
     setCountdown(null); // 카운트다운 도중 정지 시 화면에 숫자가 멈춰 남지 않도록
-    // 정지 시엔 색칠·판정을 지우지 않음(끝/분석 시 결과 유지). 새 재생(startPlayback)에서 초기화한다.
+    // 정지 시엔 색칠·판정을 지우지 않음(끝/분석 시 결과 유지).
   };
 
   // 곡 끝: 진행점·마디·색칠을 끝 지점 그대로 두고 재생만 멈춤 (정지 버튼과 달리 위치 리셋 안 함)
@@ -160,7 +155,7 @@ function StepLearningPlayPage() {
     finishTimerRef.current = setTimeout(() => goToScore(), 2000); // 2초 후 채점 결과 화면으로 이동
   };
 
-  // 카운트다운(4,3,2,1): 메트로놈 박에 맞춰 숫자를 표시
+  // 카운트다운(4,3,2,1)
   const runCountdown = async () => {
     cancelPendingStarts(); // 대기 중인 자동재생·재시작 타이머 취소 (중복 시작 방지)
     setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
@@ -203,7 +198,6 @@ function StepLearningPlayPage() {
     scoreRef.current?.reset(); // 처음부터 재생 시 색칠 초기화
     start(bpmRef.current, beatsPerBar, (time, bib) => {
       const pbeat = totalBeatRef.current; // 곡 시작 기준 현재 박(언랩)
-      // 악보 한 바퀴(totalCells 박)를 모두 지나면 루프 대신 정지 (mock: 백킹트랙·악보 모두 8마디)
       if (pbeat >= totalCells) {
         if (endedRef.current) return false; // 중복 예약 방지
         endedRef.current = true;
@@ -329,16 +323,15 @@ function StepLearningPlayPage() {
 
       {/* 본문 */}
       <div className="relative flex flex-1 flex-col px-[160px] pt-8">
-        {/* 백킹트랙 + 메트로놈 진행점 (중앙 정렬, 반응형) */}
+        {/* 백킹트랙 + 메트로놈 진행점*/}
         <div className="relative mx-auto flex w-full max-w-[1510px] flex-col">
           <BackingTrack measures={measures} currentBeat={currentBeat} beatsPerBar={beatsPerBar} />
-          {/* top-[81px] = 본문 top-[113px] - pt-8(32px) */}
           <div className="absolute top-[81px] right-0 flex">
             <MetronomeDots total={beatsPerBar} current={beatInBar} />
           </div>
         </div>
 
-        {/* 재생 전 카운트다운(4,3,2,1): 배경 블러 + 숫자/문구 (본문 기준 고정) */}
+        {/* 재생 전 카운트다운(4,3,2,1): 배경 블러*/}
         {countdown !== null && <div className="absolute inset-0 z-20 bg-gray-950/60 backdrop-blur-md" />}
         {countdown !== null && (
           <span className="display-large absolute top-[158px] left-1/2 z-20 -translate-x-1/2 text-center text-gray-700">
