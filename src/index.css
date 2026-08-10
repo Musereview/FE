@@ -102,6 +102,16 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* 스크롤 동작은 그대로 두고 스크롤바 UI만 숨김 */
+  * {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* 구형 Edge */
+  }
+
+  *::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge */
+  }
 }
 
 /* ===== 타이포그래피 =====
