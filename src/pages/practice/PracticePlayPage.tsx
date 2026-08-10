@@ -434,7 +434,7 @@ function PracticePlayPage() {
           <button
             type="button"
             onClick={handleAnalyze}
-            className="button-large2 bg-primary-400 flex h-[60px] w-[175px] items-center justify-center gap-2 rounded-[6px] px-3 py-[6px] text-gray-950">
+            className="button-large2 bg-primary-400 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] px-3 py-[6px] text-gray-950">
             분석하기
             <CheckIcon className="h-6 w-6" />
           </button>

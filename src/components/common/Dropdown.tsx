@@ -41,7 +41,7 @@ function Dropdown({
         aria-haspopup={triggerAriaHasPopup}
         aria-expanded={isOpen}
         onClick={() => onOpenChange(!isOpen)}
-        className={triggerClassName}>
+        className={`cursor-pointer ${triggerClassName}`}>
         {trigger}
       </button>
 

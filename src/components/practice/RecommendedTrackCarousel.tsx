@@ -33,7 +33,7 @@ function RecommendedTrackCarousel({ tracks, onSelectTrack }: RecommendedTrackCar
           type="button"
           aria-label="이전 추천 트랙"
           onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
-          className="absolute top-1/2 -left-5 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-gray-700 bg-gray-800 opacity-0 transition-opacity group-hover:opacity-100">
+          className="absolute top-1/2 -left-5 flex size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-gray-700 bg-gray-800 opacity-0 transition-opacity group-hover:opacity-100">
           <ChevronLeftIcon />
         </button>
       )}
@@ -43,7 +43,7 @@ function RecommendedTrackCarousel({ tracks, onSelectTrack }: RecommendedTrackCar
           type="button"
           aria-label="다음 추천 트랙"
           onClick={() => setPage((prev) => Math.min(prev + 1, totalPages - 1))}
-          className="absolute top-1/2 -right-5 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-gray-700 bg-gray-800 opacity-0 transition-opacity group-hover:opacity-100">
+          className="absolute top-1/2 -right-5 flex size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-gray-700 bg-gray-800 opacity-0 transition-opacity group-hover:opacity-100">
           <ChevronRightIcon />
         </button>
       )}

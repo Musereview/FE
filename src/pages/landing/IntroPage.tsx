@@ -156,7 +156,7 @@ function IntroPage() {
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           aria-label="맨 위로"
-          className="absolute right-6 bottom-[60px] text-gray-950">
+          className="absolute right-6 bottom-[60px] cursor-pointer text-gray-950">
           <TopButton className="size-12" />
         </button>
       </section>

@@ -181,7 +181,7 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
         <button
           type="button"
           onClick={handleBack}
-          className="button-small absolute top-0 left-0 flex items-center gap-2 text-gray-400">
+          className="button-small absolute top-0 left-0 flex cursor-pointer items-center gap-2 text-gray-400">
           <ChevronLeftIcon className="size-5" />
           목록으로
         </button>
@@ -296,7 +296,7 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
             <button
               type="submit"
               disabled={isSubmitting}
-              className="button-medium bg-primary-400 mt-3 flex h-12 w-[288px] items-center justify-center self-end rounded-[6px] text-gray-950 disabled:opacity-50">
+              className="button-medium bg-primary-400 mt-3 flex h-12 w-[288px] cursor-pointer items-center justify-center self-end rounded-[6px] text-gray-950 disabled:cursor-not-allowed disabled:opacity-50">
               {isSubmitting ? '처리 중...' : submitLabel}
             </button>
           )}

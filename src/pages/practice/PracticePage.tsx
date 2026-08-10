@@ -162,7 +162,7 @@ function PracticePage() {
         <button
           type="button"
           onClick={() => refetch()}
-          className="button-small bg-primary-400 rounded-[6px] px-4 py-2 text-gray-950">
+          className="button-small bg-primary-400 cursor-pointer rounded-[6px] px-4 py-2 text-gray-950">
           다시 시도
         </button>
       </div>
@@ -181,7 +181,7 @@ function PracticePage() {
             <button
               type="button"
               onClick={() => refetchRecommended()}
-              className="button-small bg-primary-400 rounded-[6px] px-4 py-2 text-gray-950">
+              className="button-small bg-primary-400 cursor-pointer rounded-[6px] px-4 py-2 text-gray-950">
               다시 시도
             </button>
           </div>
@@ -235,7 +235,7 @@ function PracticePage() {
             <button
               type="button"
               onClick={() => navigate('/practice/new')}
-              className="button-small bg-primary-400 flex h-11 w-32 shrink-0 items-center justify-center gap-0.5 rounded-[6px] py-1.5 pr-1.5 pl-2.5 text-gray-950">
+              className="button-small bg-primary-400 flex h-11 w-32 shrink-0 cursor-pointer items-center justify-center gap-0.5 rounded-[6px] py-1.5 pr-1.5 pl-2.5 text-gray-950">
               생성하기
               <PlusIcon className="size-6" />
             </button>
@@ -273,7 +273,7 @@ function PracticePage() {
           <button
             type="button"
             onClick={() => refetchDetail()}
-            className="button-small bg-primary-400 rounded-[6px] px-4 py-2 text-gray-950">
+            className="button-small bg-primary-400 cursor-pointer rounded-[6px] px-4 py-2 text-gray-950">
             다시 시도
           </button>
         </Modal>

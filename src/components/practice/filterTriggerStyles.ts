@@ -26,7 +26,7 @@ export const FILTER_OPTION_LIST_PANEL_CLASSNAME = `${FILTER_PANEL_POSITION_CLASS
 
 export function getSelectableOptionRowClassName(selected: boolean, size: DropdownSize = 'compact') {
   const sizeClassName = size === 'large' ? 'h-12 px-4' : 'h-10 px-[18px]';
-  return `button-small flex w-full items-center ${sizeClassName} py-1 text-left whitespace-nowrap ${
+  return `button-small flex w-full cursor-pointer items-center ${sizeClassName} py-1 text-left whitespace-nowrap ${
     selected ? 'bg-primary-400 text-gray-950' : 'bg-gray-700 text-gray-300 hover:bg-primary-200 hover:text-gray-900'
   }`;
 }

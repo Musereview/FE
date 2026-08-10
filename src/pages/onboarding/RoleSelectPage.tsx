@@ -12,9 +12,10 @@ const ROLES: {
   Icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
   title: string;
   desc: string;
+  disabled?: boolean; // 아직 지원하지 않는 역할은 선택 불가
 }[] = [
   { key: 'student', Icon: StudentIcon, title: '학생', desc: '연주를 배우고 성장하고 있어요.' },
-  { key: 'teacher', Icon: TeacherIcon, title: '강사', desc: '학생의 성장을 지도하고 있어요.' },
+  { key: 'teacher', Icon: TeacherIcon, title: '강사', desc: '학생의 성장을 지도하고 있어요.', disabled: true },
 ];
 
 function RoleSelectPage() {
@@ -40,15 +41,16 @@ function RoleSelectPage() {
 
         {/* 역할 카드 */}
         <div className="mt-20 flex flex-col gap-4 md:flex-row">
-          {ROLES.map(({ key, Icon, title, desc }) => {
+          {ROLES.map(({ key, Icon, title, desc, disabled }) => {
             const selected = role === key;
             return (
               <button
                 key={key}
                 type="button"
                 onClick={() => setRole(key)}
+                disabled={disabled}
                 aria-pressed={selected}
-                className={`flex min-h-[164px] flex-1 cursor-pointer items-center gap-11 rounded-md p-10 text-left transition-colors ${
+                className={`flex min-h-[164px] flex-1 cursor-pointer items-center gap-11 rounded-md p-10 text-left transition-colors disabled:cursor-not-allowed ${
                   selected ? 'bg-primary-400 text-gray-950' : 'border-[0.5px] border-gray-600 text-gray-400'
                 }`}>
                 <Icon className={`size-14 shrink-0 ${selected ? 'text-gray-950' : 'text-gray-300'}`} />

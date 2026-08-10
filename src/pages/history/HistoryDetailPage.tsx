@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as Tone from 'tone';
+import ChevronLeftIcon from '@/assets/practice/chevron-left.svg?react';
 import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
 import { computeMeasureTimings, findMeasureIndexAtTime } from '@/utils/musicXmlTiming';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
@@ -355,7 +356,7 @@ export default function HistoryDetailPage() {
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-gray-950 pt-[68px] pb-[100px] font-sans text-gray-100 select-none">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-gray-950 pt-[76px] pb-[100px] font-sans text-gray-100 select-none">
       {isLoading && (
         <div className="absolute inset-0 z-50 bg-gray-950">
           {/* 페이지가 뷰포트보다 길어도 로딩 화면은 화면 중앙에 고정 */}
@@ -373,32 +374,17 @@ export default function HistoryDetailPage() {
         </div>
       )}
 
+      {/* [< 히스토리] 버튼  */}
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className="button-small absolute top-[76px] left-6 flex cursor-pointer items-center gap-2 text-gray-400">
+        <ChevronLeftIcon className="size-5" />
+        히스토리
+      </button>
+
       {/* 중앙 정렬 래퍼 */}
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col px-6 md:px-12 xl:px-0">
-        {/* [< 히스토리] 버튼  */}
-        <div className="relative mb-6 w-full">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="flex cursor-pointer items-center gap-[8px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300 transition-colors hover:text-white">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="aspect-square shrink-0">
-              <path
-                d="M16 19.5L7 12L16 4.5"
-                className="stroke-gray-400"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            히스토리
-          </button>
-        </div>
+      <div className="mx-auto flex w-full max-w-[1128px] flex-col px-6">
         {/* 상단 헤더 컴포넌트 */}
         <HistoryHeader
           title={historyData?.title}
@@ -422,7 +408,7 @@ export default function HistoryDetailPage() {
       </div>
 
       {/* 악보 뷰어 영역 */}
-      <div className="mx-auto mt-[24px] w-full max-w-[1280px] px-6 md:px-12 xl:px-0">
+      <div className="mx-auto mt-[24px] w-full max-w-[1128px] px-6">
         {xmlContent ? (
           <ScoreViewer
             ref={scoreViewerRef}
@@ -445,7 +431,7 @@ export default function HistoryDetailPage() {
       </div>
 
       {/* 분석 파트 설정 및 리포트 카드 컴포넌트 */}
-      <div className="mx-auto mt-[76px] flex w-full max-w-[1280px] flex-col px-6 md:px-12 xl:px-0">
+      <div className="mx-auto mt-[76px] flex w-full max-w-[1128px] flex-col px-6">
         {/* 인라인 스타일 제거 및 테일윈드 적용 */}
         <h2 className="w-full text-[24px] leading-[36px] font-medium tracking-[-0.6px] text-gray-300">
           분석 파트 설정
