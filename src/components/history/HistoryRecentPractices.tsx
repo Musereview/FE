@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import ClickableCard from '@/components/common/ClickableCard';
 import { isValidHistoryId } from '@/utils/historyId';
+import { formatDurationText } from '@/utils/duration';
 import type { HistoryListItem } from '@/types/history';
 
 interface HistoryRecentPracticesProps {
@@ -97,7 +98,7 @@ export default function HistoryRecentPractices({ data = [] }: HistoryRecentPract
             {/* 우측 구역 */}
             <div className="flex shrink-0 items-center justify-between gap-4 md:justify-end md:gap-6">
               {/* 소요 시간 */}
-              <div className="flex items-center gap-1.5 text-sm font-normal text-gray-500 md:w-[120px]">
+              <div className="flex items-center gap-1.5 text-sm font-normal whitespace-nowrap text-gray-500 md:w-[150px]">
                 <svg
                   width="16"
                   height="16"
@@ -109,7 +110,7 @@ export default function HistoryRecentPractices({ data = [] }: HistoryRecentPract
                   <path d="M8 4.5V8H11" className="stroke-gray-500" strokeWidth="1.2" strokeLinecap="round" />
                 </svg>
 
-                <span>소요시간 {item.durationMinutes}분</span>
+                <span>소요시간 {formatDurationText(item.durationSec)}</span>
               </div>
 
               {/* 날짜 */}
