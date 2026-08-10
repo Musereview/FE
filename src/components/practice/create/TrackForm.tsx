@@ -125,6 +125,7 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
 
   const [openField, setOpenField] = useState<FilterKey | null>(null);
   const isSubmitting = createBackingTrack.isPending || updateBackingTrack.isPending;
+  const isTitleValid = !!title.trim() && isValidTitle(title);
 
   const handleTimeSignatureChange = (next: TimeSignature) => {
     setTimeSignature(next);
@@ -140,7 +141,7 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!title.trim() || !isValidTitle(title)) return;
+    if (!isTitleValid) return;
     setSubmitError(null);
 
     const payload: SaveBackingTrackRequest = {
@@ -290,12 +291,14 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
 
           {submitError && <p className="body-small text-error text-right">{submitError}</p>}
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="button-medium bg-primary-400 mt-3 flex h-12 w-[288px] items-center justify-center self-end rounded-[6px] text-gray-950 disabled:opacity-50">
-            {isSubmitting ? '처리 중...' : submitLabel}
-          </button>
+          {isTitleValid && (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="button-medium bg-primary-400 mt-3 flex h-12 w-[288px] items-center justify-center self-end rounded-[6px] text-gray-950 disabled:opacity-50">
+              {isSubmitting ? '처리 중...' : submitLabel}
+            </button>
+          )}
         </form>
       </div>
 
