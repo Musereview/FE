@@ -6,8 +6,14 @@ export function createMetronome() {
   // 음원 버퍼를 미리 로드 (파일은 한 번만 받음)
   const hiBuffer = new Tone.ToneAudioBuffer('/sounds/click1.mp3');
   const loBuffer = new Tone.ToneAudioBuffer('/sounds/click2.mp3');
+  // 두 버퍼 로드가 모두 끝난 뒤에야 resolve — 로딩 도중 재생을 시작하면 첫 박 클릭음이
+  // buffer.loaded===false라 소리 없이 스킵되므로, 호출 측에서 이 프로미스를 기다린 뒤 start()해야 한다.
+  const waitLoaded = (buffer: Tone.ToneAudioBuffer) =>
+    buffer.loaded ? Promise.resolve() : new Promise<void>((resolve) => (buffer.onload = () => resolve()));
+  const ready = Promise.all([waitLoaded(hiBuffer), waitLoaded(loBuffer)]).then(() => undefined);
 
   return {
+    ready,
     start(bpm: number, beatsPerBar: number, onBeat: (time: number, beatInBar: number) => boolean | void) {
       transport.stop();
       transport.cancel();

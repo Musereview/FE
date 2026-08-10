@@ -29,7 +29,7 @@ function StepLearningPlayPage() {
   const navigate = useNavigate();
   const { curriculumId = '', stepId = '' } = useParams();
   const { keyCount, inputId, latencyByDevice } = useSettingStore();
-  const { start, stop, pause, resume } = useMetronome();
+  const { start, stop, pause, resume, ready } = useMetronome();
   const { noteOn: playNote, noteOff: stopNote, releaseAll } = usePianoSound();
   const setScore = useLearningScoreStore((s) => s.setScore); // 채점 결과 → 점수 화면 전달
 
@@ -92,6 +92,7 @@ function StepLearningPlayPage() {
   const endedRef = useRef(false); // 곡 끝 정지 중복 예약 방지
   const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
   const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
+  const countdownTokenRef = useRef(0); // 클릭음 버퍼 로딩 대기 중 재시작/언마운트가 끼어들면 이전 대기를 무효화
   // 진입 자동재생(마운트 시점 클로저)이 stale bpm으로 시작하지 않도록 최신 bpm을 ref로 유지
   const bpmRef = useRef(bpm);
   useEffect(() => {
@@ -141,6 +142,7 @@ function StepLearningPlayPage() {
 
   const stopPlayback = () => {
     cancelPendingStarts();
+    countdownTokenRef.current += 1; // 버퍼 로딩 대기 중이던 이전 runCountdown 무효화
     finalizeOpenNotes(); // stop() 전에 (stop이 transport 위치를 0으로 리셋하므로)
     stop();
     Tone.getDraw().cancel();
@@ -166,10 +168,12 @@ function StepLearningPlayPage() {
   const runCountdown = async () => {
     if (!isPracticeReady) return; // 실습 데이터 미확보 시 재생 시작 금지
     cancelPendingStarts(); // 대기 중인 자동재생·재시작 타이머 취소 (중복 시작 방지)
+    const token = ++countdownTokenRef.current;
     setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
     countdownEndedRef.current = false;
     await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
-    if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
+    await ready(); // 클릭음 버퍼 로딩이 끝난 뒤에야 카운트다운(소리+화면)을 시작 — 첫 박 소리 유실 방지
+    if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
     let cbeat = 0;
     start(bpmRef.current, beatsPerBar, (time, bib) => {
       if (cbeat >= COUNTDOWN_BEATS) {
@@ -276,6 +280,7 @@ function StepLearningPlayPage() {
     runCountdown();
     return () => {
       isMountedRef.current = false;
+      countdownTokenRef.current += 1; // 버퍼 로딩 대기 중이던 runCountdown 무효화 (StrictMode 이중 마운트 포함)
       cancelPendingStarts();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
