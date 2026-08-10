@@ -15,6 +15,7 @@ import HistoryHeader from '@/components/history/HistoryHeader';
 import HistoryPlayerBar from '@/components/history/HistoryPlayerBar';
 import AnalysisReportList from '@/components/history/AnalysisReportList';
 import MeasureSelectForm from '@/components/history/MeasureSelectForm';
+import { requestAnalysis } from '@/apis/analysis';
 
 // '4/4' → [4, 4]. 값이 없거나 형식이 깨지면 4/4로 폴백.
 function parseTimeSignature(raw?: string): [number, number] {
@@ -276,7 +277,7 @@ export default function HistoryDetailPage() {
     return isNaN(num) ? 0 : num;
   };
 
-  const handleAddAnalysis = () => {
+  const handleAddAnalysis = async () => {
     if (!xmlContent) {
       triggerToast('연주 기록이 없어 분석 구간을 선택할 수 없습니다.');
       return;
@@ -313,24 +314,35 @@ export default function HistoryDetailPage() {
     setIsPlaying(false);
     setIsLoading(true);
 
-    const fullTimings = computeMeasureTimings(xmlContent);
-    const audioStartOffsetSec = fullTimings.measureStartTimes[startNum - 1] ?? 0;
+    try {
+      const fullTimings = computeMeasureTimings(xmlContent);
+      const audioStartOffsetSec = fullTimings.measureStartTimes[startNum - 1] ?? 0;
 
-    const rangeXml = extractMeasureRange(xmlContent, startNum, endNum);
+      const rangeXml = extractMeasureRange(xmlContent, startNum, endNum);
 
-    setTimeout(() => {
+      const analysisResultData = await requestAnalysis({
+        playingId: Number(parsedHistoryId),
+        startBar: startNum,
+        endBar: endNum,
+      });
+
       setIsLoading(false);
+
       navigate(`/history/${parsedHistoryId}/analysis/result?start=${startNum}&end=${endNum}`, {
         state: {
           rangeXml,
           fromHistory: true,
-          analysisData: historyData,
+          analysisData: analysisResultData,
           audioStartOffsetSec, // 오디오 탐색용 오프셋 전달
           timeSignature: historyData?.timeSignature, // 박자표 전달
           key: historyData?.key, // 조성 전달
         },
       });
-    }, 2000);
+    } catch (error) {
+      console.error('추가 분석 요청 싪패:', error);
+      triggerToast('구간 분석 중 오류가 발생했습니다.');
+      setIsLoading(false);
+    }
   };
 
   // 잘못된 id는 조회를 시도 X -> 로딩보다 먼저 처리
