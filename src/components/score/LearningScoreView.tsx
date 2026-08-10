@@ -29,6 +29,8 @@ export interface LearningScoreHandle {
   getScore: () => LearningScore;
   /** 현재 재생 박(소수, quarter-beat 단위)으로 현재 음 하이라이트/놓친 음 처리를 갱신. rAF로 매 프레임 호출. */
   tick: (beat: number) => void;
+  /** 곡 종료 시 호출: 아직 판정 대기 중(보라색)인 마지막 음을 놓친 음(Bad)으로 확정·재색칠. */
+  finalize: () => void;
 }
 
 interface LearningScoreViewProps {
@@ -169,6 +171,17 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
         }
         if (newIdx >= 0 && !judgedRef.current.has(newIdx)) paintCurrent(events[newIdx].gnotes);
         currentIdxRef.current = newIdx;
+      },
+      // 마지막 음은 다음 음으로 "넘어가는" 순간이 없어 tick의 catch-up이 절대 실행되지 않는다 —
+      // 곡이 끝나는 시점에 직접 호출해 보라색으로 남지 않도록 확정한다.
+      finalize: () => {
+        const idx = currentIdxRef.current;
+        if (idx < 0) return;
+        const ev = eventsRef.current[idx];
+        if (!ev || judgedRef.current.has(idx)) return;
+        paintJudged(ev.gnotes, 'bad');
+        judgedRef.current.set(idx, 'bad');
+        missedRef.current.add(idx);
       },
       getStats: () => ({
         wrongHits: wrongHitsRef.current,

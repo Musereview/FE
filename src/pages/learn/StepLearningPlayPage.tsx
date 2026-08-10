@@ -157,6 +157,7 @@ function StepLearningPlayPage() {
   // 곡 끝: 진행점·마디·색칠을 끝 지점 그대로 두고 재생만 멈춤 (정지 버튼과 달리 위치 리셋 안 함)
   const finishPlayback = () => {
     finalizeOpenNotes(); // stop() 전에 열린 노트 확정
+    scoreRef.current?.finalize(); // 판정 대기 중이던 마지막 음을 확정(보라색으로 남지 않도록)
     stop();
     Tone.getDraw().cancel();
     setIsPlaying(false);
