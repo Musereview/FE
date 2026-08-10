@@ -191,14 +191,15 @@ function PracticePlayPage() {
     if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
 
     let cbeat = 0;
-    start(track?.bpm ?? 0, beatsPerBar, (time, bib) => {
+    // 카운트다운 중엔 진행점을 채우지 않는다(setBeatInBar 호출 안 함) — 실제 재생은 startPlayback()에서 시작
+    // 곡 박자(3/4 등)와 무관하게 카운트인은 항상 4박 "1(강)-2-3-4"로 들리게 beatsPerBar 대신 COUNTDOWN_BEATS 사용
+    start(track?.bpm ?? 0, COUNTDOWN_BEATS, (time) => {
       if (cbeat >= COUNTDOWN_BEATS) {
         if (countdownEndedRef.current) return false; // 중복 예약 방지
         countdownEndedRef.current = true;
         Tone.getDraw().schedule(() => {
           stop();
           Tone.getDraw().cancel();
-          setBeatInBar(-1);
           setCountdown(null);
           startPlayback();
         }, time);
@@ -206,7 +207,6 @@ function PracticePlayPage() {
       }
       const current = cbeat;
       Tone.getDraw().schedule(() => {
-        setBeatInBar(bib);
         setCountdown(COUNTDOWN_BEATS - current);
       }, time);
       cbeat += 1;
