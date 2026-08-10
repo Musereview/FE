@@ -80,7 +80,7 @@ export default function MainPage() {
       <div className="mx-auto mt-[98px] grid w-full max-w-[1400px] grid-cols-2 gap-6 px-10">
         <div className="flex w-full flex-col">
           <h3 className="mb-3 flex items-center font-sans text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-300">
-            최근 연습
+            최근 연주
           </h3>
           <RecentPractices data={dashboardData.recentPlayings} />
         </div>
