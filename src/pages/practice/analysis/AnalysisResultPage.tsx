@@ -44,6 +44,7 @@ export default function AnalysisResultPage() {
     audioUrl: passedAudioUrl,
     audioStartOffsetSec: passedAudioOffset,
   } = location.state || {};
+
   const { audioBlob, latencyMs: storeLatencyMs } = usePracticeResultStore();
   const latencyMs = location.state?.latencyMs ?? storeLatencyMs ?? 0;
 
@@ -234,13 +235,18 @@ export default function AnalysisResultPage() {
     const audio = new Audio(backingTrackUrl);
     audio.preload = 'auto';
     audio.load();
+
+    // 초기화 직후에도 오프셋이 있다면 바로 적용
+    const startOffset = scoreData?.sectionStartOffsetSec ?? 0;
+    audio.currentTime = startOffset;
+
     backingAudioRef.current = audio;
 
     return () => {
       audio.pause();
       backingAudioRef.current = null;
     };
-  }, [backingTrackUrl]);
+  }, [backingTrackUrl, scoreData?.sectionStartOffsetSec]);
 
   // 사용자 녹음 파일 오디오 엘리먼트 초기화
   useEffect(() => {
@@ -248,13 +254,17 @@ export default function AnalysisResultPage() {
     const audio = new Audio(recordingAudioUrl);
     audio.preload = 'auto';
     audio.load();
+
+    const startOffset = scoreData?.sectionStartOffsetSec ?? 0;
+    audio.currentTime = startOffset;
+
     recordingAudioRef.current = audio;
 
     return () => {
       audio.pause();
       recordingAudioRef.current = null;
     };
-  }, [recordingAudioUrl]);
+  }, [recordingAudioUrl, scoreData?.sectionStartOffsetSec]);
 
   const scoreXml = scoreData?.scoreXml ?? '';
   const isLoading = isQueryLoading || isScoreLoading;
@@ -267,9 +277,19 @@ export default function AnalysisResultPage() {
 
   useEffect(() => {
     if (!scoreData) return;
+
+    const startOffset = scoreData.sectionStartOffsetSec ?? 0;
+
     playbackTimeRef.current = scoreData.sectionStartOffsetSec;
     setCurrentMeasureIndex(scoreData.startIndex);
     scoreViewerRef.current?.jumpToMeasure(scoreData.startIndex);
+
+    if (backingAudioRef.current) {
+      backingAudioRef.current.currentTime = startOffset;
+    }
+    if (recordingAudioRef.current) {
+      recordingAudioRef.current.currentTime = startOffset;
+    }
   }, [scoreData]);
 
   const handleRewind = useCallback(() => {

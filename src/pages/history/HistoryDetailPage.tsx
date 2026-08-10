@@ -319,20 +319,21 @@ export default function HistoryDetailPage() {
       const audioStartOffsetSec = fullTimings.measureStartTimes[startNum - 1] ?? 0;
 
       const rangeXml = extractMeasureRange(xmlContent, startNum, endNum);
-
+      //분석 요청 전송
       const analysisResultData = await requestAnalysis({
         playingId: Number(parsedHistoryId),
         startBar: startNum,
         endBar: endNum,
       });
 
-      setIsLoading(false);
+      const realAnalysisId = analysisResultData.analysisId;
 
       navigate(`/history/${parsedHistoryId}/analysis/result?start=${startNum}&end=${endNum}`, {
         state: {
           rangeXml,
           fromHistory: true,
           analysisData: analysisResultData,
+          analysisId: realAnalysisId,
           audioStartOffsetSec, // 오디오 탐색용 오프셋 전달
           timeSignature: historyData?.timeSignature, // 박자표 전달
           key: historyData?.key, // 조성 전달
