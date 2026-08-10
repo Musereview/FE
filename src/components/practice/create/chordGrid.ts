@@ -51,10 +51,11 @@ export function fromChordProgressionEntries(entries: BackingTrackChordEntry[], t
   return measures;
 }
 
-// 폼 그리드(string[][]) → 실제 백엔드 요청(measureNo/sequenceNo 좌표 목록), 빈 칸은 제외
+// 폼 그리드(string[][]) → 실제 백엔드 요청(measureNo/sequenceNo 좌표 목록)
+// cascade로 채워진 반복 칸은 제외하고, 실제로 선택(변경)된 지점만 전송 — 화면에 보이는 것과 동일하게
 export function toChordProgressionEntries(measures: string[][]): BackingTrackChordEntry[] {
   const entries: BackingTrackChordEntry[] = [];
-  measures.forEach((measure, measureIndex) => {
+  getDisplayMeasures(measures).forEach((measure, measureIndex) => {
     measure.forEach((chordName, cellIndex) => {
       if (!chordName) return;
       entries.push({ measureNo: measureIndex + 1, sequenceNo: cellIndex + 1, chordName });
