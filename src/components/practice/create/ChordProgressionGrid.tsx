@@ -35,7 +35,7 @@ function ChordProgressionGrid({ measures, selectedCell, onSelectCell, className 
               onClick={() => onSelectCell({ measureIndex, cellIndex })}
               aria-pressed={isSelected}
               aria-label={`${measureIndex + 1}번째 마디 ${cellIndex + 1}번째 코드`}
-              className={`button-small flex size-12 shrink-0 items-center justify-center rounded-[4px] text-center outline-none ${
+              className={`button-small flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-center outline-none ${
                 isSelected
                   ? 'bg-secondary-600 border-secondary-100 text-secondary-100 border-[0.5px]'
                   : 'bg-gray-600 text-gray-950'

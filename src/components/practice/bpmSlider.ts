@@ -11,5 +11,5 @@ export const BPM_SLIDER_TRACK_CLASSNAME =
   '[&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-primary-300';
 
 export function getBpmStepperButtonClassName(sizeClassName: string) {
-  return `button-small flex ${sizeClassName} shrink-0 items-center justify-center bg-primary-400 text-gray-950`;
+  return `button-small flex ${sizeClassName} shrink-0 cursor-pointer items-center justify-center bg-primary-400 text-gray-950`;
 }

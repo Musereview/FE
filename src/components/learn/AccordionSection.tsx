@@ -12,7 +12,7 @@ interface AccordionSectionProps {
 function AccordionSection({ icon, title, isOpen, onToggle, children }: AccordionSectionProps) {
   return (
     <div className="flex w-full flex-col gap-6 rounded-[6px] bg-gray-800 p-6">
-      <button type="button" onClick={onToggle} className="flex w-full items-center justify-between">
+      <button type="button" onClick={onToggle} className="flex w-full cursor-pointer items-center justify-between">
         <span className={`flex items-center gap-2 text-gray-200 ${icon ? 'body-large-b' : 'body-large-m'}`}>
           {icon && <span className="text-primary-400">{icon}</span>}
           {title}

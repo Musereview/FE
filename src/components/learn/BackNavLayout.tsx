@@ -14,7 +14,7 @@ function BackNavLayout({ children }: BackNavLayoutProps) {
       <button
         type="button"
         onClick={() => navigate(-1)}
-        className="button-small absolute top-[76px] left-6 flex items-center gap-2 text-gray-400">
+        className="button-small absolute top-[76px] left-6 flex cursor-pointer items-center gap-2 text-gray-400">
         <ChevronLeftIcon className="size-5" />
         뒤로가기
       </button>

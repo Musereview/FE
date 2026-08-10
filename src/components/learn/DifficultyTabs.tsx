@@ -16,7 +16,7 @@ function DifficultyTabs({ value, onChange }: DifficultyTabsProps) {
             key={difficulty}
             type="button"
             onClick={() => onChange(difficulty)}
-            className={`flex w-16 items-center justify-center border-b p-2 ${
+            className={`flex w-16 cursor-pointer items-center justify-center border-b p-2 ${
               isActive
                 ? 'body-large-b border-primary-400 text-primary-300'
                 : 'body-large-m border-transparent text-gray-500'
