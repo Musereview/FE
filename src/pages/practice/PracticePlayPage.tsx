@@ -215,12 +215,16 @@ function PracticePlayPage() {
 
   const startPlayback = async () => {
     cancelAutoStart(); // 대기 중인 자동재생 취소 (중복 시작 방지)
+    // 카운트다운 종료 콜백에서 호출된 경우, await 도중 재시작(stopPlayback)이 끼어들면 토큰이 바뀌어 무효화된다 —
+    // 안 그러면 새로 시작한 카운트다운을 이 stale 호출이 뒤늦게 가로채 곧장 재생을 시작시켜버린다
+    const token = ++countdownTokenRef.current;
     setCountdown(null);
     await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능)
-    if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
+    if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
     totalBeatRef.current = 0;
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
     await stopRecording(); // 이전 녹음(있다면) 정리 후 새로 시작
+    if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
     try {
       startRecording();
     } catch {
