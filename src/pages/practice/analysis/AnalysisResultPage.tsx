@@ -557,7 +557,7 @@ export default function AnalysisResultPage() {
             navigate(`/practice/${targetId}/play`);
           }}
           className="cursor-pointer rounded-xl bg-gray-800 px-8 py-4 text-base font-medium text-gray-300 shadow-md transition-colors hover:bg-gray-700">
-          다시 연주하기
+          부분 연주하기
         </button>
         <button
           onClick={() => navigate('/practice')}
