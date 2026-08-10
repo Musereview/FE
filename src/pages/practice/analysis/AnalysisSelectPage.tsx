@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -82,23 +82,19 @@ export default function AnalysisSelectPage() {
 
   const backingAudioUrl = contextData?.backingTrackAudioFileUrl || '';
 
-  const recordingAudioUrl = useMemo(() => {
-    if (contextData?.recordingFileUrl) {
-      return contextData.recordingFileUrl;
-    }
-    if (audioBlob) {
-      return URL.createObjectURL(audioBlob);
-    }
-    return '';
-  }, [contextData?.recordingFileUrl, audioBlob]);
+  const [localBlobUrl, setLocalBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    if (contextData?.recordingFileUrl || !audioBlob) return;
+    const url = URL.createObjectURL(audioBlob);
+    setLocalBlobUrl(url);
     return () => {
-      if (audioBlob && recordingAudioUrl && !contextData?.recordingFileUrl) {
-        URL.revokeObjectURL(recordingAudioUrl);
-      }
+      URL.revokeObjectURL(url);
+      setLocalBlobUrl(null);
     };
-  }, [audioBlob, recordingAudioUrl, contextData?.recordingFileUrl]);
+  }, [audioBlob, contextData?.recordingFileUrl]);
+
+  const recordingAudioUrl = contextData?.recordingFileUrl || localBlobUrl || '';
 
   // 녹음된 연주 데이터를 프론트엔드에서 MusicXML 악보로 변환
   useEffect(() => {
@@ -133,8 +129,8 @@ export default function AnalysisSelectPage() {
     setMeasureStartTimes(timings.measureStartTimes);
 
     if (recording && recording.length > 0 && timings.measureStartTimes.length > 0) {
-      const lastNote = recording[recording.length - 1];
-      const lastNoteEndTime = lastNote.offSec ?? lastNote.onSec;
+      const lastNoteEndTime =
+        recording.length > 0 ? Math.max(...recording.map((note: PlayedNote) => note.offSec ?? note.onSec)) : 0;
       const adjustedEndTime = Math.max(0, lastNoteEndTime - (latencyMs ?? 0) / 1000);
 
       let calculatedLastBar = 1;
@@ -240,7 +236,9 @@ export default function AnalysisSelectPage() {
   };
   const handleChange = (val: string, setter: (v: string) => void) => {
     setter(val.replace(/[^0-9]/g, ''));
-    setUserTouchedEndMeasure(true);
+    if (setter === setEndMeasure) {
+      setUserTouchedEndMeasure(true);
+    }
   };
 
   const getMeasureNumber = (val: string) => {
