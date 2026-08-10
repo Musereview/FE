@@ -173,7 +173,14 @@ function StepLearningPlayPage() {
     setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
     countdownEndedRef.current = false;
     await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
-    await ready(); // 클릭음 버퍼 로딩이 끝난 뒤에야 카운트다운(소리+화면)을 시작 — 첫 박 소리 유실 방지
+    try {
+      await ready(); // 클릭음 버퍼 로딩이 끝난 뒤에야 카운트다운(소리+화면)을 시작 — 첫 박 소리 유실 방지
+    } catch (error) {
+      if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 무시
+      console.error('클릭음 버퍼 로딩 실패', error);
+      setCountdown(null); // 숫자가 멈춰 남지 않도록 취소 — 재생 버튼으로 다시 시도 가능한 상태로 복귀
+      return;
+    }
     if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
     let cbeat = 0;
     // 카운트다운 중엔 진행점을 채우지 않는다(setBeatInBar 호출 안 함) — 실제 재생은 startPlayback()에서 시작

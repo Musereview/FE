@@ -117,7 +117,17 @@ function LatencyCheckPage() {
   // 측정 흐름 (카운트다운 + 측정)
   const runMeasureFlow = async () => {
     const token = ++measureTokenRef.current;
-    await ready(); // 클릭음 버퍼 로딩이 끝난 뒤에야 카운트다운(소리+화면)을 시작 — 첫 박 소리 유실 방지
+    try {
+      await ready(); // 클릭음 버퍼 로딩이 끝난 뒤에야 카운트다운(소리+화면)을 시작 — 첫 박 소리 유실 방지
+    } catch (error) {
+      if (token !== measureTokenRef.current) return; // 대기 중 재시작/언마운트 발생 시 무시
+      console.error('클릭음 버퍼 로딩 실패', error);
+      // countdown 단계에 멈춰 있지 않도록 intro로 복귀 — 헤더의 재시작 버튼으로 다시 시도 가능
+      setPhase('intro');
+      setBeatInBar(-1);
+      setCountdown(null);
+      return;
+    }
     if (token !== measureTokenRef.current) return; // 대기 중 재시작/언마운트 발생 시 중단
 
     let totalBeat = 0;

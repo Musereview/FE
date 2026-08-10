@@ -1,16 +1,46 @@
 import * as Tone from 'tone';
 
+// 버퍼 로딩이 이 시간 안에 끝나지 않으면 실패로 간주 (fetch가 응답 없이 멈추는 경우 대비 — onerror만으론 못 잡음)
+const BUFFER_LOAD_TIMEOUT_MS = 10000;
+
+// ToneAudioBuffer는 onerror를 인스턴스 프로퍼티가 아니라 생성자 인자로만 받으므로(내부적으로
+// load(url).catch(onerror)에 연결됨), 생성과 동시에 성공/실패/타임아웃을 모두 반영하는 ready
+// 프로미스를 만들어 반환한다. 요청 실패나 무응답 시 reject로 명시적으로 settle되어야 호출 측
+// await가 영원히 걸려있지 않고 실패를 감지해 카운트다운 등을 취소할 수 있다.
+const loadBuffer = (url: string) => {
+  let buffer!: Tone.ToneAudioBuffer;
+  const ready = new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('클릭음 버퍼 로딩 시간 초과')), BUFFER_LOAD_TIMEOUT_MS);
+    buffer = new Tone.ToneAudioBuffer(
+      url,
+      () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+  return { buffer, ready };
+};
+
 export function createMetronome() {
   const transport = Tone.getTransport();
 
   // 음원 버퍼를 미리 로드 (파일은 한 번만 받음)
-  const hiBuffer = new Tone.ToneAudioBuffer('/sounds/click1.mp3');
-  const loBuffer = new Tone.ToneAudioBuffer('/sounds/click2.mp3');
   // 두 버퍼 로드가 모두 끝난 뒤에야 resolve — 로딩 도중 재생을 시작하면 첫 박 클릭음이
   // buffer.loaded===false라 소리 없이 스킵되므로, 호출 측에서 이 프로미스를 기다린 뒤 start()해야 한다.
-  const waitLoaded = (buffer: Tone.ToneAudioBuffer) =>
-    buffer.loaded ? Promise.resolve() : new Promise<void>((resolve) => (buffer.onload = () => resolve()));
-  const ready = Promise.all([waitLoaded(hiBuffer), waitLoaded(loBuffer)]).then(() => undefined);
+  const hi = loadBuffer('/sounds/click1.mp3');
+  const lo = loadBuffer('/sounds/click2.mp3');
+  const hiBuffer = hi.buffer;
+  const loBuffer = lo.buffer;
+  const ready = Promise.all([hi.ready, lo.ready]).then(() => undefined);
+  // ready는 버퍼 생성 즉시(호출 측이 await하기 전부터) 로딩을 시작하므로, 실패가 await 이전에 먼저
+  // settle되면 콘솔에 unhandled rejection 경고가 뜬다. 실제 오류 처리는 각 호출부의 await ready()에서
+  // 하므로, 여기선 경고만 막기 위한 빈 catch를 별도로 붙여둔다 (원본 ready는 그대로 반환해 정상 reject됨).
+  ready.catch(() => {});
 
   return {
     ready,
