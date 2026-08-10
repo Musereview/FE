@@ -7,6 +7,7 @@ import { mapListItemToTrack, mapDetailToTrack, mapRecommendedItemToTrack } from 
 import { useBackingTracks } from '@/hooks/useBackingTracks';
 import { useBackingTrackDetail } from '@/hooks/useBackingTrackDetail';
 import { useRecommendedBackingTracks } from '@/hooks/useRecommendedBackingTracks';
+import { useProfile } from '@/hooks/useProfile';
 import { useCreatePlaying } from '@/hooks/useCreatePlaying';
 import { usePlayingSessionStore } from '@/stores/playingSessionStore';
 import TrackCard from '@/components/practice/TrackCard';
@@ -60,6 +61,7 @@ function PracticePage() {
     isError: isRecommendedError,
     refetch: refetchRecommended,
   } = useRecommendedBackingTracks();
+  const { data: profile } = useProfile();
 
   const detailId = selectedTrackId ? Number(selectedTrackId) : null;
   const {
@@ -172,7 +174,7 @@ function PracticePage() {
   return (
     <div className="mx-auto flex w-full max-w-[1128px] flex-col px-6">
       <section className="border-b border-gray-700 py-[76px]">
-        <h2 className="body-medium text-primary-300 mb-5">김뮤즈 님을 위한 추천 트랙</h2>
+        <h2 className="body-medium text-primary-300 mb-5">{profile?.nickname ?? ''} 님을 위한 추천 트랙</h2>
         {isRecommendedLoading ? (
           <div className="body-medium flex h-40 items-center justify-center text-gray-500">불러오는 중…</div>
         ) : isRecommendedError ? (
