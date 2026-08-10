@@ -125,7 +125,8 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
 
   const [openField, setOpenField] = useState<FilterKey | null>(null);
   const isSubmitting = createBackingTrack.isPending || updateBackingTrack.isPending;
-  const isTitleValid = !!title.trim() && isValidTitle(title);
+  const normalizedTitle = title.trim();
+  const isTitleValid = !!normalizedTitle && isValidTitle(normalizedTitle);
 
   const handleTimeSignatureChange = (next: TimeSignature) => {
     setTimeSignature(next);
@@ -145,7 +146,7 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
     setSubmitError(null);
 
     const payload: SaveBackingTrackRequest = {
-      title: title.trim(),
+      title: normalizedTitle,
       genre,
       keySignature: keyNote,
       scaleType: keyMode === 'major' ? 'MAJOR' : 'MINOR',
