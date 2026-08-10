@@ -37,12 +37,14 @@ export default function AnalysisSelectPage() {
   const [xmlContent, setXmlContent] = useState('');
   const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
   const [totalBars, setTotalBars] = useState<number>(20);
+  const [userTouchedEndMeasure, setUserTouchedEndMeasure] = useState(false);
 
   const scoreViewerRef = useRef<ScoreViewerHandle | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 언마운트 시 토스트 타이머 정리
+  const backingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) {
@@ -57,47 +59,46 @@ export default function AnalysisSelectPage() {
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
   }, []);
 
+  // targetId가 숫자로 확실히 변환될 때만 쿼리가 실행되도록 수정 (오인식 토스트 방지)
+  const parsedTargetId = Number(targetId);
   const { data: contextData, isError: isContextError } = useQuery({
     queryKey: ['analysisContext', targetId],
-    queryFn: () => getAnalysisContext(Number(targetId)),
-    enabled: !!targetId,
+    queryFn: () => getAnalysisContext(parsedTargetId),
+    enabled: !isNaN(parsedTargetId) && parsedTargetId > 0,
   });
-
-  const src = audioBlob
-    ? URL.createObjectURL(audioBlob)
-    : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-
-  // 1) 연주 화면에서 저장된 recording을 MusicXML로 변환해 악보를 그린다
 
   useEffect(() => {
     if (contextData?.totalBars) {
       setTotalBars(contextData.totalBars);
-      setEndMeasure(`${contextData.totalBars}마디`);
     }
   }, [contextData]);
 
   useEffect(() => {
-    if (isContextError) {
+    // 초기 로딩 시점에 targetId가 없을 때 에러 토스트가 뜨지 않도록 방어 코드 추가
+    if (isContextError && !isNaN(parsedTargetId) && parsedTargetId > 0) {
       triggerToast('분석 컨텍스트 조회에 실패했습니다.');
     }
-  }, [isContextError, triggerToast]);
+  }, [isContextError, triggerToast, parsedTargetId]);
 
-  //audioBlob을 useMemo로 감싸서 한 번만 생성되도록 최적화
+  const backingAudioUrl = contextData?.backingTrackAudioFileUrl || '';
 
-  const passedAudioUrl = useMemo(() => {
+  const recordingAudioUrl = useMemo(() => {
+    if (contextData?.recordingFileUrl) {
+      return contextData.recordingFileUrl;
+    }
     if (audioBlob) {
       return URL.createObjectURL(audioBlob);
     }
-    return contextData?.backingTrackAudioFileUrl || '';
-  }, [audioBlob, contextData?.backingTrackAudioFileUrl]);
-  //컴포넌트 언마운트 시 Blob URL 메모리 해제 정리
+    return '';
+  }, [contextData?.recordingFileUrl, audioBlob]);
+
   useEffect(() => {
     return () => {
-      if (audioBlob && passedAudioUrl) {
-        URL.revokeObjectURL(passedAudioUrl);
+      if (audioBlob && recordingAudioUrl && !contextData?.recordingFileUrl) {
+        URL.revokeObjectURL(recordingAudioUrl);
       }
     };
-  }, [audioBlob, passedAudioUrl]);
+  }, [audioBlob, recordingAudioUrl, contextData?.recordingFileUrl]);
 
   // 녹음된 연주 데이터를 프론트엔드에서 MusicXML 악보로 변환
   useEffect(() => {
@@ -125,52 +126,106 @@ export default function AnalysisSelectPage() {
     }
   }, [recording, contextData, latencyMs]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // 마디 타이밍 및 유저 연주 마지막 마디 계산
   useEffect(() => {
     if (!xmlContent) return;
     const timings = computeMeasureTimings(xmlContent);
     setMeasureStartTimes(timings.measureStartTimes);
-  }, [xmlContent]);
 
-  // 오디오 엘리먼트 초기화 및 재생 준비
+    if (recording && recording.length > 0 && timings.measureStartTimes.length > 0) {
+      const lastNote = recording[recording.length - 1];
+      const lastNoteEndTime = lastNote.offSec ?? lastNote.onSec;
+      const adjustedEndTime = Math.max(0, lastNoteEndTime - (latencyMs ?? 0) / 1000);
+
+      let calculatedLastBar = 1;
+      for (let i = 0; i < timings.measureStartTimes.length; i++) {
+        if (timings.measureStartTimes[i] <= adjustedEndTime) {
+          calculatedLastBar = i + 1;
+        } else {
+          break;
+        }
+      }
+
+      const finalEndBar = Math.min(calculatedLastBar, contextData?.totalBars || calculatedLastBar);
+
+      if (!userTouchedEndMeasure) {
+        setEndMeasure(`${finalEndBar}마디`);
+      }
+    } else if (contextData?.totalBars && !userTouchedEndMeasure) {
+      setEndMeasure(`${contextData.totalBars}마디`);
+    }
+  }, [xmlContent, recording, latencyMs, contextData?.totalBars, userTouchedEndMeasure]);
+
+  // 백킹 트랙 오디오 초기화
   useEffect(() => {
-    if (!passedAudioUrl) return;
+    if (!backingAudioUrl) return;
 
-    const audio = new Audio(passedAudioUrl);
+    const audio = new Audio(backingAudioUrl);
     audio.preload = 'auto';
     audio.load();
-    audioRef.current = audio;
-    audio.onended = () => handleRewind();
-    audio.onerror = () => {
-      console.error('오디오 로드 실패', {
-        src,
-        error: audio.error,
-        networkState: audio.networkState,
-      });
+    backingAudioRef.current = audio;
+
+    audio.onended = () => {
+      handleRewind();
     };
+
+    audio.onerror = () => {
+      console.error('백킹 트랙 오디오 로드 실패', { src: backingAudioUrl, error: audio.error });
+    };
+
     return () => {
       audio.pause();
-      audioRef.current = null;
-      if (audioBlob) URL.revokeObjectURL(src);
+      backingAudioRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [passedAudioUrl]);
+  }, [backingAudioUrl]);
 
+  // 녹음 파일 오디오 초기화
   useEffect(() => {
-    if (!audioRef.current) return;
-    if (isPlaying) audioRef.current.play().catch((err) => console.error('오디오 재생 실패', err));
-    else audioRef.current.pause();
+    if (!recordingAudioUrl) return;
+
+    const audio = new Audio(recordingAudioUrl);
+    audio.preload = 'auto';
+    audio.load();
+    recordingAudioRef.current = audio;
+
+    audio.onerror = () => {
+      console.error('녹음 파일 오디오 로드 실패', { src: recordingAudioUrl, error: audio.error });
+    };
+
+    return () => {
+      audio.pause();
+      recordingAudioRef.current = null;
+    };
+  }, [recordingAudioUrl]);
+
+  // 재생 / 정지 시 두 오디오 동시 제어
+  useEffect(() => {
+    const backing = backingAudioRef.current;
+    const recordingAudio = recordingAudioRef.current;
+
+    if (isPlaying) {
+      if (backing && recordingAudio) {
+        recordingAudio.currentTime = backing.currentTime;
+      }
+      backing?.play().catch((err: Error) => console.error('백킹 트랙 재생 실패', err));
+      recordingAudio?.play().catch((err: Error) => console.error('녹음 파일 재생 실패', err));
+    } else {
+      backing?.pause();
+      recordingAudio?.pause();
+    }
   }, [isPlaying]);
 
+  // 악보 커서 싱크 훅 (백킹 트랙 시간에 맞춰 악보 커서가 끝까지 정상 작동하도록 연결)
   const { currentMeasureIndex } = useScoreCursorSync({
-    audioRef,
+    audioRef: backingAudioRef,
     measureStartTimes,
     isPlaying,
   });
 
   const handleRewind = useCallback(() => {
     setIsPlaying(false);
-    if (audioRef.current) audioRef.current.currentTime = 0;
+    if (backingAudioRef.current) backingAudioRef.current.currentTime = 0;
+    if (recordingAudioRef.current) recordingAudioRef.current.currentTime = 0;
     scoreViewerRef.current?.reset();
   }, []);
 
@@ -183,7 +238,10 @@ export default function AnalysisSelectPage() {
     const onlyNum = extractNumber(val);
     setter(!onlyNum || onlyNum === '0' ? defaultVal : `${onlyNum}마디`);
   };
-  const handleChange = (val: string, setter: (v: string) => void) => setter(val.replace(/[^0-9]/g, ''));
+  const handleChange = (val: string, setter: (v: string) => void) => {
+    setter(val.replace(/[^0-9]/g, ''));
+    setUserTouchedEndMeasure(true);
+  };
 
   const getMeasureNumber = (val: string) => {
     const num = parseInt(val.replace(/[^0-9]/g, ''), 10);
@@ -219,7 +277,8 @@ export default function AnalysisSelectPage() {
       return;
     }
 
-    audioRef.current?.pause();
+    backingAudioRef.current?.pause();
+    recordingAudioRef.current?.pause();
 
     const parsedPlayingId = targetId ? parseInt(String(targetId), 10) : NaN;
 
@@ -246,7 +305,7 @@ export default function AnalysisSelectPage() {
           analysisId: realAnalysisId,
           recording,
           latencyMs,
-          audioUrl: passedAudioUrl,
+          audioUrl: backingAudioUrl,
         },
       });
     } catch (error: unknown) {
