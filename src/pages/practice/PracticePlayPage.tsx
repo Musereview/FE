@@ -35,7 +35,7 @@ function PracticePlayPage() {
   const navigate = useNavigate();
   const { practiceId } = useParams();
   const { keyCount, inputId, latencyByDevice } = useSettingStore();
-  const { start, stop, pause, resume } = useMetronome();
+  const { start, stop, pause, resume, ready } = useMetronome();
   const {
     noteOn: playNote,
     noteOff: stopNote,
@@ -73,6 +73,7 @@ function PracticePlayPage() {
   const pauseStartRef = useRef(performance.now()); // 정지 시각 (노트바 얼림 기준 + 재개 시 보정)
   const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
   const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
+  const countdownTokenRef = useRef(0); // 클릭음 버퍼 로딩 대기 중 재시작/언마운트가 끼어들면 이전 대기를 무효화
 
   // 반주 음원(audioFileUrl)을 메트로놈/녹음과 같은 Tone.Transport 타임라인에 동기화해 함께 재생
   // (카운트인 중엔 sync하지 않음 — 실제 곡 재생이 시작되는 startPlayback()에서만 sync)
@@ -162,6 +163,7 @@ function PracticePlayPage() {
 
   const stopPlayback = () => {
     cancelAutoStart(); // 재시작/분석 등으로 정지 시 대기 중인 자동재생 취소
+    countdownTokenRef.current += 1; // 버퍼 로딩 대기 중이던 이전 runCountdown 무효화
     isPlaybackActiveRef.current = false; // 지연 로딩 onload가 이후엔 재생을 시작하지 않도록
     finalizeOpenNotes(performance.now()); // stop() 전에 (stop이 transport 위치를 0으로 리셋하므로)
     stop();
@@ -180,21 +182,31 @@ function PracticePlayPage() {
   // 카운트다운(4,3,2,1): 메트로놈 박에 맞춰 숫자를 표시하고, 끝나면 START 안내 후 실제 재생 시작
   const runCountdown = async () => {
     cancelAutoStart(); // 대기 중인 자동재생 취소 (중복 시작 방지)
+    const token = ++countdownTokenRef.current;
     setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
     countdownEndedRef.current = false;
     await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능)
+    try {
+      await ready(); // 클릭음 버퍼 로딩이 끝난 뒤에야 카운트다운(소리+화면)을 시작 — 첫 박 소리 유실 방지
+    } catch (error) {
+      if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 무시
+      console.error('클릭음 버퍼 로딩 실패', error);
+      setCountdown(null); // 숫자가 멈춰 남지 않도록 취소 — 재생 버튼으로 다시 시도 가능한 상태로 복귀
+      return;
+    }
 
-    if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
+    if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
 
     let cbeat = 0;
-    start(track?.bpm ?? 0, beatsPerBar, (time, bib) => {
+    // 카운트다운 중엔 진행점을 채우지 않는다(setBeatInBar 호출 안 함) — 실제 재생은 startPlayback()에서 시작
+    // 곡 박자(3/4 등)와 무관하게 카운트인은 항상 4박 "1(강)-2-3-4"로 들리게 beatsPerBar 대신 COUNTDOWN_BEATS 사용
+    start(track?.bpm ?? 0, COUNTDOWN_BEATS, (time) => {
       if (cbeat >= COUNTDOWN_BEATS) {
         if (countdownEndedRef.current) return false; // 중복 예약 방지
         countdownEndedRef.current = true;
         Tone.getDraw().schedule(() => {
           stop();
           Tone.getDraw().cancel();
-          setBeatInBar(-1);
           setCountdown(null);
           startPlayback();
         }, time);
@@ -202,7 +214,6 @@ function PracticePlayPage() {
       }
       const current = cbeat;
       Tone.getDraw().schedule(() => {
-        setBeatInBar(bib);
         setCountdown(COUNTDOWN_BEATS - current);
       }, time);
       cbeat += 1;
@@ -211,12 +222,16 @@ function PracticePlayPage() {
 
   const startPlayback = async () => {
     cancelAutoStart(); // 대기 중인 자동재생 취소 (중복 시작 방지)
+    // 카운트다운 종료 콜백에서 호출된 경우, await 도중 재시작(stopPlayback)이 끼어들면 토큰이 바뀌어 무효화된다 —
+    // 안 그러면 새로 시작한 카운트다운을 이 stale 호출이 뒤늦게 가로채 곧장 재생을 시작시켜버린다
+    const token = ++countdownTokenRef.current;
     setCountdown(null);
     await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능)
-    if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
+    if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
     totalBeatRef.current = 0;
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
     await stopRecording(); // 이전 녹음(있다면) 정리 후 새로 시작
+    if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
     try {
       startRecording();
     } catch {
@@ -366,6 +381,7 @@ function PracticePlayPage() {
     runCountdown();
     return () => {
       isMountedRef.current = false;
+      countdownTokenRef.current += 1; // 버퍼 로딩 대기 중이던 runCountdown 무효화 (StrictMode 이중 마운트 포함)
       cancelAutoStart();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

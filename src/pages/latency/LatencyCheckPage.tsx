@@ -25,7 +25,7 @@ const REQUIRED_SAMPLES = 3; // 유효 입력 3회 이상 → 성공
 function LatencyCheckPage() {
   const navigate = useNavigate();
   const { keyCount, inputId, bpm, setLatency } = useSettingStore();
-  const { start, stop } = useMetronome();
+  const { start, stop, ready } = useMetronome();
   const { noteOn: playNote, noteOff: stopNote } = usePianoSound();
 
   const [phase, setPhase] = useState<Phase>('intro');
@@ -47,6 +47,8 @@ function LatencyCheckPage() {
   const samplesRef = useRef<number[]>([]); // 유효 offset 샘플
   const usedBeatsRef = useRef<Set<number>>(new Set()); // 이미 샘플로 채택된 정박 (코드 입력 시 note-on 중복 집계 방지)
   const finishedRef = useRef(false);
+  // 클릭음 버퍼 로딩 대기 중 재시작/언마운트가 끼어들면 이 값이 바뀌어 이전 대기를 무효화한다
+  const measureTokenRef = useRef(0);
   // intro부터 시작 (마운트 + 재시작 공용)
   const introTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 측정 완료 후 자동 복귀 타이머 (재시작/언마운트 시 취소 필요)
@@ -113,7 +115,21 @@ function LatencyCheckPage() {
   };
 
   // 측정 흐름 (카운트다운 + 측정)
-  const runMeasureFlow = () => {
+  const runMeasureFlow = async () => {
+    const token = ++measureTokenRef.current;
+    try {
+      await ready(); // 클릭음 버퍼 로딩이 끝난 뒤에야 카운트다운(소리+화면)을 시작 — 첫 박 소리 유실 방지
+    } catch (error) {
+      if (token !== measureTokenRef.current) return; // 대기 중 재시작/언마운트 발생 시 무시
+      console.error('클릭음 버퍼 로딩 실패', error);
+      // countdown 단계에 멈춰 있지 않도록 intro로 복귀 — 헤더의 재시작 버튼으로 다시 시도 가능
+      setPhase('intro');
+      setBeatInBar(-1);
+      setCountdown(null);
+      return;
+    }
+    if (token !== measureTokenRef.current) return; // 대기 중 재시작/언마운트 발생 시 중단
+
     let totalBeat = 0;
     beatTimesRef.current = [];
     samplesRef.current = [];
@@ -167,6 +183,7 @@ function LatencyCheckPage() {
     if (introTimerRef.current) clearTimeout(introTimerRef.current);
     if (returnTimerRef.current) clearTimeout(returnTimerRef.current);
     if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
+    measureTokenRef.current += 1; // 버퍼 로딩 대기 중이던 이전 runMeasureFlow 무효화
     stop();
     Tone.getDraw().cancel();
     startFromIntro(); // intro부터 다시
@@ -190,6 +207,7 @@ function LatencyCheckPage() {
       if (introTimerRef.current) clearTimeout(introTimerRef.current);
       if (returnTimerRef.current) clearTimeout(returnTimerRef.current);
       if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
+      measureTokenRef.current += 1; // 버퍼 로딩 대기 중이던 runMeasureFlow 무효화
       stop();
       Tone.getDraw().cancel();
     };
