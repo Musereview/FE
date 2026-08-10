@@ -125,6 +125,8 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
 
   const [openField, setOpenField] = useState<FilterKey | null>(null);
   const isSubmitting = createBackingTrack.isPending || updateBackingTrack.isPending;
+  const normalizedTitle = title.trim();
+  const isTitleValid = !!normalizedTitle && isValidTitle(normalizedTitle);
 
   const handleTimeSignatureChange = (next: TimeSignature) => {
     setTimeSignature(next);
@@ -140,11 +142,11 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!title.trim() || !isValidTitle(title)) return;
+    if (!isTitleValid) return;
     setSubmitError(null);
 
     const payload: SaveBackingTrackRequest = {
-      title: title.trim(),
+      title: normalizedTitle,
       genre,
       keySignature: keyNote,
       scaleType: keyMode === 'major' ? 'MAJOR' : 'MINOR',
@@ -179,7 +181,7 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
         <button
           type="button"
           onClick={handleBack}
-          className="button-small absolute top-0 left-0 flex items-center gap-2 text-gray-400">
+          className="button-small absolute top-0 left-0 flex cursor-pointer items-center gap-2 text-gray-400">
           <ChevronLeftIcon className="size-5" />
           목록으로
         </button>
@@ -290,12 +292,14 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
 
           {submitError && <p className="body-small text-error text-right">{submitError}</p>}
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="button-medium bg-primary-400 mt-3 flex h-12 w-[288px] items-center justify-center self-end rounded-[6px] text-gray-950 disabled:opacity-50">
-            {isSubmitting ? '처리 중...' : submitLabel}
-          </button>
+          {isTitleValid && (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="button-medium bg-primary-400 mt-3 flex h-12 w-[288px] cursor-pointer items-center justify-center self-end rounded-[6px] text-gray-950 disabled:cursor-not-allowed disabled:opacity-50">
+              {isSubmitting ? '처리 중...' : submitLabel}
+            </button>
+          )}
         </form>
       </div>
 

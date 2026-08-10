@@ -30,7 +30,7 @@ export default function NotificationDrawer({
       <div className="fixed top-0 bottom-0 left-[90px] z-45 flex h-full w-[400px] flex-col bg-[#0B0D14] shadow-2xl transition-all duration-300 ease-in-out">
         <div className="flex items-center justify-between px-6 pt-7 pb-4">
           <h2 className="text-xl font-bold text-white">알림</h2>
-          <button onClick={onClose} className="text-gray-400 transition-colors hover:text-white">
+          <button onClick={onClose} className="cursor-pointer text-gray-400 transition-colors hover:text-white">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -51,7 +51,7 @@ export default function NotificationDrawer({
           <div className="flex justify-end px-6 pb-4">
             <button
               onClick={onReadAll}
-              className="text-sm font-medium text-[#10B981] transition-colors hover:text-[#059669]">
+              className="cursor-pointer text-sm font-medium text-[#10B981] transition-colors hover:text-[#059669]">
               모두 읽음 처리
             </button>
           </div>

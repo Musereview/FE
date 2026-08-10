@@ -14,7 +14,7 @@ import {
 
 import MetronomeDots from '@/components/metronome/MetronomeDots';
 import AnalysisChatSection from '@/components/mentor/AnalysisChatSection';
-import { usePracticeResultStore } from '@/stores/practiceResultStore';
+import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
 import { toPlayedNotes } from '@/utils/midiEventPayload';
@@ -44,16 +44,18 @@ export default function AnalysisResultPage() {
     audioUrl: passedAudioUrl,
     audioStartOffsetSec: passedAudioOffset,
   } = location.state || {};
-  const { audioBlob } = usePracticeResultStore();
+
+  const { audioBlob, latencyMs: storeLatencyMs } = usePracticeResultStore();
+  const latencyMs = location.state?.latencyMs ?? storeLatencyMs ?? 0;
 
   const queryParams = new URLSearchParams(location.search);
   const queryAnalysisId = queryParams.get('analysisId');
   const realAnalysisId: number | undefined =
     passedAnalysisId ?? (queryAnalysisId ? Number(queryAnalysisId) : undefined);
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const startBar = parseInt(searchParams.get('start') ?? '1', 10) || 1;
-  const endBar = parseInt(searchParams.get('end') ?? String(startBar + 15), 10) || startBar + 15;
+  const endBar = parseInt(searchParams.get('end') ?? '15', 10) || 15;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -64,6 +66,10 @@ export default function AnalysisResultPage() {
   const scoreViewerRef = useRef<ScoreViewerHandle>(null);
   const playbackTimeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
+
+  // 백킹 트랙과 사용자 연주 녹음 파일을 동시에 제어하기 위한 두 개의 오디오 Ref
+  const backingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // 진입 경로 확인 (히스토리에서 왔는지 여부)
   const isFromHistory = location.state?.fromHistory || !!queryAnalysisId;
@@ -82,7 +88,7 @@ export default function AnalysisResultPage() {
     placeholderData: passedAnalysisData,
   });
 
-  // 2. 악보 XML 로드 및 타이밍 계산
+  // 2. 악보 XML 로드 및 타이밍 계산 (유저 연주 마디 기반 동적 종료 마디 반영)
   const {
     data: scoreData,
     isLoading: isScoreLoading,
@@ -92,57 +98,72 @@ export default function AnalysisResultPage() {
     queryFn: async () => {
       let text = passedRangeXml;
 
-      // 1. state에 없더라도 analysisData(또는 realAnalysisId로 조회된 데이터)에 playingId가 있다면 히스토리 상세를 가져와서 악보를 만듦
       let targetPlayingId = analysisData?.playingId;
-      let detailResponse = null as HistoryDetailData | null;
+      let detailResponse: HistoryDetailData | null = null;
 
       if (!text && !targetPlayingId && realAnalysisId) {
         try {
           const detail = await getAnalysisDetail(realAnalysisId);
           targetPlayingId = detail?.playingId;
-          detailResponse = detail as unknown as HistoryDetailData; // 분석 상세 데이터 보관
+          detailResponse = detail as unknown as HistoryDetailData;
         } catch (e) {
           console.error('분석 상세 조회 실패:', e);
         }
       }
 
-      let calculatedOffset = passedAudioOffset ?? 0; // 오디오 오프셋 변수
+      let calculatedOffset = passedAudioOffset ?? 0;
+      let calculatedEndBar = endBar;
 
       if (!text && targetPlayingId) {
         try {
-          // 아직 detailResponse가 없거나 midiEvents가 없다면 historyDetail 호출
           if (!detailResponse || !detailResponse.midiEvents) {
             detailResponse = await historyDetail(targetPlayingId);
           }
 
           const notes = toPlayedNotes(detailResponse.midiEvents ?? []);
           if (notes.length > 0) {
-            // 히스토리 데이터의 박자표와 조성을 파싱해서 적용
             const [beatsPerBar, beatType] = parseTimeSignature(detailResponse.timeSignature);
             const { key, mode } = parseKeySignature(detailResponse.key);
 
-            const rawXml = buildMusicXmlFromRecording(notes, {
+            const adjustedRecording = notes.map((note: PlayedNote) => ({
+              ...note,
+              onSec: Math.max(0, note.onSec - latencyMs / 1000),
+              offSec: note.offSec !== null ? Math.max(0, note.offSec - latencyMs / 1000) : null,
+            }));
+
+            const rawXml = buildMusicXmlFromRecording(adjustedRecording, {
               bpm: detailResponse.bpm || 120,
               beatsPerBar,
               beatType,
               key,
               mode,
               title: detailResponse.title || 'Practice',
+              latencyMs,
             });
 
-            // 전체 마디 타이밍에서 시작 마디의 절대 시간 오프셋 계산
             const fullTimings = computeMeasureTimings(rawXml);
             calculatedOffset = fullTimings.measureStartTimes[startBar - 1] ?? 0;
 
-            // 렌더링할 구간 악보 추출
-            text = extractMeasureRange(rawXml, startBar, endBar);
+            // 유저가 친 마지막 노트 시간에 맞춰 종료 마디 자동 계산
+            const lastNoteEndTime = Math.max(...adjustedRecording.map((note) => note.offSec ?? note.onSec));
+
+            let lastCalculatedBar = startBar;
+            for (let i = 0; i < fullTimings.measureStartTimes.length; i++) {
+              if (fullTimings.measureStartTimes[i] <= lastNoteEndTime) {
+                lastCalculatedBar = i + 1;
+              } else {
+                break;
+              }
+            }
+            calculatedEndBar = Math.min(lastCalculatedBar, detailResponse.totalBars || lastCalculatedBar);
+
+            text = extractMeasureRange(rawXml, startBar, calculatedEndBar);
           }
         } catch (e) {
           console.error('히스토리 기반 악보 생성 실패:', e);
         }
       }
 
-      // 2. 끝까지 악보를 만들 수 없다면 sample.xml을 띄우지 않고 null 반환 (악보 영역이 비거나 숨겨지도록)
       if (!text) {
         return null;
       }
@@ -166,21 +187,35 @@ export default function AnalysisResultPage() {
       return {
         scoreXml: text,
         measureStartTimes: timings.measureStartTimes,
-        sectionStartOffsetSec: calculatedOffset, //계산된 절대 오디오 오프셋 반영
-        sectionDurationSec: Math.max(2, endSec - calculatedOffset),
+        audioStartOffsetSec: calculatedOffset, // 절대 오프셋
+        sectionStartOffsetSec: 0, // 악보 기준 상대 시각
+        sectionDurationSec: Math.max(2, endSec),
         activeBpm,
         beatsPerBar: beats,
         startIndex: sIdx,
+        calculatedEndBar,
       };
     },
-    // realAnalysisId가 있거나 passedRangeXml이 있을 때만 쿼리를 활성화하여 무한 로딩/샘플행 방지
     enabled: Boolean(passedRangeXml || realAnalysisId),
   });
+
+  // 계산된 종료 마디와 URL 동기화 (useEffect로 분리)
+  useEffect(() => {
+    if (scoreData?.calculatedEndBar && scoreData.calculatedEndBar !== endBar) {
+      setSearchParams(
+        (prev) => {
+          prev.set('end', String(scoreData.calculatedEndBar));
+          return prev;
+        },
+        { replace: true },
+      );
+    }
+  }, [scoreData?.calculatedEndBar, endBar, setSearchParams]);
 
   const [localBlobUrl, setLocalBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!analysisData?.recordingFileUrl && !analysisData?.backingTrackAudioFileUrl && audioBlob) {
+    if (!analysisData?.recordingFileUrl && audioBlob) {
       const url = URL.createObjectURL(audioBlob);
       setLocalBlobUrl(url);
 
@@ -189,30 +224,60 @@ export default function AnalysisResultPage() {
         setLocalBlobUrl(null);
       };
     }
-  }, [audioBlob, analysisData?.recordingFileUrl, analysisData?.backingTrackAudioFileUrl]);
+  }, [audioBlob, analysisData?.recordingFileUrl]);
 
-  const audioUrl = useMemo(() => {
+  // 백킹 트랙 URL과 녹음 파일 URL 분리 정의
+  const backingTrackUrl = analysisData?.backingTrackAudioFileUrl || '';
+  const recordingAudioUrl = useMemo(() => {
     if (analysisData?.recordingFileUrl) return analysisData.recordingFileUrl;
-    if (analysisData?.backingTrackAudioFileUrl) return analysisData.backingTrackAudioFileUrl;
     if (localBlobUrl) return localBlobUrl;
-    return passedAudioUrl || null;
-  }, [passedAudioUrl, analysisData?.recordingFileUrl, analysisData?.backingTrackAudioFileUrl, localBlobUrl]);
+    return passedAudioUrl || '';
+  }, [passedAudioUrl, analysisData?.recordingFileUrl, localBlobUrl]);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const offsetRef = useRef<number>(0);
 
+  // 백킹 트랙 오디오 엘리먼트 초기화
   useEffect(() => {
-    if (!audioUrl) return;
-    const audio = new Audio(audioUrl);
+    if (!backingTrackUrl) return;
+    const audio = new Audio(backingTrackUrl);
     audio.preload = 'auto';
-    audioRef.current = audio;
+    audio.load();
+
+    const applyOffset = () => {
+      audio.currentTime = offsetRef.current ?? 0;
+    };
+    audio.addEventListener('loadedmetadata', applyOffset);
+
+    backingAudioRef.current = audio;
 
     return () => {
+      audio.removeEventListener('loadedmetadata', applyOffset);
       audio.pause();
-      audioRef.current = null;
+      backingAudioRef.current = null;
     };
-  }, [audioUrl]);
+  }, [backingTrackUrl]);
 
-  const measureStartTimes = scoreData?.measureStartTimes ?? [];
+  // 사용자 녹음 파일 오디오 엘리먼트 초기화
+  useEffect(() => {
+    if (!recordingAudioUrl) return;
+    const audio = new Audio(recordingAudioUrl);
+    audio.preload = 'auto';
+    audio.load();
+
+    const applyOffset = () => {
+      audio.currentTime = offsetRef.current ?? 0;
+    };
+    audio.addEventListener('loadedmetadata', applyOffset);
+
+    recordingAudioRef.current = audio;
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', applyOffset);
+      audio.pause();
+      recordingAudioRef.current = null;
+    };
+  }, [recordingAudioUrl]);
+
   const scoreXml = scoreData?.scoreXml ?? '';
   const isLoading = isQueryLoading || isScoreLoading;
   const isError = isQueryError || isScoreError;
@@ -224,31 +289,44 @@ export default function AnalysisResultPage() {
 
   useEffect(() => {
     if (!scoreData) return;
+
+    const startOffset = scoreData.sectionStartOffsetSec ?? 0;
+
     playbackTimeRef.current = scoreData.sectionStartOffsetSec;
     setCurrentMeasureIndex(scoreData.startIndex);
     scoreViewerRef.current?.jumpToMeasure(scoreData.startIndex);
+
+    if (backingAudioRef.current) {
+      backingAudioRef.current.currentTime = startOffset;
+    }
+    if (recordingAudioRef.current) {
+      recordingAudioRef.current.currentTime = startOffset;
+    }
   }, [scoreData]);
 
   const handleRewind = useCallback(() => {
     setIsPlaying(false);
     stop();
 
-    if (audioRef.current) {
-      audioRef.current.pause();
+    if (backingAudioRef.current) {
+      backingAudioRef.current.pause();
       const startOffset = scoreData?.sectionStartOffsetSec ?? 0;
-      audioRef.current.currentTime = startOffset;
+      backingAudioRef.current.currentTime = startOffset;
+    }
+    if (recordingAudioRef.current) {
+      recordingAudioRef.current.pause();
+      const startOffset = scoreData?.sectionStartOffsetSec ?? 0;
+      recordingAudioRef.current.currentTime = startOffset;
     }
 
     const targetMeasureIndex = scoreData?.startIndex ?? Math.max(0, startBar - 1);
-    const targetOffset = measureStartTimes[targetMeasureIndex] ?? scoreData?.sectionStartOffsetSec ?? 0;
-
-    playbackTimeRef.current = targetOffset;
+    playbackTimeRef.current = scoreData?.sectionStartOffsetSec ?? 0;
     setCurrentMeasureIndex(targetMeasureIndex);
     setBeatInBar(-1);
     scoreViewerRef.current?.jumpToMeasure(targetMeasureIndex);
 
     setTimeout(() => setToastMessage(null), 3000);
-  }, [startBar, measureStartTimes, scoreData, stop]);
+  }, [startBar, scoreData, stop]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -262,6 +340,7 @@ export default function AnalysisResultPage() {
     }
   }, [isPlaying, bpm, beatsPerBar, start, pause]);
 
+  // 재생 중 두 오디오와 싱크 동시 제어 및 완료 시 정지 처리
   useEffect(() => {
     if (!isPlaying || !scoreData || scoreData.measureStartTimes.length === 0) return;
 
@@ -278,6 +357,9 @@ export default function AnalysisResultPage() {
       if (elapsed >= rangeEndSec) {
         setIsPlaying(false);
         stop();
+        if (backingAudioRef.current) backingAudioRef.current.pause();
+        if (recordingAudioRef.current) recordingAudioRef.current.pause();
+
         playbackTimeRef.current = scoreData.sectionStartOffsetSec;
         setCurrentMeasureIndex(scoreData.startIndex);
         scoreViewerRef.current?.jumpToMeasure(scoreData.startIndex);
@@ -302,17 +384,22 @@ export default function AnalysisResultPage() {
     if (isLoading || isError) return;
     await Tone.start();
 
-    setIsPlaying((prev) => {
-      const nextPlaying = !prev;
-      if (audioRef.current) {
-        if (nextPlaying) {
-          audioRef.current.play().catch((err) => console.error('오디오 재생 실패:', err));
-        } else {
-          audioRef.current.pause();
-        }
+    const nextPlaying = !isPlaying;
+    const backing = backingAudioRef.current;
+    const recordingAudio = recordingAudioRef.current;
+
+    if (nextPlaying) {
+      if (backing && recordingAudio) {
+        recordingAudio.currentTime = backing.currentTime;
       }
-      return nextPlaying;
-    });
+      backing?.play().catch((err) => console.error('백킹 트랙 재생 실패:', err));
+      recordingAudio?.play().catch((err) => console.error('녹음 파일 재생 실패:', err));
+    } else {
+      backing?.pause();
+      recordingAudio?.pause();
+    }
+
+    setIsPlaying(nextPlaying);
   };
 
   const handleRewindClick = () => {
@@ -341,7 +428,6 @@ export default function AnalysisResultPage() {
 
       {/* 상단 헤더 영역 (원본 구조 유지) */}
       <div className="mb-[36px] flex w-full max-w-[1280px] flex-col gap-4">
-        {/* 히스토리에서 온 경우에만 노출되는 뒤로가기 버튼 */}
         {isFromHistory && (
           <div>
             <button
@@ -476,7 +562,7 @@ export default function AnalysisResultPage() {
         <button
           onClick={() => navigate('/practice')}
           className="bg-primary-400 cursor-pointer rounded-xl px-8 py-4 text-base font-semibold text-gray-950 shadow-lg transition-opacity hover:opacity-90">
-          추가 연습하기
+          추가 연주하기
         </button>
       </div>
     </div>

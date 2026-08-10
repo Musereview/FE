@@ -97,7 +97,7 @@ function StepTheoryPage() {
                       type="button"
                       onClick={handleTogglePlay}
                       aria-label={isPlaying ? '정지' : hasFinished ? '다시 재생' : '재생'}
-                      className="flex size-[52px] items-center justify-center">
+                      className="flex size-[52px] cursor-pointer items-center justify-center">
                       {isPlaying ? (
                         <StopIcon className="text-primary-400 size-10" />
                       ) : hasFinished ? (

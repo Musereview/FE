@@ -26,7 +26,7 @@ function CardActionButton({ status, onClick }: CardActionButtonProps) {
     <button
       type="button"
       onClick={onClick}
-      className={`button-small flex h-[60px] w-[193px] shrink-0 items-center justify-center gap-2 rounded-[6px] py-1.5 pr-3 pl-3.5 ${className}`}>
+      className={`button-small flex h-[60px] w-[193px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] py-1.5 pr-3 pl-3.5 ${className}`}>
       {label}
       <Icon className="size-6" />
     </button>

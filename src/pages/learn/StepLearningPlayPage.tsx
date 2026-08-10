@@ -29,7 +29,7 @@ function StepLearningPlayPage() {
   const navigate = useNavigate();
   const { curriculumId = '', stepId = '' } = useParams();
   const { keyCount, inputId, latencyByDevice } = useSettingStore();
-  const { start, stop, pause, resume } = useMetronome();
+  const { start, stop, pause, resume, ready } = useMetronome();
   const { noteOn: playNote, noteOff: stopNote, releaseAll } = usePianoSound();
   const setScore = useLearningScoreStore((s) => s.setScore); // 채점 결과 → 점수 화면 전달
 
@@ -92,6 +92,7 @@ function StepLearningPlayPage() {
   const endedRef = useRef(false); // 곡 끝 정지 중복 예약 방지
   const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
   const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
+  const countdownTokenRef = useRef(0); // 클릭음 버퍼 로딩 대기 중 재시작/언마운트가 끼어들면 이전 대기를 무효화
   // 진입 자동재생(마운트 시점 클로저)이 stale bpm으로 시작하지 않도록 최신 bpm을 ref로 유지
   const bpmRef = useRef(bpm);
   useEffect(() => {
@@ -141,6 +142,7 @@ function StepLearningPlayPage() {
 
   const stopPlayback = () => {
     cancelPendingStarts();
+    countdownTokenRef.current += 1; // 버퍼 로딩 대기 중이던 이전 runCountdown 무효화
     finalizeOpenNotes(); // stop() 전에 (stop이 transport 위치를 0으로 리셋하므로)
     stop();
     Tone.getDraw().cancel();
@@ -155,6 +157,7 @@ function StepLearningPlayPage() {
   // 곡 끝: 진행점·마디·색칠을 끝 지점 그대로 두고 재생만 멈춤 (정지 버튼과 달리 위치 리셋 안 함)
   const finishPlayback = () => {
     finalizeOpenNotes(); // stop() 전에 열린 노트 확정
+    scoreRef.current?.finalize(); // 판정 대기 중이던 마지막 음을 확정(보라색으로 남지 않도록)
     stop();
     Tone.getDraw().cancel();
     setIsPlaying(false);
@@ -166,19 +169,29 @@ function StepLearningPlayPage() {
   const runCountdown = async () => {
     if (!isPracticeReady) return; // 실습 데이터 미확보 시 재생 시작 금지
     cancelPendingStarts(); // 대기 중인 자동재생·재시작 타이머 취소 (중복 시작 방지)
+    const token = ++countdownTokenRef.current;
     setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
     countdownEndedRef.current = false;
     await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
-    if (!isMountedRef.current) return; // 언마운트 후 재생 시작 방지
+    try {
+      await ready(); // 클릭음 버퍼 로딩이 끝난 뒤에야 카운트다운(소리+화면)을 시작 — 첫 박 소리 유실 방지
+    } catch (error) {
+      if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 무시
+      console.error('클릭음 버퍼 로딩 실패', error);
+      setCountdown(null); // 숫자가 멈춰 남지 않도록 취소 — 재생 버튼으로 다시 시도 가능한 상태로 복귀
+      return;
+    }
+    if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
     let cbeat = 0;
-    start(bpmRef.current, beatsPerBar, (time, bib) => {
+    // 카운트다운 중엔 진행점을 채우지 않는다(setBeatInBar 호출 안 함) — 실제 재생은 startPlayback()에서 시작
+    // 곡 박자(3/4 등)와 무관하게 카운트인은 항상 4박 "1(강)-2-3-4"로 들리게 beatsPerBar 대신 COUNTDOWN_BEATS 사용
+    start(bpmRef.current, COUNTDOWN_BEATS, (time) => {
       if (cbeat >= COUNTDOWN_BEATS) {
         if (countdownEndedRef.current) return false; // 중복 예약 방지
         countdownEndedRef.current = true;
         Tone.getDraw().schedule(() => {
           stop();
           Tone.getDraw().cancel();
-          setBeatInBar(-1);
           setCountdown(null);
           startPlayback();
         }, time);
@@ -186,7 +199,6 @@ function StepLearningPlayPage() {
       }
       const current = cbeat;
       Tone.getDraw().schedule(() => {
-        setBeatInBar(bib);
         setCountdown(COUNTDOWN_BEATS - current);
       }, time);
       cbeat += 1;
@@ -196,9 +208,12 @@ function StepLearningPlayPage() {
   const startPlayback = async () => {
     if (!isPracticeReady) return; // 실습 데이터 미확보 시 재생 시작 금지
     cancelPendingStarts(); // 대기 중인 자동재생·재시작 타이머 취소 (중복 시작 방지)
+    // 카운트다운 종료 콜백에서 호출된 경우, await 도중 재시작(stopPlayback)이 끼어들면 토큰이 바뀌어 무효화된다 —
+    // 안 그러면 새로 시작한 카운트다운을 이 stale 호출이 뒤늦게 가로채 곧장 재생을 시작시켜버린다
+    const token = ++countdownTokenRef.current;
     setCountdown(null);
     await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
     totalBeatRef.current = 0;
     endedRef.current = false; // 재생 시작 시 끝 가드 해제 (재시작/재생 시 다시 정지 가능하도록)
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
@@ -276,6 +291,7 @@ function StepLearningPlayPage() {
     runCountdown();
     return () => {
       isMountedRef.current = false;
+      countdownTokenRef.current += 1; // 버퍼 로딩 대기 중이던 runCountdown 무효화 (StrictMode 이중 마운트 포함)
       cancelPendingStarts();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

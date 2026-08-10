@@ -2,13 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as Tone from 'tone';
 import type { Track } from '@/types/track';
 import { useMetronome } from '@/hooks/useMetronome';
+import { useProfile } from '@/hooks/useProfile';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import StopIcon from '@/assets/practice/stop.svg?react';
 import ReplayIcon from '@/assets/practice/replay.svg?react';
 import CloseIcon from '@/assets/practice/close.svg?react';
 import DifficultyBadge from '@/components/common/DifficultyBadge';
 import Modal from '@/components/common/Modal';
-import { CURRENT_USER, MODE_LABEL, buildFallbackProgression } from '@/pages/practice/trackDisplay';
+import { MODE_LABEL, buildFallbackProgression } from '@/pages/practice/trackDisplay';
 import { getChordsPerMeasure } from './create/chordGrid';
 
 const MEASURES_PER_ROW = 2;
@@ -32,7 +33,8 @@ function TrackDetailModal({
 }: TrackDetailModalProps) {
   const { id, title, key, mode, timeSignature, genre, bpm, difficulty, creator, chords, audioFileUrl } = track;
   const numerator = getChordsPerMeasure(timeSignature);
-  const isOwnTrack = creator === CURRENT_USER;
+  const { data: profile } = useProfile();
+  const isOwnTrack = !!profile && creator === profile.nickname;
 
   const measures = useMemo(
     () => track.chordProgression ?? buildFallbackProgression(chords, numerator),

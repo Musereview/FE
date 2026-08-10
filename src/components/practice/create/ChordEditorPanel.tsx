@@ -104,7 +104,7 @@ function ChordEditorPanel({ initialValue = '', onApply, onCancel }: ChordEditorP
             type="button"
             onClick={() => handleSelectQuality(option)}
             aria-pressed={quality === option}
-            className={`button-small flex h-11 items-center justify-center rounded-[4px] border-[0.3px] ${
+            className={`button-small flex h-11 cursor-pointer items-center justify-center rounded-[4px] border-[0.3px] ${
               quality === option ? 'bg-primary-400 border-primary-400 text-gray-950' : 'border-gray-500 text-gray-200'
             }`}>
             {option}
@@ -125,11 +125,11 @@ function ChordEditorPanel({ initialValue = '', onApply, onCancel }: ChordEditorP
               disabled={isDisabled || isLocked}
               onClick={() => toggleExtension(value)}
               aria-pressed={isSelected}
-              className={`button-small flex h-11 items-center justify-center rounded-[4px] border-[0.3px] ${
+              className={`button-small flex h-11 cursor-pointer items-center justify-center rounded-[4px] border-[0.3px] disabled:cursor-not-allowed ${
                 isSelected || isLocked
                   ? 'bg-primary-400 border-primary-400 text-gray-950'
                   : isDisabled
-                    ? 'cursor-not-allowed border-transparent bg-gray-600 text-gray-400'
+                    ? 'border-transparent bg-gray-600 text-gray-400'
                     : 'border-gray-500 text-gray-200'
               }`}>
               {label}
@@ -155,7 +155,7 @@ function ChordEditorPanel({ initialValue = '', onApply, onCancel }: ChordEditorP
         <button
           type="button"
           onClick={() => onApply(chordLabel)}
-          className="button-medium bg-primary-400 mt-6 flex h-12 w-[190px] shrink-0 items-center justify-center self-center rounded-[6px] text-gray-950">
+          className="button-medium bg-primary-400 mt-6 flex h-12 w-[190px] shrink-0 cursor-pointer items-center justify-center self-center rounded-[6px] text-gray-950">
           입력하기
         </button>
       )}

@@ -31,7 +31,7 @@ function KeyOptionButton({ label, selected, onSelect, className = 'w-9' }: KeyOp
     <button
       type="button"
       onClick={onSelect}
-      className={`flex h-8 items-center justify-center rounded-[4px] ${className} ${
+      className={`flex h-8 cursor-pointer items-center justify-center rounded-[4px] ${className} ${
         selected
           ? 'button-label1 bg-primary-400 text-gray-950'
           : 'button-label2 hover:border-primary-200 hover:bg-primary-200 border-[0.3px] border-gray-500 text-gray-200 hover:text-gray-900'

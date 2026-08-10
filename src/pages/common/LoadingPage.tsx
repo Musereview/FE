@@ -26,6 +26,22 @@ interface LoadingPageProps {
 
 function LoadingPage({ message = '김뮤즈 님의 연습 결과를 분석 중입니다..' }: LoadingPageProps) {
   const barsRef = useRef<(HTMLSpanElement | null)[]>([]);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // 로딩 중에는 뒤에 깔린 페이지 스크롤 잠금
+  useEffect(() => {
+    const scrollEl = rootRef.current?.closest('main') ?? document.querySelector('main');
+    const previousMainOverflow = scrollEl?.style.overflow ?? '';
+    const previousBodyOverflow = document.body.style.overflow;
+
+    if (scrollEl) scrollEl.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      if (scrollEl) scrollEl.style.overflow = previousMainOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, []);
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -49,9 +65,10 @@ function LoadingPage({ message = '김뮤즈 님의 연습 결과를 분석 중�
 
   return (
     <div
+      ref={rootRef}
       role="status"
       aria-live="polite"
-      className="flex h-full min-h-screen w-full min-w-0 flex-col items-center justify-center gap-[140px] overflow-hidden bg-gray-950 px-6 text-gray-300">
+      className="flex h-full min-h-screen w-full min-w-0 flex-col items-center justify-center gap-[140px] overflow-hidden overscroll-contain bg-gray-950 px-6 text-gray-300">
       <p className="heading-medium-m text-center text-gray-300">{message}</p>
 
       <div

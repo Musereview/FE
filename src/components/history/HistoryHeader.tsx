@@ -1,3 +1,5 @@
+import { formatDurationText } from '@/utils/duration';
+
 interface HistoryHeaderProps {
   title?: string;
   genre?: string;
@@ -6,13 +8,6 @@ interface HistoryHeaderProps {
   timeSignature?: string;
   durationSec?: number;
   playedAt?: string;
-}
-
-function formatDuration(totalSec: number) {
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-  if (min === 0) return `${sec}초`;
-  return sec === 0 ? `${min}분` : `${min}분 ${sec}초`;
 }
 
 export default function HistoryHeader({
@@ -54,7 +49,7 @@ export default function HistoryHeader({
       <div className="flex flex-col items-end gap-1">
         <span className="text-[15px] font-medium text-gray-400">{formatPlayedAt(playedAt)}</span>
         {durationSec !== undefined && (
-          <span className="text-[14px] font-medium text-gray-500">연주 시간 {formatDuration(durationSec)}</span>
+          <span className="text-[14px] font-medium text-gray-500">연주 시간 {formatDurationText(durationSec)}</span>
         )}
       </div>
     </div>
