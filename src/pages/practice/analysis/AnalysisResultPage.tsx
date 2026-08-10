@@ -145,8 +145,8 @@ export default function AnalysisResultPage() {
             calculatedOffset = fullTimings.measureStartTimes[startBar - 1] ?? 0;
 
             // 유저가 친 마지막 노트 시간에 맞춰 종료 마디 자동 계산
-            const lastNote = adjustedRecording[adjustedRecording.length - 1];
-            const lastNoteEndTime = lastNote.offSec ?? lastNote.onSec;
+            const lastNoteEndTime = Math.max(...adjustedRecording.map((note) => note.offSec ?? note.onSec));
+
             let lastCalculatedBar = startBar;
             for (let i = 0; i < fullTimings.measureStartTimes.length; i++) {
               if (fullTimings.measureStartTimes[i] <= lastNoteEndTime) {
@@ -162,16 +162,6 @@ export default function AnalysisResultPage() {
         } catch (e) {
           console.error('히스토리 기반 악보 생성 실패:', e);
         }
-      }
-
-      if (calculatedEndBar && calculatedEndBar !== endBar) {
-        setSearchParams(
-          (prev) => {
-            prev.set('end', String(calculatedEndBar));
-            return prev;
-          },
-          { replace: true },
-        );
       }
 
       if (!text) {
@@ -197,15 +187,30 @@ export default function AnalysisResultPage() {
       return {
         scoreXml: text,
         measureStartTimes: timings.measureStartTimes,
-        sectionStartOffsetSec: calculatedOffset,
-        sectionDurationSec: Math.max(2, endSec - calculatedOffset),
+        audioStartOffsetSec: calculatedOffset, // 절대 오프셋
+        sectionStartOffsetSec: 0, // 악보 기준 상대 시각
+        sectionDurationSec: Math.max(2, endSec),
         activeBpm,
         beatsPerBar: beats,
         startIndex: sIdx,
+        calculatedEndBar,
       };
     },
     enabled: Boolean(passedRangeXml || realAnalysisId),
   });
+
+  // 계산된 종료 마디와 URL 동기화 (useEffect로 분리)
+  useEffect(() => {
+    if (scoreData?.calculatedEndBar && scoreData.calculatedEndBar !== endBar) {
+      setSearchParams(
+        (prev) => {
+          prev.set('end', String(scoreData.calculatedEndBar));
+          return prev;
+        },
+        { replace: true },
+      );
+    }
+  }, [scoreData?.calculatedEndBar, endBar, setSearchParams]);
 
   const [localBlobUrl, setLocalBlobUrl] = useState<string | null>(null);
 
@@ -229,6 +234,8 @@ export default function AnalysisResultPage() {
     return passedAudioUrl || '';
   }, [passedAudioUrl, analysisData?.recordingFileUrl, localBlobUrl]);
 
+  const offsetRef = useRef<number>(0);
+
   // 백킹 트랙 오디오 엘리먼트 초기화
   useEffect(() => {
     if (!backingTrackUrl) return;
@@ -236,17 +243,19 @@ export default function AnalysisResultPage() {
     audio.preload = 'auto';
     audio.load();
 
-    // 초기화 직후에도 오프셋이 있다면 바로 적용
-    const startOffset = scoreData?.sectionStartOffsetSec ?? 0;
-    audio.currentTime = startOffset;
+    const applyOffset = () => {
+      audio.currentTime = offsetRef.current ?? 0;
+    };
+    audio.addEventListener('loadedmetadata', applyOffset);
 
     backingAudioRef.current = audio;
 
     return () => {
+      audio.removeEventListener('loadedmetadata', applyOffset);
       audio.pause();
       backingAudioRef.current = null;
     };
-  }, [backingTrackUrl, scoreData?.sectionStartOffsetSec]);
+  }, [backingTrackUrl]);
 
   // 사용자 녹음 파일 오디오 엘리먼트 초기화
   useEffect(() => {
@@ -255,16 +264,19 @@ export default function AnalysisResultPage() {
     audio.preload = 'auto';
     audio.load();
 
-    const startOffset = scoreData?.sectionStartOffsetSec ?? 0;
-    audio.currentTime = startOffset;
+    const applyOffset = () => {
+      audio.currentTime = offsetRef.current ?? 0;
+    };
+    audio.addEventListener('loadedmetadata', applyOffset);
 
     recordingAudioRef.current = audio;
 
     return () => {
+      audio.removeEventListener('loadedmetadata', applyOffset);
       audio.pause();
       recordingAudioRef.current = null;
     };
-  }, [recordingAudioUrl, scoreData?.sectionStartOffsetSec]);
+  }, [recordingAudioUrl]);
 
   const scoreXml = scoreData?.scoreXml ?? '';
   const isLoading = isQueryLoading || isScoreLoading;
@@ -372,23 +384,22 @@ export default function AnalysisResultPage() {
     if (isLoading || isError) return;
     await Tone.start();
 
-    setIsPlaying((prev) => {
-      const nextPlaying = !prev;
-      const backing = backingAudioRef.current;
-      const recordingAudio = recordingAudioRef.current;
+    const nextPlaying = !isPlaying;
+    const backing = backingAudioRef.current;
+    const recordingAudio = recordingAudioRef.current;
 
-      if (nextPlaying) {
-        if (backing && recordingAudio) {
-          recordingAudio.currentTime = backing.currentTime;
-        }
-        backing?.play().catch((err) => console.error('백킹 트랙 재생 실패:', err));
-        recordingAudio?.play().catch((err) => console.error('녹음 파일 재생 실패:', err));
-      } else {
-        backing?.pause();
-        recordingAudio?.pause();
+    if (nextPlaying) {
+      if (backing && recordingAudio) {
+        recordingAudio.currentTime = backing.currentTime;
       }
-      return nextPlaying;
-    });
+      backing?.play().catch((err) => console.error('백킹 트랙 재생 실패:', err));
+      recordingAudio?.play().catch((err) => console.error('녹음 파일 재생 실패:', err));
+    } else {
+      backing?.pause();
+      recordingAudio?.pause();
+    }
+
+    setIsPlaying(nextPlaying);
   };
 
   const handleRewindClick = () => {
