@@ -110,7 +110,9 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
           return;
         }
         if (!ev.midis.includes(midi)) {
-          wrongHitsRef.current += 1; // 틀린 음 = 오타 (현재 음 소비하지 않고 대기)
+          wrongHitsRef.current += 1; // 오타 집계
+          paintJudged(ev.gnotes, 'bad'); // 오노트 = 즉시 bad 확정 (콤보 리셋)
+          judgedRef.current.set(idx, 'bad');
           return;
         }
         // 화음: 모든 음이 입력될 때까지 이벤트를 미해결로 유지 (첫 음만으로 완료 처리하지 않음)
