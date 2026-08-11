@@ -60,6 +60,18 @@ export function createMetronome() {
 
       transport.bpm.value = bpm;
 
+      // Tone.start()로 막 resume된 AudioContext는 state가 "running"으로 바뀐 뒤에도 실제 오디오
+      // 출력 파이프라인이 샘플을 내보내기 시작하기까지 브라우저/OS별로 짧은 지연이 있어, 이 시점에
+      // 예약되는 첫 클릭음이 씹히는 경우가 있다(WebAudio/Tone.js 공통으로 보고되는 현상,
+      // https://github.com/Tonejs/Tone.js/issues/893). 무음에 가까운 클릭을 하나 먼저 즉시 재생해
+      // 파이프라인을 깨워두면 바로 뒤에 예약되는 실제 첫 박이 그 공백에 걸리지 않는다.
+      if (startOffsetSec === 0 && loBuffer.loaded) {
+        const primer = new Tone.Player(loBuffer).toDestination();
+        primer.volume.value = -60;
+        primer.start();
+        primer.onstop = () => primer.dispose();
+      }
+
       // scheduleRepeat은 0, 1박, 2박... 위치에 예약되므로 오프셋 이후 처음 울릴 박부터 세기 시작한다
       const secondsPerBeat = 60 / bpm;
       let beat = startOffsetSec > 0 ? Math.ceil(startOffsetSec / secondsPerBeat) : 0;
