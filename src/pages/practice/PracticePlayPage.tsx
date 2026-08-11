@@ -103,9 +103,9 @@ function PracticePlayPage() {
   // 친 음: 소리 재생 + 노트바 생성(성장 시작) → 뗄 때 소리·길이 확정 후 위로 사라짐
   const handleNoteOn = (note: number, velocity = 100) => {
     playNote(note, velocity); // 즉시 소리 (범위와 무관하게 실제 친 음)
-    // 녹음: 실제 친 음 전부 기록 (Transport 시각 = 곡 박자 기준)
+    if (noteCenterFraction(note, keyCount) < 0) return; // 건반 범위 밖 입력은 녹음·악보에서 제외
+    // 녹음: 건반 범위 안 음만 기록 (Transport 시각 = 곡 박자 기준)
     recordingRef.current.push({ midi: note, velocity, onSec: Tone.getTransport().seconds, offSec: null });
-    if (noteCenterFraction(note, keyCount) < 0) return; // 노트바는 건반 범위 안만
     const id = barIdRef.current++;
     heldRef.current.set(note, id);
     setNoteBars((prev) => [...prev, { id, midi: note, startTime: performance.now(), endTime: null }]);
