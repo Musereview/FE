@@ -108,7 +108,7 @@ export default function AnalysisChatSection({
         <div
           ref={chatScrollRef}
           onScroll={handleScroll}
-          className="absolute inset-0 overflow-y-auto px-6 pt-[50px] sm:px-10 [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#55585E] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-[#2B2E36]"
+          className="show-scrollbar absolute inset-0 overflow-y-auto px-6 pt-[50px] sm:px-10 [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#55585E] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-[#2B2E36]"
           style={{ paddingBottom: '50px' }}>
           {/* 1. 분석 결과 영역 */}
           <AnalysisReportView resolvedSummary={resolvedSummary} mainDesc={mainDesc} sections={sections} />

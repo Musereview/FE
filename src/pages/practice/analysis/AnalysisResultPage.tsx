@@ -15,6 +15,8 @@ import {
 import MetronomeDots from '@/components/metronome/MetronomeDots';
 import AnalysisChatSection from '@/components/mentor/AnalysisChatSection';
 import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
+import { usePlayingSessionStore } from '@/stores/playingSessionStore';
+import { useCreatePlaying } from '@/hooks/useCreatePlaying';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
 import { toPlayedNotes } from '@/utils/midiEventPayload';
@@ -47,6 +49,14 @@ export default function AnalysisResultPage() {
 
   const { audioBlob, latencyMs: storeLatencyMs } = usePracticeResultStore();
   const latencyMs = location.state?.latencyMs ?? storeLatencyMs ?? 0;
+
+  // "다시 연주하기" — 이미 COMPLETED된 옛 playingId를 재사용하면 저장 시 항상 409 충돌이 나므로 새 세션을 만든다
+  // restartBackingTrack은 sessionStorage에 남아있는 "이 탭에서 마지막으로 시작한 연습"의 트랙이라
+  // 지금 보고 있는 분석(analysisData.playingId)과 다를 수 있다 — 그 경우 재생불가
+  const restartBackingTrack = usePlayingSessionStore((s) => s.backingTrack);
+  const restartSessionPlayingId = usePlayingSessionStore((s) => s.playingId);
+  const setPlayingSession = usePlayingSessionStore((s) => s.setSession);
+  const { mutateAsync: createPlaying, isPending: isRestartingPractice } = useCreatePlaying();
 
   const queryParams = new URLSearchParams(location.search);
   const queryAnalysisId = queryParams.get('analysisId');
@@ -283,6 +293,8 @@ export default function AnalysisResultPage() {
   const isError = isQueryError || isScoreError;
   const bpm = analysisData?.bpm || scoreData?.activeBpm || 120;
 
+  const audioStartOffsetSec = scoreData?.audioStartOffsetSec ?? 0;
+
   useEffect(() => {
     if (scoreData) setBeatsPerBar(scoreData.beatsPerBar);
   }, [scoreData]);
@@ -290,17 +302,19 @@ export default function AnalysisResultPage() {
   useEffect(() => {
     if (!scoreData) return;
 
-    const startOffset = scoreData.sectionStartOffsetSec ?? 0;
+    const sectionStart = scoreData.sectionStartOffsetSec ?? 0;
+    const absoluteStart = (scoreData.audioStartOffsetSec ?? 0) + sectionStart;
 
-    playbackTimeRef.current = scoreData.sectionStartOffsetSec;
+    offsetRef.current = absoluteStart;
+    playbackTimeRef.current = sectionStart;
     setCurrentMeasureIndex(scoreData.startIndex);
     scoreViewerRef.current?.jumpToMeasure(scoreData.startIndex);
 
     if (backingAudioRef.current) {
-      backingAudioRef.current.currentTime = startOffset;
+      backingAudioRef.current.currentTime = absoluteStart;
     }
     if (recordingAudioRef.current) {
-      recordingAudioRef.current.currentTime = startOffset;
+      recordingAudioRef.current.currentTime = absoluteStart;
     }
   }, [scoreData]);
 
@@ -308,19 +322,21 @@ export default function AnalysisResultPage() {
     setIsPlaying(false);
     stop();
 
+    const sectionStart = scoreData?.sectionStartOffsetSec ?? 0;
+    const absoluteStart = (scoreData?.audioStartOffsetSec ?? 0) + sectionStart;
+    offsetRef.current = absoluteStart;
+
     if (backingAudioRef.current) {
       backingAudioRef.current.pause();
-      const startOffset = scoreData?.sectionStartOffsetSec ?? 0;
-      backingAudioRef.current.currentTime = startOffset;
+      backingAudioRef.current.currentTime = absoluteStart;
     }
     if (recordingAudioRef.current) {
       recordingAudioRef.current.pause();
-      const startOffset = scoreData?.sectionStartOffsetSec ?? 0;
-      recordingAudioRef.current.currentTime = startOffset;
+      recordingAudioRef.current.currentTime = absoluteStart;
     }
 
     const targetMeasureIndex = scoreData?.startIndex ?? Math.max(0, startBar - 1);
-    playbackTimeRef.current = scoreData?.sectionStartOffsetSec ?? 0;
+    playbackTimeRef.current = sectionStart;
     setCurrentMeasureIndex(targetMeasureIndex);
     setBeatInBar(-1);
     scoreViewerRef.current?.jumpToMeasure(targetMeasureIndex);
@@ -330,15 +346,20 @@ export default function AnalysisResultPage() {
 
   useEffect(() => {
     if (isPlaying) {
-      start(bpm, beatsPerBar, (time, bib) => {
-        Tone.getDraw().schedule(() => {
-          setBeatInBar(bib);
-        }, time);
-      });
+      start(
+        bpm,
+        beatsPerBar,
+        (time, bib) => {
+          Tone.getDraw().schedule(() => {
+            setBeatInBar(bib);
+          }, time);
+        },
+        audioStartOffsetSec + playbackTimeRef.current,
+      );
     } else {
       pause();
     }
-  }, [isPlaying, bpm, beatsPerBar, start, pause]);
+  }, [isPlaying, bpm, beatsPerBar, audioStartOffsetSec, start, pause]);
 
   // 재생 중 두 오디오와 싱크 동시 제어 및 완료 시 정지 처리
   useEffect(() => {
@@ -405,6 +426,26 @@ export default function AnalysisResultPage() {
   const handleRewindClick = () => {
     if (isLoading || isError) return;
     handleRewind();
+  };
+
+  // 저장된 세션이 지금 보고 있는 분석의 playingId와 같을 때만 신뢰해서 재사용한다
+  const canRestartWithStoredSession =
+    !!restartBackingTrack && restartSessionPlayingId != null && restartSessionPlayingId === analysisData?.playingId;
+
+  const handleRestartPractice = async () => {
+    if (!canRestartWithStoredSession) {
+      setToastMessage('연습 세션 정보를 찾을 수 없습니다. 트랙 목록에서 다시 시작해주세요.');
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+    try {
+      const session = await createPlaying(restartBackingTrack.backingTrackId);
+      setPlayingSession({ playingId: session.playingId, backingTrack: session.backingTrack });
+      navigate(`/practice/${session.backingTrack.backingTrackId}/play`);
+    } catch {
+      setToastMessage('새 연습 세션을 시작하지 못했습니다. 다시 시도해주세요.');
+      setTimeout(() => setToastMessage(null), 3000);
+    }
   };
 
   const formatPlayedAt = (isoString?: string) => {
@@ -551,12 +592,9 @@ export default function AnalysisResultPage() {
       {/* 최하단 네비게이션 액션 버튼 그룹 */}
       <div className="flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-4 pt-2">
         <button
-          onClick={() => {
-            const targetId = analysisData?.playingId;
-            if (!targetId) return;
-            navigate(`/practice/${targetId}/play`);
-          }}
-          className="cursor-pointer rounded-xl bg-gray-800 px-8 py-4 text-base font-medium text-gray-300 shadow-md transition-colors hover:bg-gray-700">
+          onClick={handleRestartPractice}
+          disabled={isRestartingPractice || !canRestartWithStoredSession}
+          className="cursor-pointer rounded-xl bg-gray-800 px-8 py-4 text-base font-medium text-gray-300 shadow-md transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50">
           다시 연주하기
         </button>
         <button
