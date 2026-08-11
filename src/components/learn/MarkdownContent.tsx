@@ -23,8 +23,11 @@ function MarkdownContent({ content, className = '' }: MarkdownContentProps) {
           li: ({ children }) => <li>{children}</li>,
           strong: ({ children }) => <strong className="font-semibold text-gray-100">{children}</strong>,
           blockquote: ({ children }) => (
-            <blockquote className="text-primary-900 flex flex-col gap-2 rounded-[4px] bg-gray-400 px-10 py-5 text-center">
-              {children}
+            <blockquote className="bg-secondary-200 flex justify-center gap-2 rounded-[4px] px-5 py-4">
+              <span aria-hidden className="shrink-0 leading-relaxed text-gray-900">
+                ✔
+              </span>
+              <div className="flex flex-col gap-2 text-gray-950 [&_p]:text-inherit">{children}</div>
             </blockquote>
           ),
         }}>
