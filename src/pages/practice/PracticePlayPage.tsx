@@ -86,9 +86,10 @@ function PracticePlayPage() {
     // 로딩(fetch+decode)이 카운트다운보다 늦게 끝나는 경우를 대비 — 이미 재생이 시작된 뒤라면 그 시점에 뒤늦게라도 동기화해 재생
     const player = new Tone.Player(url, () => {
       if (playerRef.current === player && isPlaybackActiveRef.current) {
-        player.sync().start(0);
-        // MR 실제 길이만큼 지난 시점(=MR이 스스로 끝나는 시점)에 정지 예약 — 백킹트랙 박 수와 무관하게 MR 종료가 기준
-        Tone.getTransport().scheduleOnce(() => finishPlayback(), player.buffer.duration);
+        // 로딩이 늦게 끝나도 현재 Transport 위치(startAt)부터 버퍼 처음을 재생하도록 기준을 맞춘다
+        const startAt = Tone.getTransport().seconds;
+        player.sync().start(startAt);
+        Tone.getTransport().scheduleOnce(() => finishPlayback(), startAt + player.buffer.duration);
       }
     }).toDestination();
     playerRef.current = player;
