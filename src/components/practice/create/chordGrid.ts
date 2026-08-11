@@ -9,6 +9,23 @@ export function getChordsPerMeasure(timeSignature: string) {
   return Number(timeSignature.split('/')[0]) || 4;
 }
 
+// 박자 단위(beat)로 평탄화된 코드 배열 → 마디 단위 라벨 목록. 마디 안에서 연속으로 반복되는 코드는 하나로 묶음
+export function groupChordsByMeasure(chords: string[], timeSignature: string): string[] {
+  const beatsPerMeasure = getChordsPerMeasure(timeSignature);
+  const measures: string[] = [];
+
+  for (let i = 0; i < chords.length; i += beatsPerMeasure) {
+    const beats = chords.slice(i, i + beatsPerMeasure);
+    const uniqueInOrder: string[] = [];
+    beats.forEach((chord) => {
+      if (chord && uniqueInOrder[uniqueInOrder.length - 1] !== chord) uniqueInOrder.push(chord);
+    });
+    if (uniqueInOrder.length > 0) measures.push(uniqueInOrder.join(' '));
+  }
+
+  return measures;
+}
+
 // 저장은 8마디 기본 패턴만 하고(서승기 백엔드와 합의), 실제 재생 시 이 8마디를 몇 번 반복해야
 // mp3 재생 시간(playtimeSec)을 채우는지 계산. 오디오 파일이 없으면 기본값(4회)을 반환.
 export function calculateRepeatCount(
