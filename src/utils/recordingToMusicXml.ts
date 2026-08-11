@@ -284,9 +284,11 @@ export function buildMusicXmlFromRecording(recording: PlayedNote[], options: Bui
   };
 
   const measuresXml = Array.from({ length: totalMeasureCount }, (_, idx) => {
+    // 음표 위치는 실제 bpm으로 양자화하므로 템포도 같이 남김
+    // 없으면 computeMeasureTimings가 기본값 120bpm으로 마디 시각을 계산해 오디오와 어긋
     const attributesXml =
       idx === 0
-        ? `<attributes><divisions>${DIVISIONS}</divisions><key><fifths>${fifths}</fifths></key><time><beats>${beatsPerBar}</beats><beat-type>${beatType}</beat-type></time><staves>2</staves><clef number="1"><sign>G</sign><line>2</line></clef><clef number="2"><sign>F</sign><line>4</line></clef></attributes>`
+        ? `<attributes><divisions>${DIVISIONS}</divisions><key><fifths>${fifths}</fifths></key><time><beats>${beatsPerBar}</beats><beat-type>${beatType}</beat-type></time><staves>2</staves><clef number="1"><sign>G</sign><line>2</line></clef><clef number="2"><sign>F</sign><line>4</line></clef></attributes><sound tempo="${bpm}"/>`
         : '';
     const trebleXml = trebleMeasures[idx].map((f) => noteXml(f, 1, 1)).join('');
     const backupXml = `<backup><duration>${measureTicks}</duration></backup>`;
