@@ -330,11 +330,17 @@ export default function AnalysisResultPage() {
 
   useEffect(() => {
     if (isPlaying) {
-      start(bpm, beatsPerBar, (time, bib) => {
-        Tone.getDraw().schedule(() => {
-          setBeatInBar(bib);
-        }, time);
-      });
+      // 재생은 멈춘 지점부터 이어지므로 메트로놈도 같은 위치에서 시작
+      start(
+        bpm,
+        beatsPerBar,
+        (time, bib) => {
+          Tone.getDraw().schedule(() => {
+            setBeatInBar(bib);
+          }, time);
+        },
+        playbackTimeRef.current,
+      );
     } else {
       pause();
     }

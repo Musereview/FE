@@ -239,7 +239,8 @@ export default function HistoryDetailPage() {
       return;
     }
 
-    startMetronome(bpm, beatsPerBar, () => {});
+    // 오디오는 멈춘 지점부터 이어지므로, 메트로놈도 그 위치에서 시작해야 마디 첫 박이 맞는다
+    startMetronome(bpm, beatsPerBar, () => {}, audioRef.current?.currentTime ?? 0);
 
     return () => stopMetronome();
   }, [isPlaying, bpm, beatsPerBar, startMetronome, stopMetronome]);
