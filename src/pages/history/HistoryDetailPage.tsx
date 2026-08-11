@@ -208,8 +208,7 @@ export default function HistoryDetailPage() {
       return;
     }
 
-    // BPM은 4분음표 기준 -> 박자표 분모로 환산 (6/8이면 8분음표가 한 박)
-    const beatsPerSecond = (bpm / 60) * (beatType / 4);
+    const beatsPerSecond = bpm / 60;
 
     const tick = () => {
       const audio = audioRef.current;
@@ -234,18 +233,16 @@ export default function HistoryDetailPage() {
   }, [isPlaying, measureStartTimes, bpm, beatsPerBar, beatType]);
 
   // 4) 메트로놈
-  //    useMetronome은 4분음표(4n) 간격으로 클릭하므로, 박자표의 박 단위에 맞춰 BPM을 환산해 넘긴다.
-  //    (6/8: 8분음표가 한 박 → 클릭 간격이 절반)
   useEffect(() => {
     if (!isPlaying) {
       stopMetronome();
       return;
     }
 
-    startMetronome(bpm * (beatType / 4), beatsPerBar, () => {});
+    startMetronome(bpm, beatsPerBar, () => {});
 
     return () => stopMetronome();
-  }, [isPlaying, bpm, beatsPerBar, beatType, startMetronome, stopMetronome]);
+  }, [isPlaying, bpm, beatsPerBar, startMetronome, stopMetronome]);
 
   const handleTogglePlay = async () => {
     if (isScoreLoading) return;
