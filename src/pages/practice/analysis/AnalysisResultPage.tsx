@@ -283,6 +283,8 @@ export default function AnalysisResultPage() {
   const isError = isQueryError || isScoreError;
   const bpm = analysisData?.bpm || scoreData?.activeBpm || 120;
 
+  const audioStartOffsetSec = scoreData?.audioStartOffsetSec ?? 0;
+
   useEffect(() => {
     if (scoreData) setBeatsPerBar(scoreData.beatsPerBar);
   }, [scoreData]);
@@ -290,17 +292,19 @@ export default function AnalysisResultPage() {
   useEffect(() => {
     if (!scoreData) return;
 
-    const startOffset = scoreData.sectionStartOffsetSec ?? 0;
+    const sectionStart = scoreData.sectionStartOffsetSec ?? 0;
+    const absoluteStart = (scoreData.audioStartOffsetSec ?? 0) + sectionStart;
 
-    playbackTimeRef.current = scoreData.sectionStartOffsetSec;
+    offsetRef.current = absoluteStart;
+    playbackTimeRef.current = sectionStart;
     setCurrentMeasureIndex(scoreData.startIndex);
     scoreViewerRef.current?.jumpToMeasure(scoreData.startIndex);
 
     if (backingAudioRef.current) {
-      backingAudioRef.current.currentTime = startOffset;
+      backingAudioRef.current.currentTime = absoluteStart;
     }
     if (recordingAudioRef.current) {
-      recordingAudioRef.current.currentTime = startOffset;
+      recordingAudioRef.current.currentTime = absoluteStart;
     }
   }, [scoreData]);
 
@@ -308,19 +312,21 @@ export default function AnalysisResultPage() {
     setIsPlaying(false);
     stop();
 
+    const sectionStart = scoreData?.sectionStartOffsetSec ?? 0;
+    const absoluteStart = (scoreData?.audioStartOffsetSec ?? 0) + sectionStart;
+    offsetRef.current = absoluteStart;
+
     if (backingAudioRef.current) {
       backingAudioRef.current.pause();
-      const startOffset = scoreData?.sectionStartOffsetSec ?? 0;
-      backingAudioRef.current.currentTime = startOffset;
+      backingAudioRef.current.currentTime = absoluteStart;
     }
     if (recordingAudioRef.current) {
       recordingAudioRef.current.pause();
-      const startOffset = scoreData?.sectionStartOffsetSec ?? 0;
-      recordingAudioRef.current.currentTime = startOffset;
+      recordingAudioRef.current.currentTime = absoluteStart;
     }
 
     const targetMeasureIndex = scoreData?.startIndex ?? Math.max(0, startBar - 1);
-    playbackTimeRef.current = scoreData?.sectionStartOffsetSec ?? 0;
+    playbackTimeRef.current = sectionStart;
     setCurrentMeasureIndex(targetMeasureIndex);
     setBeatInBar(-1);
     scoreViewerRef.current?.jumpToMeasure(targetMeasureIndex);
@@ -330,15 +336,20 @@ export default function AnalysisResultPage() {
 
   useEffect(() => {
     if (isPlaying) {
-      start(bpm, beatsPerBar, (time, bib) => {
-        Tone.getDraw().schedule(() => {
-          setBeatInBar(bib);
-        }, time);
-      });
+      start(
+        bpm,
+        beatsPerBar,
+        (time, bib) => {
+          Tone.getDraw().schedule(() => {
+            setBeatInBar(bib);
+          }, time);
+        },
+        audioStartOffsetSec + playbackTimeRef.current,
+      );
     } else {
       pause();
     }
-  }, [isPlaying, bpm, beatsPerBar, start, pause]);
+  }, [isPlaying, bpm, beatsPerBar, audioStartOffsetSec, start, pause]);
 
   // 재생 중 두 오디오와 싱크 동시 제어 및 완료 시 정지 처리
   useEffect(() => {

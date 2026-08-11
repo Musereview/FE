@@ -16,6 +16,15 @@ export function extractMeasureRange(xmlText: string, startMeasureNumber: number,
     ? firstMeasureWithAttributes.querySelector('attributes')?.cloneNode(true)
     : null;
 
+  // 템포(<sound tempo>)도 함께 옮김
+  //  구간 시작 마디 이전에 선언돼 있으면 잘라낼 때 사라지고 computeMeasureTimings가 기본값 120bpm으로 마디 시각을 계산해 오디오와 어긋
+  let activeTempo: Node | null = null;
+  for (const m of measures) {
+    if (parseInt(m.getAttribute('number') ?? '0', 10) > startMeasureNumber) break;
+    const tempoEl = m.querySelector('sound[tempo]');
+    if (tempoEl) activeTempo = tempoEl.cloneNode(true);
+  }
+
   const keep = measures.filter((m) => {
     const num = parseInt(m.getAttribute('number') ?? '0', 10);
     return num >= startMeasureNumber && num <= endMeasureNumber;
@@ -31,6 +40,12 @@ export function extractMeasureRange(xmlText: string, startMeasureNumber: number,
       } else {
         firstKeepMeasure.appendChild(originalAttributes);
       }
+    }
+
+    // 템포는 attributes 바로 뒤에 넣어 마디 시작부터 적용
+    if (!firstKeepMeasure.querySelector('sound[tempo]') && activeTempo) {
+      const attrEl = firstKeepMeasure.querySelector('attributes');
+      firstKeepMeasure.insertBefore(activeTempo, attrEl ? attrEl.nextSibling : firstKeepMeasure.firstChild);
     }
   }
 

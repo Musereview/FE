@@ -44,12 +44,25 @@ export function createMetronome() {
 
   return {
     ready,
-    start(bpm: number, beatsPerBar: number, onBeat: (time: number, beatInBar: number) => boolean | void) {
+    /**
+     * @param startOffsetSec 이미 진행 중인 오디오에 맞춰 시작할 위치(초).
+     *   0이 아니면 그 지점부터 Transport를 돌려 마디 첫 박이 제자리에 떨어지게 한다.
+     *   (일시정지 후 재생처럼 오디오만 이어지는 경우 0에서 다시 시작하면 박이 어긋난다)
+     */
+    start(
+      bpm: number,
+      beatsPerBar: number,
+      onBeat: (time: number, beatInBar: number) => boolean | void,
+      startOffsetSec = 0,
+    ) {
       transport.stop();
       transport.cancel();
 
-      let beat = 0;
       transport.bpm.value = bpm;
+
+      // scheduleRepeat은 0, 1박, 2박... 위치에 예약되므로 오프셋 이후 처음 울릴 박부터 세기 시작한다
+      const secondsPerBeat = 60 / bpm;
+      let beat = startOffsetSec > 0 ? Math.ceil(startOffsetSec / secondsPerBeat) : 0;
       transport.scheduleRepeat((time) => {
         const beatInBar = beat % beatsPerBar;
         // onBeat이 false를 반환하면(곡이 끝난 박) 클릭 소리를 재생하지 않음
@@ -66,7 +79,7 @@ export function createMetronome() {
         }
         beat += 1;
       }, '4n');
-      transport.start();
+      transport.start(undefined, startOffsetSec);
     },
     stop() {
       transport.stop();

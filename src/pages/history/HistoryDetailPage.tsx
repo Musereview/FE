@@ -8,6 +8,7 @@ import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
 import { toPlayedNotes } from '@/utils/midiEventPayload';
 import { isValidHistoryId } from '@/utils/historyId';
+import { toPlayableUrl } from '@/utils/audioUrl';
 import { historyDetailErrorMessage } from '@/utils/historyError';
 import { useHistoryDetail } from '@/hooks/useHistory';
 import { useMetronome } from '@/hooks/useMetronome';
@@ -22,11 +23,6 @@ import { requestAnalysis } from '@/apis/analysis';
 function parseTimeSignature(raw?: string): [number, number] {
   const [beats, beatType] = (raw ?? '').split('/').map(Number);
   return [beats > 0 ? beats : 4, beatType > 0 ? beatType : 4];
-}
-
-// 서버가 더미 문자열이나 빈 값을 내려보내는 경우가 있어 재생 가능한 URL만 통과
-function toPlayableUrl(url?: string | null): string | null {
-  return url && /^https?:\/\//.test(url) ? url : null;
 }
 
 // 백킹트랙 keySignature → MusicXML 조표용 key/mode
@@ -208,8 +204,7 @@ export default function HistoryDetailPage() {
       return;
     }
 
-    // BPM은 4분음표 기준 -> 박자표 분모로 환산 (6/8이면 8분음표가 한 박)
-    const beatsPerSecond = (bpm / 60) * (beatType / 4);
+    const beatsPerSecond = bpm / 60;
 
     const tick = () => {
       const audio = audioRef.current;
@@ -234,18 +229,17 @@ export default function HistoryDetailPage() {
   }, [isPlaying, measureStartTimes, bpm, beatsPerBar, beatType]);
 
   // 4) 메트로놈
-  //    useMetronome은 4분음표(4n) 간격으로 클릭하므로, 박자표의 박 단위에 맞춰 BPM을 환산해 넘긴다.
-  //    (6/8: 8분음표가 한 박 → 클릭 간격이 절반)
   useEffect(() => {
     if (!isPlaying) {
       stopMetronome();
       return;
     }
 
-    startMetronome(bpm * (beatType / 4), beatsPerBar, () => {});
+    // 오디오는 멈춘 지점부터 이어지므로, 메트로놈도 그 위치에서 시작해야 마디 첫 박이 맞는다
+    startMetronome(bpm, beatsPerBar, () => {}, audioRef.current?.currentTime ?? 0);
 
     return () => stopMetronome();
-  }, [isPlaying, bpm, beatsPerBar, beatType, startMetronome, stopMetronome]);
+  }, [isPlaying, bpm, beatsPerBar, startMetronome, stopMetronome]);
 
   const handleTogglePlay = async () => {
     if (isScoreLoading) return;
