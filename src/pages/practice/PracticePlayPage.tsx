@@ -70,6 +70,7 @@ function PracticePlayPage() {
   const recordingFinalizedRef = useRef(false); // 분석 재시도 시 stopRecording을 중복 호출하지 않도록(오디오 유실 방지)
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 진입 시 자동재생 예약
+  const finishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 곡 끝 → 분석 화면 이동 예약
   const pauseStartRef = useRef(performance.now()); // 정지 시각 (노트바 얼림 기준 + 재개 시 보정)
   const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
   const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
@@ -84,7 +85,11 @@ function PracticePlayPage() {
     if (!url) return;
     // 로딩(fetch+decode)이 카운트다운보다 늦게 끝나는 경우를 대비 — 이미 재생이 시작된 뒤라면 그 시점에 뒤늦게라도 동기화해 재생
     const player = new Tone.Player(url, () => {
-      if (playerRef.current === player && isPlaybackActiveRef.current) player.sync().start(0);
+      if (playerRef.current === player && isPlaybackActiveRef.current) {
+        player.sync().start(0);
+        // MR 실제 길이만큼 지난 시점(=MR이 스스로 끝나는 시점)에 정지 예약 — 백킹트랙 박 수와 무관하게 MR 종료가 기준
+        Tone.getTransport().scheduleOnce(() => finishPlayback(), player.buffer.duration);
+      }
     }).toDestination();
     playerRef.current = player;
     return () => {
@@ -153,11 +158,15 @@ function PracticePlayPage() {
     resetInput(); // 눌린 건반 표시 초기화 (stuck 방지)
   };
 
-  // 예약된 자동재생(START 타이머) 취소
+  // 예약된 자동재생(START 타이머) + 곡 끝 분석 이동 타이머 취소
   const cancelAutoStart = () => {
     if (startTimerRef.current) {
       clearTimeout(startTimerRef.current);
       startTimerRef.current = null;
+    }
+    if (finishTimerRef.current) {
+      clearTimeout(finishTimerRef.current);
+      finishTimerRef.current = null;
     }
   };
 
@@ -177,6 +186,24 @@ function PracticePlayPage() {
     setBeatInBar(-1);
     setCurrentBeat(-1);
     setCountdown(null); // 카운트다운 도중 정지 시 화면에 숫자가 멈춰 남지 않도록
+  };
+
+  // MR 종료(실제 오디오 길이 도달) 시 호출됨 — 백킹트랙/메트로놈도 그 시점에 맞춰 함께 정지.
+  // 진행점·노트바는 끝 지점 그대로 두고(정지 버튼과 달리 위치 리셋 안 함) 2초 후 "분석하기"와 동일한 플로우로 자동 진행
+  const finishPlayback = () => {
+    isPlaybackActiveRef.current = false; // 지연 로딩 onload가 이후엔 재생을 시작하지 않도록
+    finalizeOpenNotes(performance.now());
+    pauseRecording(); // 곡이 끝난 시점에 녹음도 함께 멈춤 (분석 화면 이동 대기 중 무음 구간이 섞이지 않도록)
+    stop();
+    Tone.getDraw().cancel();
+    const player = playerRef.current;
+    if (player) {
+      player.unsync();
+      if (player.state === 'started') player.stop();
+    }
+    setIsPlaying(false);
+    // beatInBar/currentBeat/노트바 모두 유지 (끝 지점 상태 그대로)
+    finishTimerRef.current = setTimeout(() => handleAnalyze(), 2000);
   };
 
   // 카운트다운(4,3,2,1): 메트로놈 박에 맞춰 숫자를 표시하고, 끝나면 START 안내 후 실제 재생 시작
@@ -243,6 +270,7 @@ function PracticePlayPage() {
     // 메트로놈 start()가 내부적으로 transport.stop()/cancel()을 먼저 실행하므로 그보다 먼저 반주를 sync하면
     // 방금 건 예약(0초 재생)이 cancel()에 지워짐 — 그래서 metronome start()가 끝난 뒤에 sync().start(0)를 건다.
     start(track?.bpm ?? 0, beatsPerBar, (time, bib) => {
+      // MR이 끝날 때까지는 코드 진행을 반복 순환시켜 백킹트랙을 계속 진행 (정지는 MR 종료 예약이 담당)
       const beat = totalBeatRef.current % totalCells;
       Tone.getDraw().schedule(() => {
         setBeatInBar(bib);
@@ -251,7 +279,11 @@ function PracticePlayPage() {
       totalBeatRef.current += 1;
     });
     const player = playerRef.current;
-    if (player?.loaded) player.sync().start(0);
+    if (player?.loaded) {
+      player.sync().start(0);
+      // MR 실제 길이만큼 지난 시점(=MR이 스스로 끝나는 시점)에 정지 예약 — 백킹트랙 박 수와 무관하게 MR 종료가 기준
+      Tone.getTransport().scheduleOnce(() => finishPlayback(), player.buffer.duration);
+    }
   };
 
   // 정지: 화면 그대로 멈춤(진행 상태 유지) / 재생: 이어서
@@ -359,6 +391,7 @@ function PracticePlayPage() {
         if (player.state === 'started') player.stop();
       }
       if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+      if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, [stop]);
