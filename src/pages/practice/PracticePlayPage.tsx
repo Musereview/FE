@@ -68,9 +68,11 @@ function PracticePlayPage() {
   const heldRef = useRef<Map<number, number>>(new Map()); // midi → 진행 중 노트바 id
   const recordingRef = useRef<PlayedNote[]>([]); // 연주 녹음 (Transport 시각 기준)
   const recordingFinalizedRef = useRef(false); // 분석 재시도 시 stopRecording을 중복 호출하지 않도록(오디오 유실 방지)
+  const analyzingRef = useRef(false); // handleAnalyze 중복 실행 방지 (곡 종료 자동 호출과 수동 클릭이 겹치는 경우 등)
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 진입 시 자동재생 예약
   const finishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 곡 끝 → 분석 화면 이동 예약
+  const analyzeErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 저장 실패 토스트 → 설정 화면 복귀 예약
   const pauseStartRef = useRef(performance.now()); // 정지 시각 (노트바 얼림 기준 + 재개 시 보정)
   const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
   const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
@@ -334,8 +336,10 @@ function PracticePlayPage() {
 
   // 분석: MIDI 녹음 + 레이턴시 보정값을 스토어에 저장하고, 오디오 녹음(webm)을 확정한 뒤
   // Presigned URL 발급 → S3 업로드 → MIDI 이벤트 저장(최종 완료 처리) 순으로 연동 후 분석 화면으로 이동
-  // 업로드/저장 실패 시에는 분석 화면으로 넘어가지 않고 토스트로 안내 → "분석하기"를 다시 눌러 재시도
+  // 업로드/저장 실패 시에는 분석 화면으로 넘어가지 않고 토스트로 안내 후 설정 화면으로 돌아간다
   const handleAnalyze = async () => {
+    if (analyzingRef.current) return; // 이미 진행 중이면 무시 (자동 호출과 수동 클릭이 겹쳐 같은 세션에 중복 요청되는 것 방지)
+    analyzingRef.current = true;
     stopPlayback();
     setIsAnalyzing(true);
 
@@ -366,7 +370,11 @@ function PracticePlayPage() {
       } catch (err) {
         console.error('연주 녹음 업로드/저장 실패', err);
         setIsAnalyzing(false);
+        analyzingRef.current = false; // 재시도 가능하도록 해제
         triggerToast('연주 기록 저장에 실패했습니다. 다시 시도해주세요.');
+        // 토스트가 다 보인 뒤 설정 화면으로 돌아가 처음부터 다시 시도하게 한다 (플레이 화면에 멈춰있지 않도록)
+        if (analyzeErrorTimerRef.current) clearTimeout(analyzeErrorTimerRef.current);
+        analyzeErrorTimerRef.current = setTimeout(() => navigate(`/practice/${practiceId}/settings`), 3000);
         return; // 저장이 끝날 때까지 분석 화면으로 이동하지 않음
       }
     }
@@ -393,6 +401,7 @@ function PracticePlayPage() {
       }
       if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
       if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
+      if (analyzeErrorTimerRef.current) clearTimeout(analyzeErrorTimerRef.current);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, [stop]);
@@ -484,7 +493,8 @@ function PracticePlayPage() {
           <button
             type="button"
             onClick={handleAnalyze}
-            className="button-large2 bg-primary-400 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] px-3 py-[6px] text-gray-950">
+            disabled={isAnalyzing}
+            className="button-large2 bg-primary-400 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] px-3 py-[6px] text-gray-950 disabled:cursor-not-allowed disabled:opacity-50">
             분석하기
             <CheckIcon className="h-6 w-6" />
           </button>
