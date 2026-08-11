@@ -74,8 +74,12 @@
 | Data Fetching        | <img src="https://img.shields.io/badge/Axios-5A29E4?style=for-the-badge&logo=Axios&logoColor=white">                                                                                                                                                                                                                            | 직관적인 API 사용법과 자동 JSON 변환 기능으로 비동기 통신이 간편                                                                             |
 | State Management     | <img src="https://img.shields.io/badge/TanStackQuery-FF4154?style=for-the-badge&logo=reactquery&logoColor=white"> <img src="https://img.shields.io/badge/Zustand-black?style=for-the-badge&logoColor=white">                                                                                                                    | 서버 상태는 TanStack Query의 캐싱과 동기화 기능을 통해 효율적으로 관리하고, 전역 상태는 Zustand를 활용해 최소한의 보일러플레이트로 관리 가능 |
 | Form                 | <img src="https://img.shields.io/badge/React%20Hook%20Form-EC5990?style=for-the-badge&logo=reacthookform&logoColor=white">                                                                                                                                                                                                      | 최소한의 리렌더링으로 폼 상태를 관리하고, 유효성 검사를 간편하게 처리 가능                                                                   |
+| Music / Audio        | <img src="https://img.shields.io/badge/Tone.js-000000?style=for-the-badge&logo=javascript&logoColor=F7DF1E"> <img src="https://img.shields.io/badge/OpenSheetMusicDisplay-2C7BB6?style=for-the-badge&logoColor=white"> <img src="https://img.shields.io/badge/VexFlow-4B4B4B?style=for-the-badge&logoColor=white">              | Web Audio 기반 피아노 사운드·메트로놈 재생과 MusicXML 악보 렌더링 · 커서 싱크를 구현하기 위해 사용                                           |
+| Markdown             | <img src="https://img.shields.io/badge/react--markdown-000000?style=for-the-badge&logo=markdown&logoColor=white">                                                                                                                                                                                                               | AI 분석 리포트와 이론 학습 콘텐츠를 마크다운 그대로 안전하게 렌더링 가능                                                                     |
+| Icon                 | <img src="https://img.shields.io/badge/lucide-F56565?style=for-the-badge&logo=lucide&logoColor=white">                                                                                                                                                                                                                          | 일관된 스타일의 아이콘을 트리셰이킹 가능한 컴포넌트 형태로 제공                                                                              |
 | Routing              | <img src="https://img.shields.io/badge/ReactRouter-CA4245?style=for-the-badge&logo=ReactRouter&logoColor=white">                                                                                                                                                                                                                | SPA에 최적화된 라우팅 기능 제공, 선언적 방식으로 라우트를 쉽게 구성 가능                                                                     |
 | Formatting           | <img src="https://img.shields.io/badge/eslint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white"> <img src="https://img.shields.io/badge/prettier-000000?style=for-the-badge&logo=prettier&logoColor=F7B93E"> <img src="https://img.shields.io/badge/stylelint-263238?style=for-the-badge&logo=stylelint&logoColor=white"> | 코드 스타일을 통일하고 잠재적인 오류를 사전에 방지하여 협업 시 효율성을 높임                                                                 |
+| Git Hooks            | <img src="https://img.shields.io/badge/husky-042C60?style=for-the-badge&logo=git&logoColor=white"> <img src="https://img.shields.io/badge/lint--staged-000000?style=for-the-badge&logoColor=white">                                                                                                                             | 커밋 전 staged 파일에만 lint · format을 자동 적용해 컨벤션에 어긋난 코드가 올라가는 것을 방지                                                |
 | Code Review          | <img src="https://img.shields.io/badge/CodeRabbit-FF570A?style=for-the-badge&logo=coderabbit&logoColor=white">                                                                                                                                                                                                                  | PR마다 AI 기반 자동 코드 리뷰로 일관된 코드 품질 유지                                                                                        |
 | Package Manager      | <img src="https://img.shields.io/badge/npm-CB3837?style=for-the-badge&logo=npm&logoColor=white">                                                                                                                                                                                                                                | Node 기본 패키지 매니저로 별도 설치 없이 안정적으로 의존성 관리 가능                                                                         |
 | Deployment           | <img src="https://img.shields.io/badge/vercel-000000?style=for-the-badge&logo=vercel&logoColor=white">                                                                                                                                                                                                                          | Git 연동 기반의 자동 배포, 프론트엔드 프로젝트에 최적화된 환경 제공으로 빠른 개발 및 배포 사이클 지원                                        |
@@ -98,9 +102,12 @@
 npm install            # 전체 설치
 npm install 라이브러리   # 라이브러리 설치
 npm run dev            # 개발 서버 실행
-npm run build          # 빌드
-npm run lint           # 린트 검사
-npm run format         # 포맷팅
+npm run build          # 타입 체크 + 프로덕션 빌드
+npm run preview        # 빌드 결과 로컬 미리보기
+npm run lint           # ESLint 검사
+npm run stylelint      # 스타일 린트 검사
+npm run format         # Prettier 포맷팅
+npm run format:check   # 포맷 검사만 수행
 ```
 
 </div>
@@ -182,56 +189,35 @@ npm run format         # 포맷팅
 
 ```
 📦 MuseReview
-┣ 📂 .github
-┃ ┣ 📂 ISSUE_TEMPLATE
-┃ ┗ 📜 PULL_REQUEST_TEMPLATE.md
-┣ 📂 public
-┃ ┗ 📂 fonts                    # Pretendard 폰트
+┣ 📂 .github                    # 이슈 · PR 템플릿
+┣ 📂 .husky                     # 커밋 훅 (lint-staged)
+┣ 📂 public                     # 폰트 · 사운드 · 샘플 MusicXML
 ┣ 📂 src
-┃ ┣ 📂 apis                     # axios 인스턴스, API 함수
-┃ ┃ ┣ 📜 axiosInstance.ts
-┃ ┃ ┗ 📜 profile.ts
-┃ ┣ 📂 assets                   # 정적 에셋 (도메인별 폴더: auth / landing / layout / learn / main / metronome / onboarding / practice / profile ...)
-┃ ┣ 📂 components               # 재사용 컴포넌트
-┃ ┃ ┣ 📂 common                 # 공용 컴포넌트 (WithdrawModal)
-┃ ┃ ┣ 📂 metronome              # 메트로놈 (MetronomeDots)
-┃ ┃ ┣ 📂 piano                  # 피아노 / 노트바 (Piano, NoteBars)
-┃ ┃ ┗ 📂 settings               # 설정 모달 (SettingsModal)
-┃ ┣ 📂 constants                # 상수 (difficulty, piano)
-┃ ┣ 📂 hooks                    # 전역 커스텀 훅 (useMidi / useMetronome / useActiveNotes / useProfile / useNicknameCheck ...)
-┃ ┣ 📂 layout                   # 공통 레이아웃 (AppLayout, Navbar, NotificationDrawer)
+┃ ┣ 📂 apis                     # axios 인스턴스, 도메인별 API 함수
+┃ ┣ 📂 assets                   # 도메인별 정적 에셋
+┃ ┣ 📂 components               # 재사용 컴포넌트 (common / history / learn / main / mentor / metronome / piano / practice / score / settings)
+┃ ┣ 📂 constants                # 도메인 상수
+┃ ┣ 📂 hooks                    # 커스텀 훅 (MIDI · 메트로놈 · 악보 싱크 · 서버 상태)
+┃ ┣ 📂 layout                   # 공통 레이아웃
 ┃ ┣ 📂 pages                    # 도메인별 라우팅 페이지
-┃ ┃ ┣ 📂 admin                  # 관리자 (대시보드 / 마이페이지 / 수강생 / 강사 / 트랙)
-┃ ┃ ┣ 📂 auth                   # 로그인 (LoginPage)
-┃ ┃ ┣ 📂 common                 # 공통 페이지 (LoadingPage)
-┃ ┃ ┣ 📂 history                # 기록 (HistoryPage, HistoryDetailPage)
-┃ ┃ ┣ 📂 landing                # 랜딩 (LandingPage, IntroPage, LandingGate, GLSL 셰이더)
-┃ ┃ ┣ 📂 latency                # 레이턴시 측정 (LatencyCheckPage)
-┃ ┃ ┣ 📂 learn                  # 학습 (커리큘럼 / 단계학습 / 주제 / 점수 + components)
-┃ ┃ ┣ 📂 main                   # 메인 대시보드 (MainPage + components)
-┃ ┃ ┣ 📂 onboarding             # 온보딩 (약관 / 역할 / 플랜 / 프로필)
-┃ ┃ ┣ 📂 practice               # 연습 (생성 / 상세 / 편집 / 플레이 / 분석 + components)
-┃ ┃ ┗ 📂 profile                # 프로필 (ProfilePage, ProfileEditPage)
-┃ ┣ 📂 routes                   # router.tsx (라우팅 정의)
-┃ ┣ 📂 stores                   # Zustand 전역 상태 (settingsStore)
-┃ ┣ 📂 types                    # TypeScript 타입 (api / notification / profile / topic / track)
-┃ ┣ 📂 utils                    # 전역 유틸 (metronome, validateNickname)
-┃ ┣ 📜 App.tsx
-┃ ┣ 📜 main.tsx
-┃ ┣ 📜 index.css                # 디자인 토큰 · 타이포그래피 · 애니메이션
-┃ ┗ 📜 App.css
-┣ 📜 .coderabbit.yaml           # CodeRabbit 리뷰 설정
-┣ 📜 .gitignore
-┣ 📜 .prettierrc
-┣ 📜 .stylelintrc
-┣ 📜 eslint.config.js
-┣ 📜 index.html
-┣ 📜 package.json
-┣ 📜 package-lock.json
-┣ 📜 tsconfig.app.json
-┣ 📜 tsconfig.json
-┣ 📜 tsconfig.node.json
-┗ 📜 vite.config.ts
+┃ ┃ ┣ 📂 admin                  # ⚠️ MVP 제외 — 관리자 (대시보드 / 마이페이지 / 수강생 / 강사 / 트랙)
+┃ ┃ ┣ 📂 auth                   # 로그인 · 소셜 로그인 콜백
+┃ ┃ ┣ 📂 common                 # 공통 페이지 (로딩 / 404)
+┃ ┃ ┣ 📂 history                # 기록
+┃ ┃ ┣ 📂 landing                # 랜딩 · 인트로
+┃ ┃ ┣ 📂 latency                # 레이턴시 측정
+┃ ┃ ┣ 📂 learn                  # 학습 (커리큘럼 / 단계학습 / 이론 / 점수)
+┃ ┃ ┣ 📂 main                   # 메인 대시보드
+┃ ┃ ┣ 📂 onboarding             # 온보딩 (약관 / 역할 / 플랜 / 프로필 설정)
+┃ ┃ ┣ 📂 practice               # 연습 (생성 / 상세 / 편집 / 플레이 / 분석)
+┃ ┃ ┗ 📂 profile                # 프로필
+┃ ┣ 📂 routes                   # 라우팅 정의
+┃ ┣ 📂 stores                   # Zustand 전역 상태
+┃ ┣ 📂 types                    # TypeScript 타입
+┃ ┗ 📂 utils                    # 전역 유틸
+┗ 📜 설정 파일                   # .coderabbit.yaml, .prettierrc, .stylelintrc, eslint.config.js, tsconfig.*, vite.config.ts, vercel.json
 ```
+
+> ⚠️ `src/pages/admin`(및 `/admin` 라우트)은 MVP 범위에서 제외된 기능입니다. 추후 확장을 위해 코드는 그대로 유지하고 있습니다.
 
 </div>
