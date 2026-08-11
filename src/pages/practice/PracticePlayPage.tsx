@@ -377,6 +377,12 @@ function PracticePlayPage() {
   const handleAnalyze = async () => {
     if (analyzingRef.current) return; // 이미 진행 중이면 무시 (자동 호출과 수동 클릭이 겹쳐 같은 세션에 중복 요청되는 것 방지)
     analyzingRef.current = true;
+    // 이전 실패로 예약된 설정 화면 복귀 타이머 취소 — 재시도 중 그 타이머가 먼저 발동해 화면이 이동되면,
+    // 이번 시도가 뒤늦게 끝났을 때 이미 떠난 화면에서 analysis로 재이동하거나 새 복귀 타이머가 겹쳐 걸림
+    if (analyzeErrorTimerRef.current) {
+      clearTimeout(analyzeErrorTimerRef.current);
+      analyzeErrorTimerRef.current = null;
+    }
     stopPlayback();
     setIsAnalyzing(true);
 
@@ -411,7 +417,10 @@ function PracticePlayPage() {
         triggerToast('연주 기록 저장에 실패했습니다. 다시 시도해주세요.');
         // 토스트가 다 보인 뒤 설정 화면으로 돌아가 처음부터 다시 시도하게 한다 (플레이 화면에 멈춰있지 않도록)
         if (analyzeErrorTimerRef.current) clearTimeout(analyzeErrorTimerRef.current);
-        analyzeErrorTimerRef.current = setTimeout(() => navigate(`/practice/${practiceId}/settings`), 3000);
+        analyzeErrorTimerRef.current = setTimeout(() => {
+          analyzeErrorTimerRef.current = null;
+          navigate(`/practice/${practiceId}/settings`);
+        }, 3000);
         return; // 저장이 끝날 때까지 분석 화면으로 이동하지 않음
       }
     }
