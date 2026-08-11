@@ -336,7 +336,7 @@ export default function AnalysisSelectPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex cursor-pointer items-center gap-[8px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-400 transition-colors hover:text-white">
+          className="inline-flex w-fit cursor-pointer items-center gap-[8px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-400 transition-colors hover:text-white">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
