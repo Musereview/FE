@@ -119,7 +119,8 @@ function PracticePlayPage() {
           // 로딩이 늦게 끝나도 현재 Transport 위치(startAt)부터 버퍼 처음을 재생하도록 기준을 맞춘다
           const startAt = Tone.getTransport().seconds;
           player.sync().start(startAt);
-          Tone.getTransport().scheduleOnce(() => finishPlayback(), startAt + player.buffer.duration);
+          const transportEnd = startAt + player.buffer.duration;
+          Tone.getTransport().scheduleOnce((time) => finishPlayback(time, transportEnd), transportEnd);
         }
       },
       onerror: handleLoadFailure,
@@ -181,8 +182,7 @@ function PracticePlayPage() {
 
   // 정지/일시정지 시점에 아직 눌린(열린) 노트를 그 순간으로 확정·해제
   // → 이후 비활성 중 들어오는 note-off는 이미 닫힌 노트라 이벤트에 영향 없음(하이라이트 해제만)
-  const finalizeOpenNotes = (atWall: number) => {
-    const atSec = Tone.getTransport().seconds; // 정지 지점 (transport 시각, 정지 중 멈춰 있음)
+  const finalizeOpenNotes = (atWall: number, atSec: number = Tone.getTransport().seconds) => {
     for (const rec of recordingRef.current) {
       if (rec.offSec === null) rec.offSec = atSec; // 녹음: 열린 노트 종료
     }
@@ -223,21 +223,26 @@ function PracticePlayPage() {
   };
 
   // MR 종료(실제 오디오 길이 도달) 시 호출됨 — 백킹트랙/메트로놈도 그 시점에 맞춰 함께 정지.
+  // scheduleOnce는 lookahead 때문에 실제 종료 시각(time)보다 먼저 실행되므로, "지금(now)" 값 대신
+  // 예약 당시 넘겨준 시각들을 그대로 받아 사용한다 — 그래야 MR/Transport가 일찍 멈추거나
+  // finalizeOpenNotes가 마지막 노트의 offSec을 짧게 저장하는 일이 없다.
+  // time: Transport.stop에 넘길 AudioContext(Context) 시각 / transportEnd: 동기화된 Player·녹음 확정에 쓸 예약된 Transport 종료 위치
   // 진행점·노트바는 끝 지점 그대로 두고(정지 버튼과 달리 위치 리셋 안 함) 2초 후 "분석하기"와 동일한 플로우로 자동 진행
-  const finishPlayback = () => {
+  const finishPlayback = (time: number, transportEnd: number) => {
     isPlaybackActiveRef.current = false; // 지연 로딩 onload가 이후엔 재생을 시작하지 않도록
-    finalizeOpenNotes(performance.now());
+    finalizeOpenNotes(performance.now(), transportEnd);
     pauseRecording(); // 곡이 끝난 시점에 녹음도 함께 멈춤 (분석 화면 이동 대기 중 무음 구간이 섞이지 않도록)
-    stop();
-    Tone.getDraw().cancel();
     const player = playerRef.current;
-    if (player) {
-      player.unsync();
-      if (player.state === 'started') player.stop();
-    }
-    setIsPlaying(false);
-    // beatInBar/currentBeat/노트바 모두 유지 (끝 지점 상태 그대로)
-    finishTimerRef.current = setTimeout(() => handleAnalyze(), 2000);
+    // unsync()는 내부적으로 예약된 정지를 즉시 취소하고 그 자리에서 강제 정지시키므로, 여기서는 부르지 않는다
+    // (다음 정지 경로 — 재시작/분석하기/언마운트 — 가 그때 가서 안전하게 unsync한다)
+    if (player && player.state === 'started') player.stop(transportEnd); // 동기화 상태 유지한 채 Transport 종료 위치 기준으로 정지
+    stop(time); // 메트로놈/Transport를 예약된 실제(Context) 시각에 정지
+    Tone.getDraw().cancel();
+    Tone.getDraw().schedule(() => {
+      setIsPlaying(false);
+      // beatInBar/currentBeat/노트바 모두 유지 (끝 지점 상태 그대로)
+      finishTimerRef.current = setTimeout(() => handleAnalyze(), 2000);
+    }, time);
   };
 
   // 카운트다운(4,3,2,1): 메트로놈 박에 맞춰 숫자를 표시하고, 끝나면 START 안내 후 실제 재생 시작
@@ -316,7 +321,8 @@ function PracticePlayPage() {
     if (player?.loaded) {
       player.sync().start(0);
       // MR 실제 길이만큼 지난 시점(=MR이 스스로 끝나는 시점)에 정지 예약 — 백킹트랙 박 수와 무관하게 MR 종료가 기준
-      Tone.getTransport().scheduleOnce(() => finishPlayback(), player.buffer.duration);
+      const transportEnd = player.buffer.duration;
+      Tone.getTransport().scheduleOnce((time) => finishPlayback(time, transportEnd), transportEnd);
     }
   };
 

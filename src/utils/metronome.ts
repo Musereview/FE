@@ -68,9 +68,9 @@ export function createMetronome() {
       }, '4n');
       transport.start();
     },
-    stop() {
-      transport.stop();
-      transport.cancel();
+    stop(time?: number) {
+      transport.stop(time);
+      transport.cancel(time);
     },
     pause() {
       transport.pause(); // 현재 위치 유지하고 멈춤
