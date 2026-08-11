@@ -8,6 +8,7 @@ import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
 import { toPlayedNotes } from '@/utils/midiEventPayload';
 import { isValidHistoryId } from '@/utils/historyId';
+import { toPlayableUrl } from '@/utils/audioUrl';
 import { historyDetailErrorMessage } from '@/utils/historyError';
 import { useHistoryDetail } from '@/hooks/useHistory';
 import { useMetronome } from '@/hooks/useMetronome';
@@ -22,11 +23,6 @@ import { requestAnalysis } from '@/apis/analysis';
 function parseTimeSignature(raw?: string): [number, number] {
   const [beats, beatType] = (raw ?? '').split('/').map(Number);
   return [beats > 0 ? beats : 4, beatType > 0 ? beatType : 4];
-}
-
-// 서버가 더미 문자열이나 빈 값을 내려보내는 경우가 있어 재생 가능한 URL만 통과
-function toPlayableUrl(url?: string | null): string | null {
-  return url && /^https?:\/\//.test(url) ? url : null;
 }
 
 // 백킹트랙 keySignature → MusicXML 조표용 key/mode
