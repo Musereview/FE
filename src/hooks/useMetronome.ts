@@ -20,8 +20,12 @@ export function useMetronome() {
     };
   }, [getMetronome]);
   const start = useCallback(
-    (bpm: number, beatsPerBar: number, onBeat: (time: number, beatInBar: number) => boolean | void) =>
-      getMetronome().start(bpm, beatsPerBar, onBeat),
+    (
+      bpm: number,
+      beatsPerBar: number,
+      onBeat: (time: number, beatInBar: number) => boolean | void,
+      startOffsetSec = 0,
+    ) => getMetronome().start(bpm, beatsPerBar, onBeat, startOffsetSec),
     [getMetronome],
   );
   const stop = useCallback(() => ref.current?.stop(), []);

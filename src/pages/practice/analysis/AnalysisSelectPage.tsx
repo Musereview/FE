@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -7,6 +7,7 @@ import { useScoreCursorSync } from '@/hooks/music/useScoreCursorSync';
 import { computeMeasureTimings } from '@/utils/musicXmlTiming';
 import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
+import { toPlayableUrl } from '@/utils/audioUrl';
 import { getAnalysisContext, requestAnalysis } from '@/apis/analysis';
 import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
 import AnalysisLoadingPage from './AnalysisLoadingPage';
@@ -80,7 +81,7 @@ export default function AnalysisSelectPage() {
     }
   }, [isContextError, triggerToast, parsedTargetId]);
 
-  const backingAudioUrl = contextData?.backingTrackAudioFileUrl || '';
+  const backingAudioUrl = toPlayableUrl(contextData?.backingTrackAudioFileUrl) ?? '';
 
   const [localBlobUrl, setLocalBlobUrl] = useState<string | null>(null);
 
@@ -94,7 +95,7 @@ export default function AnalysisSelectPage() {
     };
   }, [audioBlob, contextData?.recordingFileUrl]);
 
-  const recordingAudioUrl = contextData?.recordingFileUrl || localBlobUrl || '';
+  const recordingAudioUrl = toPlayableUrl(contextData?.recordingFileUrl) ?? localBlobUrl ?? '';
 
   // 녹음된 연주 데이터를 프론트엔드에서 MusicXML 악보로 변환
   useEffect(() => {
@@ -211,9 +212,11 @@ export default function AnalysisSelectPage() {
     }
   }, [isPlaying]);
 
-  // 악보 커서 싱크 훅 (백킹 트랙 시간에 맞춰 악보 커서가 끝까지 정상 작동하도록 연결)
+  // 악보 커서 싱크 훅
+  const cursorAudioRefs = useMemo(() => [backingAudioRef, recordingAudioRef], []);
+
   const { currentMeasureIndex } = useScoreCursorSync({
-    audioRef: backingAudioRef,
+    audioRefs: cursorAudioRefs,
     measureStartTimes,
     isPlaying,
   });
