@@ -94,7 +94,7 @@ const ScoreViewer = forwardRef<ScoreViewerHandle, ScoreViewerProps>(function Sco
       {/* 가로 스크롤 뷰포트. 자동 줄바꿈 대신 여기서 좌우로만 이동한다. */}
       <div
         ref={scrollRef}
-        className="overflow-x-auto overflow-y-hidden px-0 py-7 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-track]:bg-transparent"
+        className="show-scrollbar overflow-x-auto overflow-y-hidden px-0 py-7 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-track]:bg-transparent"
         style={{ height }}>
         {/* renderSingleHorizontalStaffline: true 로 렌더링된, 줄바꿈 없는 단일 라인 악보 */}
         <div
