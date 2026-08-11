@@ -51,7 +51,11 @@ export default function AnalysisResultPage() {
   const latencyMs = location.state?.latencyMs ?? storeLatencyMs ?? 0;
 
   // "다시 연주하기" — 이미 COMPLETED된 옛 playingId를 재사용하면 저장 시 항상 409 충돌이 나므로 새 세션을 만든다
+  // restartBackingTrack은 sessionStorage에 남아있는 "이 탭에서 마지막으로 시작한 연습"의 트랙이라
+  // 지금 보고 있는 분석(analysisData.playingId)과 다를 수 있다 — 그 경우 재생하지 않고 안내만 한다.
+  // TODO: 백엔드가 분석/히스토리 상세 응답에 backingTrackId를 내려주면 불일치 시에도 정확한 트랙으로 폴백 가능
   const restartBackingTrack = usePlayingSessionStore((s) => s.backingTrack);
+  const restartSessionPlayingId = usePlayingSessionStore((s) => s.playingId);
   const setPlayingSession = usePlayingSessionStore((s) => s.setSession);
   const { mutateAsync: createPlaying, isPending: isRestartingPractice } = useCreatePlaying();
 
@@ -414,8 +418,12 @@ export default function AnalysisResultPage() {
     handleRewind();
   };
 
+  // 저장된 세션이 지금 보고 있는 분석의 playingId와 같을 때만 신뢰해서 재사용한다
+  const canRestartWithStoredSession =
+    !!restartBackingTrack && restartSessionPlayingId != null && restartSessionPlayingId === analysisData?.playingId;
+
   const handleRestartPractice = async () => {
-    if (!restartBackingTrack) {
+    if (!canRestartWithStoredSession) {
       setToastMessage('연습 세션 정보를 찾을 수 없습니다. 트랙 목록에서 다시 시작해주세요.');
       setTimeout(() => setToastMessage(null), 3000);
       return;
@@ -575,7 +583,7 @@ export default function AnalysisResultPage() {
       <div className="flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-4 pt-2">
         <button
           onClick={handleRestartPractice}
-          disabled={isRestartingPractice}
+          disabled={isRestartingPractice || !canRestartWithStoredSession}
           className="cursor-pointer rounded-xl bg-gray-800 px-8 py-4 text-base font-medium text-gray-300 shadow-md transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50">
           다시 연주하기
         </button>
