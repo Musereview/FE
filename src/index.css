@@ -112,6 +112,17 @@
   *::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Edge */
   }
+
+  /* 스크롤바를 직접 스타일링해서 조작 수단으로 쓰는 영역은 전역 숨김에서 제외 */
+  .show-scrollbar {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: var(--color-gray-700) transparent;
+    -ms-overflow-style: auto;
+  }
+
+  .show-scrollbar::-webkit-scrollbar {
+    display: block;
+  }
 }
 
 /* ===== 타이포그래피 =====
