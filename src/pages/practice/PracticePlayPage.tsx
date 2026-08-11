@@ -30,6 +30,7 @@ import LoadingPage from '@/pages/common/LoadingPage';
 
 const PX_PER_BEAT = 120; // 노트바 길이 환산: 1박 = 120px
 const COUNTDOWN_BEATS = 4; // 재생 전 카운트다운 박 수 (4,3,2,1)
+const BACKING_TRACK_LOAD_TIMEOUT_MS = 10000; // 반주 음원 로딩이 이 시간 안에 끝나지 않으면 실패로 간주 (fetch가 응답 없이 멈추는 경우 대비)
 
 function PracticePlayPage() {
   const navigate = useNavigate();
@@ -85,17 +86,47 @@ function PracticePlayPage() {
   useEffect(() => {
     const url = track?.audioFileUrl;
     if (!url) return;
+
+    let settled = false; // onload/onerror/타임아웃 중 처음 한 번만 반영 (중복 처리 방지)
+
+    // Tone.Player의 기본 onerror는 no-op이라 로딩 실패가 조용히 묻힌다 — 실패 시 재생 세션(Transport·녹음·
+    // isPlaybackActiveRef)을 정리하고 재시도 가능한 화면으로 되돌린다 (metronome.ts의 버퍼 로딩 처리와 동일한 패턴)
+    // (함수 선언으로 호이스팅해 아래쪽에서 const로 선언되는 player/timeoutId를 미리 참조한다)
+    function handleLoadFailure(error: unknown) {
+      if (settled || playerRef.current !== player) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      console.error('반주 음원 로딩 실패', error);
+      stopPlayback();
+      stopRecording();
+      triggerToast('반주 음원을 불러오지 못했습니다. 다시 시도해주세요.');
+    }
+
+    // fetch가 응답 없이 멈추는 경우 onerror만으론 못 잡으므로 타임아웃도 함께 건다
+    const timeoutId = setTimeout(
+      () => handleLoadFailure(new Error('반주 음원 로딩 시간 초과')),
+      BACKING_TRACK_LOAD_TIMEOUT_MS,
+    );
+
     // 로딩(fetch+decode)이 카운트다운보다 늦게 끝나는 경우를 대비 — 이미 재생이 시작된 뒤라면 그 시점에 뒤늦게라도 동기화해 재생
-    const player = new Tone.Player(url, () => {
-      if (playerRef.current === player && isPlaybackActiveRef.current) {
-        // 로딩이 늦게 끝나도 현재 Transport 위치(startAt)부터 버퍼 처음을 재생하도록 기준을 맞춘다
-        const startAt = Tone.getTransport().seconds;
-        player.sync().start(startAt);
-        Tone.getTransport().scheduleOnce(() => finishPlayback(), startAt + player.buffer.duration);
-      }
+    const player = new Tone.Player({
+      url,
+      onload: () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        if (playerRef.current === player && isPlaybackActiveRef.current) {
+          // 로딩이 늦게 끝나도 현재 Transport 위치(startAt)부터 버퍼 처음을 재생하도록 기준을 맞춘다
+          const startAt = Tone.getTransport().seconds;
+          player.sync().start(startAt);
+          Tone.getTransport().scheduleOnce(() => finishPlayback(), startAt + player.buffer.duration);
+        }
+      },
+      onerror: handleLoadFailure,
     }).toDestination();
     playerRef.current = player;
     return () => {
+      clearTimeout(timeoutId);
       player.unsync();
       player.dispose();
       playerRef.current = null;

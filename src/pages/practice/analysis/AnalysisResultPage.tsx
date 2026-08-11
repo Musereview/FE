@@ -52,8 +52,7 @@ export default function AnalysisResultPage() {
 
   // "다시 연주하기" — 이미 COMPLETED된 옛 playingId를 재사용하면 저장 시 항상 409 충돌이 나므로 새 세션을 만든다
   // restartBackingTrack은 sessionStorage에 남아있는 "이 탭에서 마지막으로 시작한 연습"의 트랙이라
-  // 지금 보고 있는 분석(analysisData.playingId)과 다를 수 있다 — 그 경우 재생하지 않고 안내만 한다.
-  // TODO: 백엔드가 분석/히스토리 상세 응답에 backingTrackId를 내려주면 불일치 시에도 정확한 트랙으로 폴백 가능
+  // 지금 보고 있는 분석(analysisData.playingId)과 다를 수 있다 — 그 경우 재생불가
   const restartBackingTrack = usePlayingSessionStore((s) => s.backingTrack);
   const restartSessionPlayingId = usePlayingSessionStore((s) => s.playingId);
   const setPlayingSession = usePlayingSessionStore((s) => s.setSession);
