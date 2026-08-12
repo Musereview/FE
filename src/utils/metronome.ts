@@ -101,7 +101,10 @@ export function createMetronome() {
     },
     stop(time?: number) {
       transport.stop(time);
-      transport.cancel(time);
+      // Transport.cancel의 인자는 "Transport 위치(초)"인데 time은 AudioContext 절대 시각이라,
+      // 그대로 넘기면 항상 곡 길이보다 큰 값이 되어 아무 예약도 취소되지 않았다.
+      // stop은 위치를 0으로 되돌리므로 남은 예약은 전부 지우는 게 맞다.
+      transport.cancel(0);
       // transport.cancel()은 앞으로의 콜백만 취소할 뿐, 이미 lookahead로 예약되어 Web Audio 레벨에
       // 진입한 클릭 Player는 못 멈춘다 — 남겨두면 다음 세션(재시작 등) 소리에 섞여 들린다.
       for (const player of pendingPlayers) {

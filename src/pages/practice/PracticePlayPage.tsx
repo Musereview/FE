@@ -50,6 +50,7 @@ function PracticePlayPage() {
   const setResult = usePracticeResultStore((s) => s.setResult);
   const backingTrack = usePlayingSessionStore((s) => s.backingTrack);
   const playingId = usePlayingSessionStore((s) => s.playingId);
+  const markCompleted = usePlayingSessionStore((s) => s.markCompleted);
 
   const track = useMemo(() => (backingTrack ? mapDetailToTrack(backingTrack) : null), [backingTrack]);
   const beatsPerBar = track ? Number(track.timeSignature.split('/')[0]) : 4; // '4/4' → 4
@@ -212,6 +213,7 @@ function PracticePlayPage() {
     isPlaybackActiveRef.current = false; // 지연 로딩 onload가 이후엔 재생을 시작하지 않도록
     finalizeOpenNotes(performance.now()); // stop() 전에 (stop이 transport 위치를 0으로 리셋하므로)
     stop();
+    Tone.getDraw().cancel(); // finishPlayback이 예약해둔 Draw 콜백(있다면)이 다음 세션에 새어 들어가지 않도록 취소
     const player = playerRef.current;
     if (player) {
       player.unsync();
@@ -227,20 +229,21 @@ function PracticePlayPage() {
   // scheduleOnce는 lookahead 때문에 실제 종료 시각(time)보다 먼저 실행되므로, "지금(now)" 값 대신
   // 예약 당시 넘겨준 시각들을 그대로 받아 사용한다 — 그래야 MR/Transport가 일찍 멈추거나
   // finalizeOpenNotes가 마지막 노트의 offSec을 짧게 저장하는 일이 없다.
-  // time: Transport.stop에 넘길 AudioContext(Context) 시각 / transportEnd: 동기화된 Player·녹음 확정에 쓸 예약된 Transport 종료 위치
+  // time: Transport.stop에 넘길 AudioContext(Context) 시각 / transportEnd: 녹음(열린 노트) 확정에 쓸 예약된 Transport 종료 위치
   // 진행점·노트바는 끝 지점 그대로 두고(정지 버튼과 달리 위치 리셋 안 함) 2초 후 "분석하기"와 동일한 플로우로 자동 진행
   const finishPlayback = (time: number, transportEnd: number) => {
     isPlaybackActiveRef.current = false; // 지연 로딩 onload가 이후엔 재생을 시작하지 않도록
     finalizeOpenNotes(performance.now(), transportEnd);
     pauseRecording(); // 곡이 끝난 시점에 녹음도 함께 멈춤 (분석 화면 이동 대기 중 무음 구간이 섞이지 않도록)
-    const player = playerRef.current;
-    // unsync()는 내부적으로 예약된 정지를 즉시 취소하고 그 자리에서 강제 정지시키므로, 여기서는 부르지 않는다
-    // (다음 정지 경로 — 재시작/분석하기/언마운트 — 가 그때 가서 안전하게 unsync한다)
-    if (player && player.state === 'started') player.stop(transportEnd); // 동기화 상태 유지한 채 Transport 종료 위치 기준으로 정지
-    stop(time); // 메트로놈/Transport를 예약된 실제(Context) 시각에 정지
-    setIsPlaying(false);
-    // beatInBar/currentBeat/노트바 모두 유지 (끝 지점 상태 그대로)
-    finishTimerRef.current = setTimeout(() => handleAnalyze(), 2000);
+    stop(time); // 메트로놈/Transport/동기화된 반주를 예약된 실제(Context) 시각에 정지
+    Tone.getDraw().cancel();
+    Tone.getDraw().schedule(() => {
+      setIsPlaying(false);
+      // 안전망: 그래도 남아 울리는 반주가 있으면 확실히 끊는다 (이미 곡이 끝난 시점이라 꼬리 손실 없음)
+      playerRef.current?.unsync();
+      // beatInBar/currentBeat/노트바 모두 유지 (끝 지점 상태 그대로)
+      finishTimerRef.current = setTimeout(() => handleAnalyze(), 2000);
+    }, time);
   };
 
   // 카운트다운(4,3,2,1): 메트로놈 박에 맞춰 숫자를 표시하고, 끝나면 START 안내 후 실제 재생 시작
@@ -434,6 +437,7 @@ function PracticePlayPage() {
         events: toMidiEventPayload(applyLatencyCompensation(recordingRef.current, latencyMs)),
         recordingObjectKey: objectKey,
       });
+      markCompleted(); // 서버에서 COMPLETED —> 재진입 시 새 세션을 받도록 표시
     } catch (err) {
       console.error('연주 녹음 업로드/저장 실패', err);
       abortAnalyze('연주 기록 저장에 실패했습니다. 다시 시도해주세요.');
@@ -454,6 +458,7 @@ function PracticePlayPage() {
   useEffect(() => {
     return () => {
       stop();
+      Tone.getDraw().cancel(); // finishPlayback이 예약해둔 Draw 콜백(있다면)이 언마운트 후 실행되지 않도록 취소
       const player = playerRef.current;
       if (player) {
         player.unsync();
@@ -466,20 +471,21 @@ function PracticePlayPage() {
     };
   }, [stop]);
 
-  // 세션 자체가 없으면(직접 진입) 목록으로, 세션은 있는데 오디오 잠금만 안 풀린 채(새로고침) 들어왔으면
-  // 설정 화면으로 되돌려 "시작하기"를 다시 누르게 한다 (세션은 그대로 살아있으니 재생성 안 함).
-  // Tone.start()는 클릭 제스처 안에서만 성공하는데, 새로고침 직후엔 그 제스처가 없어 재생을 시작할 수 없음.
+  // 세션 자체가 없으면(직접 진입) 목록으로, 아래 두 경우엔 설정 화면으로 되돌려 "시작하기"를 다시 누르게 한다.
+  // - 이미 저장이 끝난 세션으로 되돌아온 경우(뒤로가기 등): 같은 playingId로 또 저장하면 409라 새 세션이 필요
+  // - 오디오 잠금만 안 풀린 경우(새로고침): Tone.start()는 클릭 제스처 안에서만 성공하므로 재생 불가
+  // isCompleted는 구독하지 않고 진입 시점 값만 본다 — handleAnalyze가 표시한 직후 분석 화면 이동을 가로채지 않도록.
   useEffect(() => {
     if (!backingTrack) {
       navigate('/practice', { replace: true });
-    } else if (!isAudioUnlocked()) {
+    } else if (usePlayingSessionStore.getState().isCompleted || !isAudioUnlocked()) {
       navigate(`/practice/${backingTrack.backingTrackId}/settings`, { replace: true });
     }
   }, [backingTrack, navigate]);
 
   // 진입 시 카운트다운(4,3,2,1) → 자동 재생
   useEffect(() => {
-    if (!backingTrack || !isAudioUnlocked()) return;
+    if (!backingTrack || !isAudioUnlocked() || usePlayingSessionStore.getState().isCompleted) return;
     isMountedRef.current = true;
     runCountdown();
     return () => {
