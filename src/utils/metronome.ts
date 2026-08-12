@@ -91,7 +91,10 @@ export function createMetronome() {
     },
     stop(time?: number) {
       transport.stop(time);
-      transport.cancel(time);
+      // Transport.cancel의 인자는 "Transport 위치(초)"인데 time은 AudioContext 절대 시각이라,
+      // 그대로 넘기면 항상 곡 길이보다 큰 값이 되어 아무 예약도 취소되지 않았다.
+      // stop은 위치를 0으로 되돌리므로 남은 예약은 전부 지우는 게 맞다.
+      transport.cancel(0);
     },
     pause() {
       transport.pause(); // 현재 위치 유지하고 멈춤
