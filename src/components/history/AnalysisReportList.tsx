@@ -30,11 +30,13 @@ export default function AnalysisReportList({ analyses, onSelectReport }: Analysi
             <span className="truncate text-[20px] leading-[30px] font-normal tracking-[-0.4px] text-white">
               {analysis.title}
             </span>
+
             <div className="flex min-w-0 items-center gap-4">
               <span className="shrink-0 text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-600">
                 1줄 정리
               </span>
               <div className="flex min-w-0 items-center gap-1">
+
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
@@ -47,6 +49,7 @@ export default function AnalysisReportList({ analyses, onSelectReport }: Analysi
                     className="fill-gray-400"
                   />
                 </svg>
+
                 <span className="line-clamp-2 text-[14px] leading-[22px] font-medium tracking-[-0.28px] text-gray-400">
                   {analysis.oneLineSummary || '분석 요약 내용이 없습니다.'}
                 </span>
@@ -56,6 +59,7 @@ export default function AnalysisReportList({ analyses, onSelectReport }: Analysi
 
           {/* 오른쪽 영역 (마디 표기와 리포트 보기 버튼) */}
           <div className="flex shrink-0 items-center gap-8">
+
             <span className="text-center text-[22px] leading-[32px] font-medium tracking-[-0.44px] whitespace-nowrap text-gray-600">
               {analysis.startBar}마디-{analysis.endBar}마디
             </span>

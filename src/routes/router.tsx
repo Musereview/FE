@@ -211,6 +211,10 @@ export const router = createBrowserRouter([
                 element: <HistoryDetailPage />,
               },
               {
+                path: 'analysis/loading',
+                element: <AnalysisLoadingPage />,
+              },
+              {
                 path: 'analysis/result',
                 element: <AnalysisResultPage />,
               },

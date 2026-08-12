@@ -51,9 +51,6 @@ export default function AnalysisResultPage() {
   const { audioBlob, latencyMs: storeLatencyMs } = usePracticeResultStore();
   const latencyMs = location.state?.latencyMs ?? storeLatencyMs ?? 0;
 
-  // "다시 연주하기" — 이미 COMPLETED된 옛 playingId를 재사용하면 저장 시 항상 409 충돌이 나므로 새 세션을 만든다
-  // restartBackingTrack은 sessionStorage에 남아있는 "이 탭에서 마지막으로 시작한 연습"의 트랙이라
-  // 지금 보고 있는 분석(analysisData.playingId)과 다를 수 있다 — 그 경우엔 히스토리 상세로 백킹트랙 id를 조회한다
   const restartBackingTrack = usePlayingSessionStore((s) => s.backingTrack);
   const restartSessionPlayingId = usePlayingSessionStore((s) => s.playingId);
   const setPlayingSession = usePlayingSessionStore((s) => s.setSession);
@@ -603,11 +600,9 @@ export default function AnalysisResultPage() {
       {/* 최하단 네비게이션 액션 버튼 그룹 */}
       <div className="flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-4 pt-2">
         <button
-
           onClick={handleRestartPractice}
           disabled={isRestartingPractice || restartBackingTrackId == null}
           className="cursor-pointer rounded-xl bg-gray-800 px-8 py-4 text-base font-medium text-gray-300 shadow-md transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50">
-
           다시 연주하기
         </button>
         <button

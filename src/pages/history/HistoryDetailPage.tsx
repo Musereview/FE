@@ -327,20 +327,17 @@ export default function HistoryDetailPage() {
 
       const realAnalysisId = analysisResultData.analysisId;
 
-      navigate(
-        `/history/${parsedHistoryId}/analysis/result?start=${startNum}&end=${endNum}&analysisId=${realAnalysisId}`,
-        {
-          state: {
-            rangeXml,
-            fromHistory: true,
-            analysisData: analysisResultData,
-            analysisId: realAnalysisId,
-            audioStartOffsetSec, // 오디오 탐색용 오프셋 전달
-            timeSignature: historyData?.timeSignature, // 박자표 전달
-            key: historyData?.key, // 조성 전달
-          },
+      navigate(`/history/${parsedHistoryId}/analysis/loading?start=${startNum}&end=${endNum}`, {
+        state: {
+          rangeXml,
+          //fromHistory: true,
+          analysisData: analysisResultData,
+          analysisId: realAnalysisId,
+          audioStartOffsetSec, // 오디오 탐색용 오프셋 전달
+          timeSignature: historyData?.timeSignature, // 박자표 전달
+          key: historyData?.key, // 조성 전달
         },
-      );
+      });
     } catch (error) {
       addAnalysisRequestedRef.current = false; // 재시도 허용
       console.error('추가 분석 요청 실패:', error);
