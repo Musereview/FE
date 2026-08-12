@@ -13,9 +13,10 @@ interface SettingsModalProps {
   onClose: () => void;
   onStart: () => void;
   onLatencyCheck: () => void; // 레이턴시 체크 경로 (다를 수 있음)
+  startDisabled?: boolean; // 시작 처리(연주 세션 생성 등)가 진행 중일 때 중복 클릭 방지
 }
 
-export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModalProps) {
+export function SettingsModal({ onClose, onStart, onLatencyCheck, startDisabled = false }: SettingsModalProps) {
   const { inputs } = useMidi(); //기기목록만 사용
   const { inputId, bpm, keyCount, latencyByDevice, outputSelected, setInput, setKeyCount, setOutputSelected } =
     useSettingStore();
@@ -206,7 +207,7 @@ export function SettingsModal({ onClose, onStart, onLatencyCheck }: SettingsModa
       </div>
       <button
         onClick={handleStart}
-        disabled={!inputId || !outputSelected || typeof latency !== 'number'}
+        disabled={startDisabled || !inputId || !outputSelected || typeof latency !== 'number'}
         className="button-large2 bg-primary-400 mt-auto mb-[36px] flex h-[60px] w-[346px] cursor-pointer items-center justify-center gap-[8px] self-end rounded-[6px] px-[12px] py-[6px] text-gray-950 disabled:cursor-default disabled:opacity-40">
         {latency !== undefined ? '계속하기' : '시작하기'}
       </button>

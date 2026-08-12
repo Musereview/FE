@@ -93,6 +93,8 @@ function StepLearningPlayPage() {
   const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
   const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
   const countdownTokenRef = useRef(0); // 클릭음 버퍼 로딩 대기 중 재시작/언마운트가 끼어들면 이전 대기를 무효화
+  const lastShownCountRef = useRef<number | null>(null); // rAF 카운트다운 갱신 시 같은 숫자면 재호출 안 하기 위한 비교용
+  const lastProgressBeatRef = useRef(-1); // rAF 진행점 갱신 시 같은 박이면 재호출 안 하기 위한 비교용
   // 진입 자동재생(마운트 시점 클로저)이 stale bpm으로 시작하지 않도록 최신 bpm을 ref로 유지
   const bpmRef = useRef(bpm);
   useEffect(() => {
@@ -145,7 +147,6 @@ function StepLearningPlayPage() {
     countdownTokenRef.current += 1; // 버퍼 로딩 대기 중이던 이전 runCountdown 무효화
     finalizeOpenNotes(); // stop() 전에 (stop이 transport 위치를 0으로 리셋하므로)
     stop();
-    Tone.getDraw().cancel();
     setIsPlaying(false);
     setBeatInBar(-1);
     setCurrentBeat(-1);
@@ -159,18 +160,23 @@ function StepLearningPlayPage() {
     finalizeOpenNotes(); // stop() 전에 열린 노트 확정
     scoreRef.current?.finalize(); // 판정 대기 중이던 마지막 음을 확정(보라색으로 남지 않도록)
     stop();
-    Tone.getDraw().cancel();
     setIsPlaying(false);
     // beatInBar/currentBeat/measureIndex/색칠 모두 유지 (끝 지점 상태 그대로)
     finishTimerRef.current = setTimeout(() => goToScore(), 2000); // 2초 후 채점 결과 화면으로 이동
   };
 
   // 카운트다운(4,3,2,1)
+  // 클릭 소리는 Transport에 예약해 정확한 타이밍으로 재생하되, 화면 숫자·종료 판정은 매 프레임
+  // Transport의 실제 위치(초)를 다시 계산해 갱신한다. 예전엔 박마다 한 번씩 Tone.Draw로 이벤트를
+  // 쐈는데, Tone.Draw는 예약 시각보다 250ms 넘게 늦게 처리되는 콜백을 그냥 버린다(Draw.js expiration) —
+  // 렌더링이 잠깐이라도 밀리면(재시작 연타 등) 숫자 하나가 통째로 씹혀서 화면이 어긋난 채 복구되지
+  // 않았다. 매 프레임 실제 위치에서 다시 계산하면 프레임이 씹혀도 다음 프레임에 스스로 맞는 값으로 돌아온다.
   const runCountdown = async () => {
     if (!isPracticeReady) return; // 실습 데이터 미확보 시 재생 시작 금지
     cancelPendingStarts(); // 대기 중인 자동재생·재시작 타이머 취소 (중복 시작 방지)
     const token = ++countdownTokenRef.current;
     setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
+    lastShownCountRef.current = COUNTDOWN_BEATS;
     countdownEndedRef.current = false;
     await Tone.start(); // 오디오 잠금 해제 (제스처 핸들러 안에서만 가능)
     try {
@@ -182,27 +188,37 @@ function StepLearningPlayPage() {
       return;
     }
     if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
+
+    // 클릭 소리 전용 — 곡 박자(3/4 등)와 무관하게 카운트인은 항상 4박으로 들리게 COUNTDOWN_BEATS 사용.
+    // 화면 갱신·종료 판정은 하지 않는다(아래 rAF 루프가 담당).
     let cbeat = 0;
-    // 카운트다운 중엔 진행점을 채우지 않는다(setBeatInBar 호출 안 함) — 실제 재생은 startPlayback()에서 시작
-    // 곡 박자(3/4 등)와 무관하게 카운트인은 항상 4박 "1(강)-2-3-4"로 들리게 beatsPerBar 대신 COUNTDOWN_BEATS 사용
-    start(bpmRef.current, COUNTDOWN_BEATS, (time) => {
-      if (cbeat >= COUNTDOWN_BEATS) {
-        if (countdownEndedRef.current) return false; // 중복 예약 방지
-        countdownEndedRef.current = true;
-        Tone.getDraw().schedule(() => {
+    start(bpmRef.current, COUNTDOWN_BEATS, () => {
+      const shouldClick = cbeat < COUNTDOWN_BEATS;
+      cbeat += 1;
+      return shouldClick;
+    });
+
+    const secondsPerBeat = 60 / bpmRef.current;
+    const loop = () => {
+      if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
+      const beatIndex = Math.floor(Tone.getTransport().seconds / secondsPerBeat);
+      if (beatIndex >= COUNTDOWN_BEATS) {
+        if (!countdownEndedRef.current) {
+          countdownEndedRef.current = true; // 중복 예약 방지
           stop();
-          Tone.getDraw().cancel();
           setCountdown(null);
           startPlayback();
-        }, time);
-        return false;
+        }
+        return;
       }
-      const current = cbeat;
-      Tone.getDraw().schedule(() => {
-        setCountdown(COUNTDOWN_BEATS - current);
-      }, time);
-      cbeat += 1;
-    });
+      const remaining = COUNTDOWN_BEATS - beatIndex;
+      if (lastShownCountRef.current !== remaining) {
+        lastShownCountRef.current = remaining;
+        setCountdown(remaining);
+      }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
   };
 
   const startPlayback = async () => {
@@ -216,26 +232,16 @@ function StepLearningPlayPage() {
     if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
     totalBeatRef.current = 0;
     endedRef.current = false; // 재생 시작 시 끝 가드 해제 (재시작/재생 시 다시 정지 가능하도록)
+    lastProgressBeatRef.current = -1;
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
     setIsPlaying(true);
     setMeasureIndex(0);
     scoreRef.current?.reset(); // 처음부터 재생 시 색칠 초기화
-    start(bpmRef.current, beatsPerBar, (time, bib) => {
+    // 클릭 소리만 담당 — 진행점 갱신·종료 판정은 아래 rAF 이펙트가 Transport 실제 위치를 보고 처리한다.
+    start(bpmRef.current, beatsPerBar, () => {
       const pbeat = totalBeatRef.current; // 곡 시작 기준 현재 박(언랩)
-      if (pbeat >= totalCells) {
-        if (endedRef.current) return false; // 중복 예약 방지
-        endedRef.current = true;
-        Tone.getDraw().schedule(() => finishPlayback(), time); // 진행 위치 유지하고 정지만
-        return false; // 마지막 박 클릭음 재생 방지
-      }
-      const beat = pbeat % totalCells;
-      const measure = Math.floor(beat / beatsPerBar); // 백킹 루프와 같은 주기 — 악보 슬라이드가 백킹과 어긋나지 않게
-      Tone.getDraw().schedule(() => {
-        setBeatInBar(bib);
-        setCurrentBeat(beat);
-        setMeasureIndex(measure);
-      }, time);
       totalBeatRef.current += 1;
+      return pbeat < totalCells; // 곡이 끝난 박은 클릭 소리 재생 안 함
     });
   };
 
@@ -278,7 +284,6 @@ function StepLearningPlayPage() {
   useEffect(() => {
     return () => {
       stop();
-      Tone.getDraw().cancel();
       cancelPendingStarts();
     };
   }, [stop]);
@@ -297,18 +302,37 @@ function StepLearningPlayPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPracticeReady]);
 
-  // 악보 현재 음 하이라이트를 소수 박 해상도로 갱신 (정박 아닌 8·16분음표도 정확히 현재 음이 되도록).
-  // state 갱신 없이 imperative tick 호출 → 리렌더 없음. 박 = transport ticks/PPQ (tempo 독립, onBeat 단위와 일치)
+  // 악보 현재 음 하이라이트(소수 박 해상도, imperative)와 진행점(메트로놈 점/백킹트랙/악보 마디)을
+  // 매 프레임 Transport의 실제 위치에서 다시 계산한다. (박마다 한 번씩 이벤트를 쏘는 방식은 렌더링이
+  // 밀리면 콜백이 통째로 씹혀 화면이 어긋난 채 복구되지 않았음 — runCountdown 쪽과 같은 이유)
   useEffect(() => {
     if (!isPlaying) return;
     const transport = Tone.getTransport();
+    const secondsPerBeat = 60 / bpmRef.current;
     let raf = 0;
     const loop = () => {
       scoreRef.current?.tick(transport.ticks / transport.PPQ);
+
+      const pbeat = Math.floor(transport.seconds / secondsPerBeat);
+      if (pbeat >= totalCells) {
+        if (!endedRef.current) {
+          endedRef.current = true; // 중복 예약 방지
+          finishPlayback();
+        }
+        return; // 곡이 끝나면 진행 위치를 그대로 유지 (finishPlayback이 정지 처리)
+      }
+      if (pbeat !== lastProgressBeatRef.current) {
+        lastProgressBeatRef.current = pbeat;
+        const beat = pbeat % totalCells;
+        setBeatInBar(beat % beatsPerBar);
+        setCurrentBeat(beat);
+        setMeasureIndex(Math.floor(beat / beatsPerBar)); // 백킹 루프와 같은 주기 — 악보 슬라이드가 백킹과 어긋나지 않게
+      }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying]);
 
   return (

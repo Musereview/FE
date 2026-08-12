@@ -10,6 +10,8 @@ import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { toPlayableUrl } from '@/utils/audioUrl';
 import { getAnalysisContext, requestAnalysis } from '@/apis/analysis';
 import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
+import { usePlayingSessionStore } from '@/stores/playingSessionStore';
+import { useCreatePlaying } from '@/hooks/useCreatePlaying';
 import AnalysisLoadingPage from './AnalysisLoadingPage';
 
 export default function AnalysisSelectPage() {
@@ -19,6 +21,9 @@ export default function AnalysisSelectPage() {
   const { practiceId, trackId } = useParams<{ practiceId?: string; trackId?: string }>();
 
   const { recording: storeRecording, latencyMs: storeLatencyMs, audioBlob } = usePracticeResultStore();
+  const sessionBackingTrack = usePlayingSessionStore((s) => s.backingTrack);
+  const setPlayingSession = usePlayingSessionStore((s) => s.setSession);
+  const { mutateAsync: createPlaying, isPending: isStartingPractice } = useCreatePlaying();
 
   const recording = location.state?.recording ?? storeRecording;
   const latencyMs = location.state?.latencyMs ?? storeLatencyMs ?? 0;
@@ -32,6 +37,8 @@ export default function AnalysisSelectPage() {
 
   const [xmlContent, setXmlContent] = useState('');
   const [measureStartTimes, setMeasureStartTimes] = useState<number[]>([]);
+  const [scoreDuration, setScoreDuration] = useState(0);
+  const [lastPlayedBar, setLastPlayedBar] = useState<number | null>(null);
   const [totalBars, setTotalBars] = useState<number>(20);
   const [userTouchedEndMeasure, setUserTouchedEndMeasure] = useState(false);
 
@@ -55,6 +62,25 @@ export default function AnalysisSelectPage() {
     setToastMessage(msg);
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
   }, []);
+
+  // 연습으로
+  // 새 연주 세션을 발급받아 연습 화면으로
+  const handleBackToPractice = async () => {
+    backingAudioRef.current?.pause();
+    recordingAudioRef.current?.pause();
+    if (!sessionBackingTrack) {
+      navigate('/practice');
+      return;
+    }
+    try {
+      const session = await createPlaying(sessionBackingTrack.backingTrackId);
+      setPlayingSession({ playingId: session.playingId, backingTrack: session.backingTrack });
+      navigate(`/practice/${session.backingTrack.backingTrackId}/play`);
+    } catch (err) {
+      console.error('연주 세션 생성 실패', err);
+      triggerToast('새 연습 세션을 시작하지 못했습니다. 다시 시도해주세요.');
+    }
+  };
 
   // targetId가 숫자로 확실히 변환될 때만 쿼리가 실행되도록 수정 (오인식 토스트 방지)
   const parsedTargetId = Number(targetId);
@@ -124,6 +150,7 @@ export default function AnalysisSelectPage() {
     if (!xmlContent) return;
     const timings = computeMeasureTimings(xmlContent);
     setMeasureStartTimes(timings.measureStartTimes);
+    setScoreDuration(timings.totalDuration);
 
     if (recording && recording.length > 0 && timings.measureStartTimes.length > 0) {
       const lastNoteEndTime =
@@ -140,12 +167,16 @@ export default function AnalysisSelectPage() {
       }
 
       const finalEndBar = Math.min(calculatedLastBar, contextData?.totalBars || calculatedLastBar);
+      setLastPlayedBar(finalEndBar);
 
       if (!userTouchedEndMeasure) {
         setEndMeasure(`${finalEndBar}마디`);
       }
-    } else if (contextData?.totalBars && !userTouchedEndMeasure) {
-      setEndMeasure(`${contextData.totalBars}마디`);
+    } else {
+      setLastPlayedBar(null);
+      if (contextData?.totalBars && !userTouchedEndMeasure) {
+        setEndMeasure(`${contextData.totalBars}마디`);
+      }
     }
   }, [xmlContent, recording, latencyMs, contextData?.totalBars, userTouchedEndMeasure]);
 
@@ -223,6 +254,29 @@ export default function AnalysisSelectPage() {
     if (recordingAudioRef.current) recordingAudioRef.current.currentTime = 0;
     scoreViewerRef.current?.reset();
   }, []);
+
+  // 사용자가 실제로 연주를 마친 마디의 끝 시각 — 그 이후엔 반주만 남아 계속 재생되지 않도록 재생 정지 기준으로 사용
+  const playbackStopSec = useMemo(() => {
+    if (lastPlayedBar == null) return null;
+    return measureStartTimes[lastPlayedBar] ?? scoreDuration;
+  }, [lastPlayedBar, measureStartTimes, scoreDuration]);
+
+  // 재생이 사용자가 친 마지막 마디를 넘어가면 자동 정지 (반주만 남아 계속 재생되는 것 방지)
+  useEffect(() => {
+    if (!isPlaying || playbackStopSec == null) return;
+
+    let rafId: number;
+    const tick = () => {
+      const backing = backingAudioRef.current;
+      if (backing && backing.currentTime >= playbackStopSec) {
+        handleRewind();
+        return;
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [isPlaying, playbackStopSec, handleRewind]);
 
   const extractNumber = (val: string) => {
     const num = parseInt(val.replace(/[^0-9]/g, ''), 10);
@@ -338,8 +392,9 @@ export default function AnalysisSelectPage() {
         {/* 연습으로 돌아가기 버튼 */}
         <button
           type="button"
-          onClick={() => navigate(-1)}
-          className="inline-flex w-fit cursor-pointer items-center gap-[8px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-400 transition-colors hover:text-white">
+          onClick={handleBackToPractice}
+          disabled={isStartingPractice}
+          className="inline-flex w-fit cursor-pointer items-center gap-[8px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-400 transition-colors hover:text-white disabled:cursor-default disabled:opacity-40">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
