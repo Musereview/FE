@@ -44,7 +44,6 @@ function PracticeEditPage() {
         difficulty: LEVEL_MAP[track.level],
         measures: fromChordProgressionEntries(track.chordProgression, track.timeSignature),
         playtimeSec: track.playtimeSec,
-        audioFileUrl: track.audioFileUrl,
       }}
     />
   );
