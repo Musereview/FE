@@ -1,5 +1,8 @@
 import type { NotiItem } from '@/types/notification';
 
+// 홈 대시보드에서는 최신 알림 5개까지만 노출 (전체는 '전체 보기'에서 확인)
+const MAX_NOTI_COUNT = 5;
+
 interface DashboardNotiProps {
   data: NotiItem[];
   onNotificationClick: (item: NotiItem) => void;
@@ -17,10 +20,12 @@ export default function DashboardNoti({ data, onNotificationClick }: DashboardNo
     );
   }
 
+  const visibleNotis = data.slice(0, MAX_NOTI_COUNT);
+
   return (
     <div className="flex w-full flex-col">
       <div className="flex w-full flex-col gap-2">
-        {data.map((item) => (
+        {visibleNotis.map((item) => (
           <div
             key={item.notiId}
             onClick={() => onNotificationClick(item)}
