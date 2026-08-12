@@ -80,7 +80,7 @@ function StepTheoryPage() {
   };
 
   return (
-    <BackNavLayout>
+    <BackNavLayout backTo={`/learn/curriculum/${curriculumId}`}>
       <section className="flex flex-col items-center gap-20 py-[76px]">
         <CurriculumBanner title={title} difficulty={difficulty} description={stepTitle} />
 

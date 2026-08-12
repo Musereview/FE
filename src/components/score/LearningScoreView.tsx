@@ -216,6 +216,16 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
     [bpm, difficulty, latencyMs],
   );
 
+  // 마디 슬라이드는 기본적으로 400ms로 부드럽게 움직이지만, 재시작처럼 한 번에 여러 마디를 건너뛰는
+  // 큰 점프에서까지 애니메이션을 걸면 그 몇백ms 동안 렌더링이 무거워져(SVG + 블러 오버레이) 같은 시점에
+  // 진행 중인 카운트다운(Tone.Draw, 250ms 넘게 늦으면 콜백을 버림)의 숫자가 씹히는 현상으로 이어진다.
+  // 한 마디씩 자연스럽게 넘어가는 경우만 슬라이드하고, 큰 점프는 트랜지션 없이 즉시 스냅한다.
+  const prevMeasureIndexRef = useRef(currentMeasureIndex);
+  const skipTransition = Math.abs(currentMeasureIndex - prevMeasureIndexRef.current) > 1;
+  useEffect(() => {
+    prevMeasureIndexRef.current = currentMeasureIndex;
+  }, [currentMeasureIndex]);
+
   // measureXPositions = [마디0 좌측x, 마디1 좌측x, ..., 악보 끝x] → 길이 = 마디수 + 1
   const measureCount = Math.max(1, measureXPositions.length - 1);
   const ready = measureXPositions.length > 1 && viewportWidth > 0;
@@ -244,7 +254,7 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
         style={{
           transformOrigin: '0% 50%', // 좌측·세로중앙 기준 확대 → 세로는 항상 가운데 유지
           transform: `translate(${offsetX}px, -50%) scale(${scale})`,
-          transition: 'transform 400ms ease',
+          transition: skipTransition ? 'none' : 'transform 400ms ease',
           opacity: ready ? 1 : 0,
         }}
       />

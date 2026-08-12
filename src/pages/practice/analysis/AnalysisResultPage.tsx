@@ -21,6 +21,7 @@ import { useCreatePlaying } from '@/hooks/useCreatePlaying';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
 import { toPlayedNotes } from '@/utils/midiEventPayload';
+import { seekAudio } from '@/utils/audioSeekFix';
 import { historyDetail } from '@/apis/history';
 import type { HistoryDetailData } from '@/types/history';
 
@@ -286,8 +287,10 @@ export default function AnalysisResultPage() {
     audio.preload = 'auto';
     audio.load();
 
+    // MediaRecorder로 만든 녹음 파일은 duration 메타데이터가 깨져있어 그냥 두면 앞쪽 무음을 건너뛰고
+    // 재생된다 — 실제 위치로 정확히 이동하도록 탐색 메타데이터를 먼저 복구해둔다.
     const applyOffset = () => {
-      audio.currentTime = offsetRef.current ?? 0;
+      seekAudio(audio, offsetRef.current ?? 0);
     };
     audio.addEventListener('loadedmetadata', applyOffset);
 
@@ -326,7 +329,7 @@ export default function AnalysisResultPage() {
       backingAudioRef.current.currentTime = absoluteStart;
     }
     if (recordingAudioRef.current) {
-      recordingAudioRef.current.currentTime = absoluteStart;
+      seekAudio(recordingAudioRef.current, absoluteStart);
     }
   }, [scoreData]);
 
@@ -344,7 +347,7 @@ export default function AnalysisResultPage() {
     }
     if (recordingAudioRef.current) {
       recordingAudioRef.current.pause();
-      recordingAudioRef.current.currentTime = absoluteStart;
+      seekAudio(recordingAudioRef.current, absoluteStart);
     }
 
     const targetMeasureIndex = scoreData?.startIndex ?? Math.max(0, startBar - 1);

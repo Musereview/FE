@@ -66,7 +66,6 @@ function PracticePlayPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false); // 분석하기 클릭 후 업로드·저장 대기 중 로딩 화면
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const totalBeatRef = useRef(0);
   const barIdRef = useRef(0);
   const heldRef = useRef<Map<number, number>>(new Map()); // midi → 진행 중 노트바 id
   const recordingRef = useRef<PlayedNote[]>([]); // 연주 녹음 (Transport 시각 기준)
@@ -80,6 +79,8 @@ function PracticePlayPage() {
   const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
   const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
   const countdownTokenRef = useRef(0); // 클릭음 버퍼 로딩 대기 중 재시작/언마운트가 끼어들면 이전 대기를 무효화
+  const lastShownCountRef = useRef<number | null>(null); // rAF 카운트다운 갱신 시 같은 숫자면 재호출 안 하기 위한 비교용
+  const lastProgressBeatRef = useRef(-1); // rAF 진행점 갱신 시 같은 박이면 재호출 안 하기 위한 비교용
 
   // 반주 음원(audioFileUrl)을 메트로놈/녹음과 같은 Tone.Transport 타임라인에 동기화해 함께 재생
   // (카운트인 중엔 sync하지 않음 — 실제 곡 재생이 시작되는 startPlayback()에서만 sync)
@@ -212,7 +213,7 @@ function PracticePlayPage() {
     isPlaybackActiveRef.current = false; // 지연 로딩 onload가 이후엔 재생을 시작하지 않도록
     finalizeOpenNotes(performance.now()); // stop() 전에 (stop이 transport 위치를 0으로 리셋하므로)
     stop();
-    Tone.getDraw().cancel();
+    Tone.getDraw().cancel(); // finishPlayback이 예약해둔 Draw 콜백(있다면)이 다음 세션에 새어 들어가지 않도록 취소
     const player = playerRef.current;
     if (player) {
       player.unsync();
@@ -246,10 +247,15 @@ function PracticePlayPage() {
   };
 
   // 카운트다운(4,3,2,1): 메트로놈 박에 맞춰 숫자를 표시하고, 끝나면 START 안내 후 실제 재생 시작
+  // 클릭 소리는 Transport에 예약해 정확한 타이밍으로 재생하되, 화면 숫자·종료 판정은 매 프레임
+  // Transport의 실제 위치(초)를 다시 계산해 갱신한다. Tone.Draw는 예약 시각보다 250ms 넘게 늦게
+  // 처리되는 콜백을 그냥 버리므로(Draw.js expiration), 박마다 한 번씩 이벤트를 쏘는 방식은 렌더링이
+  // 잠깐 밀리기만 해도(재시작 연타 등) 숫자가 씹혀 화면이 어긋난 채 복구되지 않는다.
   const runCountdown = async () => {
     cancelAutoStart(); // 대기 중인 자동재생 취소 (중복 시작 방지)
     const token = ++countdownTokenRef.current;
     setCountdown(COUNTDOWN_BEATS); // await 전에 먼저 반영 — 재시작 시 이전 숫자가 멈춰 보이지 않도록
+    lastShownCountRef.current = COUNTDOWN_BEATS;
     countdownEndedRef.current = false;
     await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능)
     try {
@@ -263,27 +269,36 @@ function PracticePlayPage() {
 
     if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
 
+    // 클릭 소리 전용 — 곡 박자(3/4 등)와 무관하게 카운트인은 항상 4박으로 들리게 COUNTDOWN_BEATS 사용.
+    // 화면 갱신·종료 판정은 하지 않는다(아래 rAF 루프가 담당).
     let cbeat = 0;
-    // 카운트다운 중엔 진행점을 채우지 않는다(setBeatInBar 호출 안 함) — 실제 재생은 startPlayback()에서 시작
-    // 곡 박자(3/4 등)와 무관하게 카운트인은 항상 4박 "1(강)-2-3-4"로 들리게 beatsPerBar 대신 COUNTDOWN_BEATS 사용
-    start(track?.bpm ?? 0, COUNTDOWN_BEATS, (time) => {
-      if (cbeat >= COUNTDOWN_BEATS) {
-        if (countdownEndedRef.current) return false; // 중복 예약 방지
-        countdownEndedRef.current = true;
-        Tone.getDraw().schedule(() => {
+    start(track?.bpm ?? 0, COUNTDOWN_BEATS, () => {
+      const shouldClick = cbeat < COUNTDOWN_BEATS;
+      cbeat += 1;
+      return shouldClick;
+    });
+
+    const secondsPerBeat = 60 / (track?.bpm ?? 0);
+    const loop = () => {
+      if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
+      const beatIndex = Math.floor(Tone.getTransport().seconds / secondsPerBeat);
+      if (beatIndex >= COUNTDOWN_BEATS) {
+        if (!countdownEndedRef.current) {
+          countdownEndedRef.current = true; // 중복 예약 방지
           stop();
-          Tone.getDraw().cancel();
           setCountdown(null);
           startPlayback();
-        }, time);
-        return false;
+        }
+        return;
       }
-      const current = cbeat;
-      Tone.getDraw().schedule(() => {
-        setCountdown(COUNTDOWN_BEATS - current);
-      }, time);
-      cbeat += 1;
-    });
+      const remaining = COUNTDOWN_BEATS - beatIndex;
+      if (lastShownCountRef.current !== remaining) {
+        lastShownCountRef.current = remaining;
+        setCountdown(remaining);
+      }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
   };
 
   const startPlayback = async () => {
@@ -294,7 +309,7 @@ function PracticePlayPage() {
     setCountdown(null);
     await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능)
     if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
-    totalBeatRef.current = 0;
+    lastProgressBeatRef.current = -1;
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
     await stopRecording(); // 이전 녹음(있다면) 정리 후 새로 시작
     if (!isMountedRef.current || token !== countdownTokenRef.current) return; // 언마운트/재시작 시 중단
@@ -308,15 +323,8 @@ function PracticePlayPage() {
     isPlaybackActiveRef.current = true; // 실제 곡 재생 시작 — 이 시점부턴 지연 로딩 onload도 재생을 시작해도 됨
     // 메트로놈 start()가 내부적으로 transport.stop()/cancel()을 먼저 실행하므로 그보다 먼저 반주를 sync하면
     // 방금 건 예약(0초 재생)이 cancel()에 지워짐 — 그래서 metronome start()가 끝난 뒤에 sync().start(0)를 건다.
-    start(track?.bpm ?? 0, beatsPerBar, (time, bib) => {
-      // MR이 끝날 때까지는 코드 진행을 반복 순환시켜 백킹트랙을 계속 진행 (정지는 MR 종료 예약이 담당)
-      const beat = totalBeatRef.current % totalCells;
-      Tone.getDraw().schedule(() => {
-        setBeatInBar(bib);
-        setCurrentBeat(beat);
-      }, time);
-      totalBeatRef.current += 1;
-    });
+    // 클릭 소리만 담당 — 진행점 갱신은 아래 rAF 이펙트가 Transport 실제 위치를 보고 처리한다.
+    start(track?.bpm ?? 0, beatsPerBar, () => {});
     const player = playerRef.current;
     if (player?.loaded) {
       player.sync().start(0);
@@ -450,7 +458,7 @@ function PracticePlayPage() {
   useEffect(() => {
     return () => {
       stop();
-      Tone.getDraw().cancel();
+      Tone.getDraw().cancel(); // finishPlayback이 예약해둔 Draw 콜백(있다면)이 언마운트 후 실행되지 않도록 취소
       const player = playerRef.current;
       if (player) {
         player.unsync();
@@ -487,6 +495,29 @@ function PracticePlayPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backingTrack]);
+
+  // 진행점(메트로놈 점/백킹트랙)을 매 프레임 Transport의 실제 위치에서 다시 계산한다.
+  // (박마다 한 번씩 Tone.Draw로 이벤트를 쏘는 방식은 렌더링이 밀리면 콜백이 통째로 씹혀
+  // 화면이 어긋난 채 복구되지 않았음 — runCountdown 쪽과 같은 이유)
+  useEffect(() => {
+    if (!isPlaying) return;
+    const transport = Tone.getTransport();
+    const secondsPerBeat = 60 / (track?.bpm ?? 0);
+    let raf = 0;
+    const loop = () => {
+      const pbeat = Math.floor(transport.seconds / secondsPerBeat);
+      if (pbeat !== lastProgressBeatRef.current) {
+        lastProgressBeatRef.current = pbeat;
+        const beat = pbeat % totalCells; // MR이 끝날 때까지 코드 진행을 반복 순환 (정지는 MR 종료 예약이 담당)
+        setBeatInBar(beat % beatsPerBar);
+        setCurrentBeat(beat);
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying]);
 
   if (!track) return null;
 
