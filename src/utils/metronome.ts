@@ -60,6 +60,14 @@ export function createMetronome() {
 
       transport.bpm.value = bpm;
 
+      //브라우저/OS의 오디오 출력 파이프라인 지연으로 인한 첫 소리 씹힘 현상을 방지하기 위해, 무음 클릭을 먼저 재생하여 파이프라인을 미리 깨워둠
+      if (startOffsetSec === 0 && loBuffer.loaded) {
+        const primer = new Tone.Player(loBuffer).toDestination();
+        primer.volume.value = -60;
+        primer.start();
+        primer.onstop = () => primer.dispose();
+      }
+
       // scheduleRepeat은 0, 1박, 2박... 위치에 예약되므로 오프셋 이후 처음 울릴 박부터 세기 시작한다
       const secondsPerBeat = 60 / bpm;
       let beat = startOffsetSec > 0 ? Math.ceil(startOffsetSec / secondsPerBeat) : 0;

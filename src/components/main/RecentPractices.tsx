@@ -51,6 +51,7 @@ export default function RecentPractices({ data }: RecentPracticesProps) {
               <div className="mr-4 flex w-0 flex-1 items-center gap-4">
                 <button
                   type="button"
+                  disabled={true} //비활성화
                   onClick={(e) => handlePlayToggle(e, item.playingId)}
                   className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center border-none bg-transparent p-0 transition-transform active:scale-95"
                   aria-label={isCurrentlyPlaying ? '정지하기' : '재생하기'}>

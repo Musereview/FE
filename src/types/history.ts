@@ -3,7 +3,8 @@ import type { ApiResponse } from './api';
 // 히스토리 목록 조회
 export interface HistoryListItem {
   playingId: number;
-  latestAnalysisId: number;
+  backingTrackId: number | null;
+  latestAnalysisId: number | null;
   title: string;
   summary: string;
   scoreChange: number | null;
@@ -48,6 +49,7 @@ export interface HistoryAnalysisItem {
 
 export interface HistoryDetailData {
   playingId: number;
+  backingTrackId: number | null;
   title: string;
   genre: string;
   key: string;

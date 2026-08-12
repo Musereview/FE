@@ -27,7 +27,9 @@ function MarkdownContent({ content, className = '' }: MarkdownContentProps) {
               <span aria-hidden className="shrink-0 leading-relaxed text-gray-900">
                 ✔
               </span>
-              <div className="flex flex-col gap-2 text-gray-950 [&_p]:text-inherit">{children}</div>
+              <div className="flex flex-col gap-2 text-gray-950 [&_li]:text-inherit [&_p]:text-inherit [&_strong]:text-inherit">
+                {children}
+              </div>
             </blockquote>
           ),
         }}>

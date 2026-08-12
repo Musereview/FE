@@ -48,6 +48,7 @@ export default function HistoryDetailPage() {
   const [endMeasure, setEndMeasure] = useState('1마디');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const addAnalysisRequestedRef = useRef(false); // 더블 클릭 가드
 
   const [currentMeasureIndex, setCurrentMeasureIndex] = useState(0);
   const [beatInBar, setBeatInBar] = useState(-1);
@@ -273,6 +274,8 @@ export default function HistoryDetailPage() {
   };
 
   const handleAddAnalysis = async () => {
+    if (addAnalysisRequestedRef.current) return;
+
     if (!xmlContent) {
       triggerToast('연주 기록이 없어 분석 구간을 선택할 수 없습니다.');
       return;
@@ -306,6 +309,7 @@ export default function HistoryDetailPage() {
       return;
     }
 
+    addAnalysisRequestedRef.current = true;
     setIsPlaying(false);
     setIsLoading(true);
 
@@ -323,22 +327,20 @@ export default function HistoryDetailPage() {
 
       const realAnalysisId = analysisResultData.analysisId;
 
-      navigate(
-        `/history/${parsedHistoryId}/analysis/result?start=${startNum}&end=${endNum}&analysisId=${realAnalysisId}`,
-        {
-          state: {
-            rangeXml,
-            fromHistory: true,
-            analysisData: analysisResultData,
-            analysisId: realAnalysisId,
-            audioStartOffsetSec, // 오디오 탐색용 오프셋 전달
-            timeSignature: historyData?.timeSignature, // 박자표 전달
-            key: historyData?.key, // 조성 전달
-          },
+      navigate(`/history/${parsedHistoryId}/analysis/loading?start=${startNum}&end=${endNum}`, {
+        state: {
+          rangeXml,
+          //fromHistory: true,
+          analysisData: analysisResultData,
+          analysisId: realAnalysisId,
+          audioStartOffsetSec, // 오디오 탐색용 오프셋 전달
+          timeSignature: historyData?.timeSignature, // 박자표 전달
+          key: historyData?.key, // 조성 전달
         },
-      );
+      });
     } catch (error) {
-      console.error('추가 분석 요청 싪패:', error);
+      addAnalysisRequestedRef.current = false; // 재시도 허용
+      console.error('추가 분석 요청 실패:', error);
       triggerToast('구간 분석 중 오류가 발생했습니다.');
       setIsLoading(false);
     }
@@ -469,6 +471,7 @@ export default function HistoryDetailPage() {
           setEndMeasure={setEndMeasure}
           totalMeasures={totalMeasures}
           onSubmit={handleAddAnalysis}
+          disabled={isLoading}
         />
       </div>
     </div>

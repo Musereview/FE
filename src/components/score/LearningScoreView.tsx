@@ -101,22 +101,47 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
   useImperativeHandle(
     ref,
     () => ({
-      // (C) 현재 음과 대조: 맞으면 타이밍으로 판정(Excellent/Good/Bad), 틀리면 오타로 기록만(현재 음은 대기)
+      // (C) 현재 음 + 아직 차례 안 된 다음 음과 대조: 맞으면 타이밍으로 판정(Excellent/Good/Bad), 틀리면 오타로 기록만
       judge: (midi: number, atSec: number) => {
-        const idx = currentIdxRef.current;
-        if (idx < 0) return;
-        const ev = eventsRef.current[idx];
-        if (!ev) return;
-        if (judgedRef.current.has(idx)) {
-          wrongHitsRef.current += 1; // 이미 판정된 자리에서의 추가 입력 = 오타
-          return;
+        const events = eventsRef.current;
+        const cur = currentIdxRef.current;
+        if (cur < 0) return;
+        const correctedAtSec = atSec - latencyMs / 1000; // 레이턴시 보정된 입력 시각
+        const tol = TIMING_TOLERANCE[difficulty];
+
+        const curEv = events[cur];
+        const matchCurrent = !judgedRef.current.has(cur) && !!curEv?.midis.includes(midi);
+        const currentErrMs = curEv ? (correctedAtSec - curEv.onBeat * (60 / bpm)) * 1000 : Infinity;
+
+        // tick()이 아직 "현재 음"으로 넘기지 않은 다음 음도, tol.loose 이내로 미리 친 경우엔 인정한다
+        // (오차범위를 정박 전후로 대칭 적용 — 늦게 친 경우만 봐주던 기존 동작 수정)
+        // 반복 MIDI 대비: matchCurrent 여부와 무관하게 다음 음도 항상 검사해서, 둘 다 맞으면 시간이 더 가까운 쪽으로 판정한다
+        const nextIdx = cur + 1;
+        const nextEv = events[nextIdx];
+        let matchNext = false;
+        let nextErrMs = Infinity;
+        if (nextEv && !judgedRef.current.has(nextIdx) && nextEv.midis.includes(midi)) {
+          nextErrMs = (correctedAtSec - nextEv.onBeat * (60 / bpm)) * 1000;
+          matchNext = Math.abs(nextErrMs) <= tol.loose;
         }
-        if (!ev.midis.includes(midi)) {
+
+        if (!matchCurrent && !matchNext) {
+          if (judgedRef.current.has(cur)) {
+            wrongHitsRef.current += 1; // 이미 판정된 자리에서의 추가 입력 = 오타
+            return;
+          }
           wrongHitsRef.current += 1; // 오타 집계
-          paintJudged(ev.gnotes, 'bad'); // 오노트 = 즉시 bad 확정 (콤보 리셋)
-          judgedRef.current.set(idx, 'bad');
+          if (curEv) {
+            paintJudged(curEv.gnotes, 'bad'); // 오노트 = 즉시 bad 확정 (콤보 리셋)
+            judgedRef.current.set(cur, 'bad');
+          }
           return;
         }
+
+        // matchCurrent가 false면 matchNext가 반드시 true (위 가드에서 보장) → nextIdx로 처리
+        const idx = matchCurrent && (!matchNext || Math.abs(currentErrMs) <= Math.abs(nextErrMs)) ? cur : nextIdx;
+        const ev = events[idx] as NoteEvent;
+
         // 화음: 모든 음이 입력될 때까지 이벤트를 미해결로 유지 (첫 음만으로 완료 처리하지 않음)
         const hits = hitMidisRef.current.get(idx) ?? new Set<number>();
         if (hits.has(midi)) {
@@ -128,8 +153,8 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
         const needed = new Set(ev.midis).size; // 중복 음 대비 유니크 개수
         if (hits.size < needed) return; // 나머지 화음 음 대기
         const onSec = ev.onBeat * (60 / bpm);
-        const timingErrorMs = (atSec - latencyMs / 1000 - onSec) * 1000; // 레이턴시 보정 후 정박과 비교 (마지막 음 기준)
-        const judgment = judgeNote(true, timingErrorMs, TIMING_TOLERANCE[difficulty]); // 화음 완성 → 타이밍 판정
+        const timingErrorMs = (correctedAtSec - onSec) * 1000; // 레이턴시 보정 후 정박과 비교 (마지막 음 기준)
+        const judgment = judgeNote(true, timingErrorMs, tol); // 화음 완성 → 타이밍 판정
         paintJudged(ev.gnotes, judgment);
         judgedRef.current.set(idx, judgment);
       },

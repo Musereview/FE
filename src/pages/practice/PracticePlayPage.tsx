@@ -17,6 +17,7 @@ import { usePlayingSessionStore } from '@/stores/playingSessionStore';
 import { getRecordingUploadUrl, saveMidiEvents } from '@/apis/practice';
 import { uploadRecordingToS3 } from '@/utils/s3Upload';
 import { toMidiEventPayload } from '@/utils/midiEventPayload';
+import { applyLatencyCompensation } from '@/utils/latencyCompensation';
 import { isAudioUnlocked } from '@/utils/audioUnlock';
 import { buildFallbackProgression, mapDetailToTrack, MODE_LABEL } from '@/pages/practice/trackDisplay';
 import PlayIcon from '@/assets/practice/play.svg?react';
@@ -371,6 +372,18 @@ function PracticePlayPage() {
     }, 80);
   };
 
+  // 연주 저장에 실패했을 때의 공통 복구 처리
+  const abortAnalyze = (message: string) => {
+    setIsAnalyzing(false);
+    analyzingRef.current = false; // 재시도 가능하도록 해제
+    triggerToast(message);
+    if (analyzeErrorTimerRef.current) clearTimeout(analyzeErrorTimerRef.current);
+    analyzeErrorTimerRef.current = setTimeout(() => {
+      analyzeErrorTimerRef.current = null;
+      navigate(`/practice/${practiceId}/settings`);
+    }, 3000);
+  };
+
   // 분석: MIDI 녹음 + 레이턴시 보정값을 스토어에 저장하고, 오디오 녹음(webm)을 확정한 뒤
   // Presigned URL 발급 → S3 업로드 → MIDI 이벤트 저장(최종 완료 처리) 순으로 연동 후 분석 화면으로 이동
   // 업로드/저장 실패 시에는 분석 화면으로 넘어가지 않고 토스트로 안내 후 설정 화면으로 돌아간다
@@ -394,39 +407,37 @@ function PracticePlayPage() {
       setResult({ trackId: practiceId, recording: recordingRef.current, latencyMs, audioBlob });
       recordingFinalizedRef.current = true;
     }
-    const { audioBlob } = usePracticeResultStore.getState();
+    const { audioBlob, latencyMs } = usePracticeResultStore.getState();
 
-    if (audioBlob && playingId) {
-      try {
-        const contentType = audioBlob.type || 'audio/webm';
-        const extension = contentType.includes('ogg') ? 'ogg' : 'webm'; // startRecording이 고르는 실제 포맷과 맞춤
-        const { uploadUrl, objectKey, requiredHeaders } = await getRecordingUploadUrl(playingId, {
-          fileName: `recording-${playingId}.${extension}`,
-          contentType,
-          fileSize: audioBlob.size,
-        });
-        await uploadRecordingToS3(uploadUrl, audioBlob, requiredHeaders);
-        await saveMidiEvents(playingId, {
-          events: toMidiEventPayload(recordingRef.current),
-          recordingObjectKey: objectKey,
-        });
-      } catch (err) {
-        console.error('연주 녹음 업로드/저장 실패', err);
-        setIsAnalyzing(false);
-        analyzingRef.current = false; // 재시도 가능하도록 해제
-        triggerToast('연주 기록 저장에 실패했습니다. 다시 시도해주세요.');
-        // 토스트가 다 보인 뒤 설정 화면으로 돌아가 처음부터 다시 시도하게 한다 (플레이 화면에 멈춰있지 않도록)
-        if (analyzeErrorTimerRef.current) clearTimeout(analyzeErrorTimerRef.current);
-        analyzeErrorTimerRef.current = setTimeout(() => {
-          analyzeErrorTimerRef.current = null;
-          navigate(`/practice/${practiceId}/settings`);
-        }, 3000);
-        return; // 저장이 끝날 때까지 분석 화면으로 이동하지 않음
-      }
+    // 녹음이나 연주 세션이 없으면 연주를 서버에 저장 X
+    if (!audioBlob || !playingId) {
+      console.error('연주를 저장할 수 없습니다.', { hasAudioBlob: !!audioBlob, playingId });
+      abortAnalyze('연주 기록을 저장할 수 없습니다. 처음부터 다시 시도해주세요.');
+      return;
     }
 
-    const targetId = playingId ?? practiceId;
-    navigate(`/practice/${targetId}/analysis`);
+    try {
+      const contentType = audioBlob.type || 'audio/webm';
+      const extension = contentType.includes('ogg') ? 'ogg' : 'webm'; // startRecording이 고르는 실제 포맷과 맞춤
+      const { uploadUrl, objectKey, requiredHeaders } = await getRecordingUploadUrl(playingId, {
+        fileName: `recording-${playingId}.${extension}`,
+        contentType,
+        fileSize: audioBlob.size,
+      });
+      await uploadRecordingToS3(uploadUrl, audioBlob, requiredHeaders);
+      await saveMidiEvents(playingId, {
+        // 화면이랑 동일하게 레이턴시를 보정해서 보냄
+        events: toMidiEventPayload(applyLatencyCompensation(recordingRef.current, latencyMs)),
+        recordingObjectKey: objectKey,
+      });
+    } catch (err) {
+      console.error('연주 녹음 업로드/저장 실패', err);
+      abortAnalyze('연주 기록 저장에 실패했습니다. 다시 시도해주세요.');
+      return; // 저장이 끝날 때까지 분석 화면으로 이동하지 않음
+    }
+
+    // 분석 화면부터는 playingId 기준으로 동작
+    navigate(`/practice/${playingId}/analysis`);
   };
 
   // 연습 중 기기 연결이 끊기면 재생을 멈추고 모달을 띄운다
