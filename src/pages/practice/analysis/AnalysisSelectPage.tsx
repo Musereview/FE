@@ -213,7 +213,7 @@ export default function AnalysisSelectPage() {
   }, [isPlaying]);
 
   // 악보 커서 싱크 훅
-  const cursorAudioRefs = useMemo(() => [recordingAudioRef, backingAudioRef], []);
+  const cursorAudioRefs = useMemo(() => [backingAudioRef, recordingAudioRef], []);
 
   const { currentMeasureIndex } = useScoreCursorSync({
     audioRefs: cursorAudioRefs,
