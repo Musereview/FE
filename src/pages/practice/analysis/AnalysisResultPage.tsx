@@ -77,6 +77,8 @@ export default function AnalysisResultPage() {
   const playbackTimeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
 
+  const [isNavigating, setIsNavigating] = useState(false);
+
   // 백킹 트랙과 사용자 연주 녹음 파일을 동시에 제어하기 위한 두 개의 오디오 Ref
   const backingAudioRef = useRef<HTMLAudioElement | null>(null);
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -592,13 +594,20 @@ export default function AnalysisResultPage() {
       {/* 최하단 네비게이션 액션 버튼 그룹 */}
       <div className="flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-4 pt-2">
         <button
+
           onClick={handleRestartPractice}
           disabled={isRestartingPractice || !canRestartWithStoredSession}
           className="cursor-pointer rounded-xl bg-gray-800 px-8 py-4 text-base font-medium text-gray-300 shadow-md transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50">
+
           다시 연주하기
         </button>
         <button
-          onClick={() => navigate('/practice')}
+          onClick={() => {
+            if (isNavigating) return;
+            setIsNavigating(true);
+            navigate('/practice');
+          }}
+          disabled={isNavigating}
           className="bg-primary-400 cursor-pointer rounded-xl px-8 py-4 text-base font-semibold text-gray-950 shadow-lg transition-opacity hover:opacity-90">
           추가 연주하기
         </button>
