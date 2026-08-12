@@ -36,6 +36,7 @@ export function usePianoSound() {
       if (session) {
         if (session.recorder.state !== 'inactive') session.recorder.stop();
         session.keepAlive.dispose();
+        synthRef.current?.disconnect(session.dest); // dest.disconnect()는 dest 쪽 연결만 끊을 뿐, synth가 물고 있는 엣지는 남는다
         session.dest.disconnect();
         sessionRef.current = null;
       }
@@ -77,6 +78,7 @@ export function usePianoSound() {
     if (prevSession) {
       if (prevSession.recorder.state !== 'inactive') prevSession.recorder.stop();
       prevSession.keepAlive.dispose();
+      synthRef.current?.disconnect(prevSession.dest); // dest.disconnect()는 dest 쪽 연결만 끊을 뿐, synth가 물고 있는 엣지는 남는다
       prevSession.dest.disconnect();
     }
 
@@ -124,6 +126,7 @@ export function usePianoSound() {
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
         keepAlive.dispose();
+        synthRef.current?.disconnect(dest); // dest.disconnect()는 dest 쪽 연결만 끊을 뿐, synth가 물고 있는 엣지는 남는다
         dest.disconnect();
         // 이 recorder가 여전히 "현재" 세션일 때만 공유 ref 정리 (그 사이 새 녹음이 시작됐다면 건드리지 않음)
         if (sessionRef.current === session) sessionRef.current = null;
