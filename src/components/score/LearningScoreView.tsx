@@ -111,14 +111,17 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
 
         const curEv = events[cur];
         const matchCurrent = !judgedRef.current.has(cur) && !!curEv?.midis.includes(midi);
+        const currentErrMs = curEv ? (correctedAtSec - curEv.onBeat * (60 / bpm)) * 1000 : Infinity;
 
         // tick()이 아직 "현재 음"으로 넘기지 않은 다음 음도, tol.loose 이내로 미리 친 경우엔 인정한다
         // (오차범위를 정박 전후로 대칭 적용 — 늦게 친 경우만 봐주던 기존 동작 수정)
+        // 반복 MIDI 대비: matchCurrent 여부와 무관하게 다음 음도 항상 검사해서, 둘 다 맞으면 시간이 더 가까운 쪽으로 판정한다
         const nextIdx = cur + 1;
         const nextEv = events[nextIdx];
         let matchNext = false;
-        if (!matchCurrent && nextEv && !judgedRef.current.has(nextIdx) && nextEv.midis.includes(midi)) {
-          const nextErrMs = (correctedAtSec - nextEv.onBeat * (60 / bpm)) * 1000;
+        let nextErrMs = Infinity;
+        if (nextEv && !judgedRef.current.has(nextIdx) && nextEv.midis.includes(midi)) {
+          nextErrMs = (correctedAtSec - nextEv.onBeat * (60 / bpm)) * 1000;
           matchNext = Math.abs(nextErrMs) <= tol.loose;
         }
 
@@ -135,7 +138,8 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
           return;
         }
 
-        const idx = matchCurrent ? cur : nextIdx;
+        // matchCurrent가 false면 matchNext가 반드시 true (위 가드에서 보장) → nextIdx로 처리
+        const idx = matchCurrent && (!matchNext || Math.abs(currentErrMs) <= Math.abs(nextErrMs)) ? cur : nextIdx;
         const ev = events[idx] as NoteEvent;
 
         // 화음: 모든 음이 입력될 때까지 이벤트를 미해결로 유지 (첫 음만으로 완료 처리하지 않음)
