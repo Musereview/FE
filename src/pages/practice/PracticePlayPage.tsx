@@ -30,6 +30,7 @@ import LoadingPage from '@/pages/common/LoadingPage';
 
 const PX_PER_BEAT = 120; // 노트바 길이 환산: 1박 = 120px
 const COUNTDOWN_BEATS = 4; // 재생 전 카운트다운 박 수 (4,3,2,1)
+const BACKING_TRACK_LOAD_TIMEOUT_MS = 10000; // 반주 음원 로딩이 이 시간 안에 끝나지 않으면 실패로 간주 (fetch가 응답 없이 멈추는 경우 대비)
 
 function PracticePlayPage() {
   const navigate = useNavigate();
@@ -68,8 +69,11 @@ function PracticePlayPage() {
   const heldRef = useRef<Map<number, number>>(new Map()); // midi → 진행 중 노트바 id
   const recordingRef = useRef<PlayedNote[]>([]); // 연주 녹음 (Transport 시각 기준)
   const recordingFinalizedRef = useRef(false); // 분석 재시도 시 stopRecording을 중복 호출하지 않도록(오디오 유실 방지)
+  const analyzingRef = useRef(false); // handleAnalyze 중복 실행 방지 (곡 종료 자동 호출과 수동 클릭이 겹치는 경우 등)
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 진입 시 자동재생 예약
+  const finishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 곡 끝 → 분석 화면 이동 예약
+  const analyzeErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 저장 실패 토스트 → 설정 화면 복귀 예약
   const pauseStartRef = useRef(performance.now()); // 정지 시각 (노트바 얼림 기준 + 재개 시 보정)
   const countdownEndedRef = useRef(false); // 카운트다운 종료 중복 예약 방지
   const isMountedRef = useRef(true); // 언마운트 후 await 재개 시 재생 시작 방지
@@ -82,12 +86,48 @@ function PracticePlayPage() {
   useEffect(() => {
     const url = track?.audioFileUrl;
     if (!url) return;
+
+    let settled = false; // onload/onerror/타임아웃 중 처음 한 번만 반영 (중복 처리 방지)
+
+    // Tone.Player의 기본 onerror는 no-op이라 로딩 실패가 조용히 묻힌다 — 실패 시 재생 세션(Transport·녹음·
+    // isPlaybackActiveRef)을 정리하고 재시도 가능한 화면으로 되돌린다 (metronome.ts의 버퍼 로딩 처리와 동일한 패턴)
+    // (함수 선언으로 호이스팅해 아래쪽에서 const로 선언되는 player/timeoutId를 미리 참조한다)
+    function handleLoadFailure(error: unknown) {
+      if (settled || playerRef.current !== player) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      console.error('반주 음원 로딩 실패', error);
+      stopPlayback();
+      stopRecording();
+      triggerToast('반주 음원을 불러오지 못했습니다. 다시 시도해주세요.');
+    }
+
+    // fetch가 응답 없이 멈추는 경우 onerror만으론 못 잡으므로 타임아웃도 함께 건다
+    const timeoutId = setTimeout(
+      () => handleLoadFailure(new Error('반주 음원 로딩 시간 초과')),
+      BACKING_TRACK_LOAD_TIMEOUT_MS,
+    );
+
     // 로딩(fetch+decode)이 카운트다운보다 늦게 끝나는 경우를 대비 — 이미 재생이 시작된 뒤라면 그 시점에 뒤늦게라도 동기화해 재생
-    const player = new Tone.Player(url, () => {
-      if (playerRef.current === player && isPlaybackActiveRef.current) player.sync().start(0);
+    const player = new Tone.Player({
+      url,
+      onload: () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        if (playerRef.current === player && isPlaybackActiveRef.current) {
+          // 로딩이 늦게 끝나도 현재 Transport 위치(startAt)부터 버퍼 처음을 재생하도록 기준을 맞춘다
+          const startAt = Tone.getTransport().seconds;
+          player.sync().start(startAt);
+          const transportEnd = startAt + player.buffer.duration;
+          Tone.getTransport().scheduleOnce((time) => finishPlayback(time, transportEnd), transportEnd);
+        }
+      },
+      onerror: handleLoadFailure,
     }).toDestination();
     playerRef.current = player;
     return () => {
+      clearTimeout(timeoutId);
       player.unsync();
       player.dispose();
       playerRef.current = null;
@@ -97,9 +137,9 @@ function PracticePlayPage() {
   // 친 음: 소리 재생 + 노트바 생성(성장 시작) → 뗄 때 소리·길이 확정 후 위로 사라짐
   const handleNoteOn = (note: number, velocity = 100) => {
     playNote(note, velocity); // 즉시 소리 (범위와 무관하게 실제 친 음)
-    // 녹음: 실제 친 음 전부 기록 (Transport 시각 = 곡 박자 기준)
+    if (noteCenterFraction(note, keyCount) < 0) return; // 건반 범위 밖 입력은 녹음·악보에서 제외
+    // 녹음: 건반 범위 안 음만 기록 (Transport 시각 = 곡 박자 기준)
     recordingRef.current.push({ midi: note, velocity, onSec: Tone.getTransport().seconds, offSec: null });
-    if (noteCenterFraction(note, keyCount) < 0) return; // 노트바는 건반 범위 안만
     const id = barIdRef.current++;
     heldRef.current.set(note, id);
     setNoteBars((prev) => [...prev, { id, midi: note, startTime: performance.now(), endTime: null }]);
@@ -142,8 +182,7 @@ function PracticePlayPage() {
 
   // 정지/일시정지 시점에 아직 눌린(열린) 노트를 그 순간으로 확정·해제
   // → 이후 비활성 중 들어오는 note-off는 이미 닫힌 노트라 이벤트에 영향 없음(하이라이트 해제만)
-  const finalizeOpenNotes = (atWall: number) => {
-    const atSec = Tone.getTransport().seconds; // 정지 지점 (transport 시각, 정지 중 멈춰 있음)
+  const finalizeOpenNotes = (atWall: number, atSec: number = Tone.getTransport().seconds) => {
     for (const rec of recordingRef.current) {
       if (rec.offSec === null) rec.offSec = atSec; // 녹음: 열린 노트 종료
     }
@@ -153,11 +192,15 @@ function PracticePlayPage() {
     resetInput(); // 눌린 건반 표시 초기화 (stuck 방지)
   };
 
-  // 예약된 자동재생(START 타이머) 취소
+  // 예약된 자동재생(START 타이머) + 곡 끝 분석 이동 타이머 취소
   const cancelAutoStart = () => {
     if (startTimerRef.current) {
       clearTimeout(startTimerRef.current);
       startTimerRef.current = null;
+    }
+    if (finishTimerRef.current) {
+      clearTimeout(finishTimerRef.current);
+      finishTimerRef.current = null;
     }
   };
 
@@ -177,6 +220,29 @@ function PracticePlayPage() {
     setBeatInBar(-1);
     setCurrentBeat(-1);
     setCountdown(null); // 카운트다운 도중 정지 시 화면에 숫자가 멈춰 남지 않도록
+  };
+
+  // MR 종료(실제 오디오 길이 도달) 시 호출됨 — 백킹트랙/메트로놈도 그 시점에 맞춰 함께 정지.
+  // scheduleOnce는 lookahead 때문에 실제 종료 시각(time)보다 먼저 실행되므로, "지금(now)" 값 대신
+  // 예약 당시 넘겨준 시각들을 그대로 받아 사용한다 — 그래야 MR/Transport가 일찍 멈추거나
+  // finalizeOpenNotes가 마지막 노트의 offSec을 짧게 저장하는 일이 없다.
+  // time: Transport.stop에 넘길 AudioContext(Context) 시각 / transportEnd: 동기화된 Player·녹음 확정에 쓸 예약된 Transport 종료 위치
+  // 진행점·노트바는 끝 지점 그대로 두고(정지 버튼과 달리 위치 리셋 안 함) 2초 후 "분석하기"와 동일한 플로우로 자동 진행
+  const finishPlayback = (time: number, transportEnd: number) => {
+    isPlaybackActiveRef.current = false; // 지연 로딩 onload가 이후엔 재생을 시작하지 않도록
+    finalizeOpenNotes(performance.now(), transportEnd);
+    pauseRecording(); // 곡이 끝난 시점에 녹음도 함께 멈춤 (분석 화면 이동 대기 중 무음 구간이 섞이지 않도록)
+    const player = playerRef.current;
+    // unsync()는 내부적으로 예약된 정지를 즉시 취소하고 그 자리에서 강제 정지시키므로, 여기서는 부르지 않는다
+    // (다음 정지 경로 — 재시작/분석하기/언마운트 — 가 그때 가서 안전하게 unsync한다)
+    if (player && player.state === 'started') player.stop(transportEnd); // 동기화 상태 유지한 채 Transport 종료 위치 기준으로 정지
+    stop(time); // 메트로놈/Transport를 예약된 실제(Context) 시각에 정지
+    Tone.getDraw().cancel();
+    Tone.getDraw().schedule(() => {
+      setIsPlaying(false);
+      // beatInBar/currentBeat/노트바 모두 유지 (끝 지점 상태 그대로)
+      finishTimerRef.current = setTimeout(() => handleAnalyze(), 2000);
+    }, time);
   };
 
   // 카운트다운(4,3,2,1): 메트로놈 박에 맞춰 숫자를 표시하고, 끝나면 START 안내 후 실제 재생 시작
@@ -243,6 +309,7 @@ function PracticePlayPage() {
     // 메트로놈 start()가 내부적으로 transport.stop()/cancel()을 먼저 실행하므로 그보다 먼저 반주를 sync하면
     // 방금 건 예약(0초 재생)이 cancel()에 지워짐 — 그래서 metronome start()가 끝난 뒤에 sync().start(0)를 건다.
     start(track?.bpm ?? 0, beatsPerBar, (time, bib) => {
+      // MR이 끝날 때까지는 코드 진행을 반복 순환시켜 백킹트랙을 계속 진행 (정지는 MR 종료 예약이 담당)
       const beat = totalBeatRef.current % totalCells;
       Tone.getDraw().schedule(() => {
         setBeatInBar(bib);
@@ -251,7 +318,12 @@ function PracticePlayPage() {
       totalBeatRef.current += 1;
     });
     const player = playerRef.current;
-    if (player?.loaded) player.sync().start(0);
+    if (player?.loaded) {
+      player.sync().start(0);
+      // MR 실제 길이만큼 지난 시점(=MR이 스스로 끝나는 시점)에 정지 예약 — 백킹트랙 박 수와 무관하게 MR 종료가 기준
+      const transportEnd = player.buffer.duration;
+      Tone.getTransport().scheduleOnce((time) => finishPlayback(time, transportEnd), transportEnd);
+    }
   };
 
   // 정지: 화면 그대로 멈춤(진행 상태 유지) / 재생: 이어서
@@ -301,8 +373,16 @@ function PracticePlayPage() {
 
   // 분석: MIDI 녹음 + 레이턴시 보정값을 스토어에 저장하고, 오디오 녹음(webm)을 확정한 뒤
   // Presigned URL 발급 → S3 업로드 → MIDI 이벤트 저장(최종 완료 처리) 순으로 연동 후 분석 화면으로 이동
-  // 업로드/저장 실패 시에는 분석 화면으로 넘어가지 않고 토스트로 안내 → "분석하기"를 다시 눌러 재시도
+  // 업로드/저장 실패 시에는 분석 화면으로 넘어가지 않고 토스트로 안내 후 설정 화면으로 돌아간다
   const handleAnalyze = async () => {
+    if (analyzingRef.current) return; // 이미 진행 중이면 무시 (자동 호출과 수동 클릭이 겹쳐 같은 세션에 중복 요청되는 것 방지)
+    analyzingRef.current = true;
+    // 이전 실패로 예약된 설정 화면 복귀 타이머 취소 — 재시도 중 그 타이머가 먼저 발동해 화면이 이동되면,
+    // 이번 시도가 뒤늦게 끝났을 때 이미 떠난 화면에서 analysis로 재이동하거나 새 복귀 타이머가 겹쳐 걸림
+    if (analyzeErrorTimerRef.current) {
+      clearTimeout(analyzeErrorTimerRef.current);
+      analyzeErrorTimerRef.current = null;
+    }
     stopPlayback();
     setIsAnalyzing(true);
 
@@ -333,7 +413,14 @@ function PracticePlayPage() {
       } catch (err) {
         console.error('연주 녹음 업로드/저장 실패', err);
         setIsAnalyzing(false);
+        analyzingRef.current = false; // 재시도 가능하도록 해제
         triggerToast('연주 기록 저장에 실패했습니다. 다시 시도해주세요.');
+        // 토스트가 다 보인 뒤 설정 화면으로 돌아가 처음부터 다시 시도하게 한다 (플레이 화면에 멈춰있지 않도록)
+        if (analyzeErrorTimerRef.current) clearTimeout(analyzeErrorTimerRef.current);
+        analyzeErrorTimerRef.current = setTimeout(() => {
+          analyzeErrorTimerRef.current = null;
+          navigate(`/practice/${practiceId}/settings`);
+        }, 3000);
         return; // 저장이 끝날 때까지 분석 화면으로 이동하지 않음
       }
     }
@@ -359,6 +446,8 @@ function PracticePlayPage() {
         if (player.state === 'started') player.stop();
       }
       if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+      if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
+      if (analyzeErrorTimerRef.current) clearTimeout(analyzeErrorTimerRef.current);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, [stop]);
@@ -450,7 +539,8 @@ function PracticePlayPage() {
           <button
             type="button"
             onClick={handleAnalyze}
-            className="button-large2 bg-primary-400 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] px-3 py-[6px] text-gray-950">
+            disabled={isAnalyzing}
+            className="button-large2 bg-primary-400 flex h-[60px] w-[175px] cursor-pointer items-center justify-center gap-2 rounded-[6px] px-3 py-[6px] text-gray-950 disabled:cursor-not-allowed disabled:opacity-50">
             분석하기
             <CheckIcon className="h-6 w-6" />
           </button>

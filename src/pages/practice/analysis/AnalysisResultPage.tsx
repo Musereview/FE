@@ -15,6 +15,8 @@ import {
 import MetronomeDots from '@/components/metronome/MetronomeDots';
 import AnalysisChatSection from '@/components/mentor/AnalysisChatSection';
 import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
+import { usePlayingSessionStore } from '@/stores/playingSessionStore';
+import { useCreatePlaying } from '@/hooks/useCreatePlaying';
 import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { buildMusicXmlFromRecording } from '@/utils/recordingToMusicXml';
 import { toPlayedNotes } from '@/utils/midiEventPayload';
@@ -47,6 +49,14 @@ export default function AnalysisResultPage() {
 
   const { audioBlob, latencyMs: storeLatencyMs } = usePracticeResultStore();
   const latencyMs = location.state?.latencyMs ?? storeLatencyMs ?? 0;
+
+  // "다시 연주하기" — 이미 COMPLETED된 옛 playingId를 재사용하면 저장 시 항상 409 충돌이 나므로 새 세션을 만든다
+  // restartBackingTrack은 sessionStorage에 남아있는 "이 탭에서 마지막으로 시작한 연습"의 트랙이라
+  // 지금 보고 있는 분석(analysisData.playingId)과 다를 수 있다 — 그 경우 재생불가
+  const restartBackingTrack = usePlayingSessionStore((s) => s.backingTrack);
+  const restartSessionPlayingId = usePlayingSessionStore((s) => s.playingId);
+  const setPlayingSession = usePlayingSessionStore((s) => s.setSession);
+  const { mutateAsync: createPlaying, isPending: isRestartingPractice } = useCreatePlaying();
 
   const queryParams = new URLSearchParams(location.search);
   const queryAnalysisId = queryParams.get('analysisId');
@@ -420,6 +430,26 @@ export default function AnalysisResultPage() {
     handleRewind();
   };
 
+  // 저장된 세션이 지금 보고 있는 분석의 playingId와 같을 때만 신뢰해서 재사용한다
+  const canRestartWithStoredSession =
+    !!restartBackingTrack && restartSessionPlayingId != null && restartSessionPlayingId === analysisData?.playingId;
+
+  const handleRestartPractice = async () => {
+    if (!canRestartWithStoredSession) {
+      setToastMessage('연습 세션 정보를 찾을 수 없습니다. 트랙 목록에서 다시 시작해주세요.');
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+    try {
+      const session = await createPlaying(restartBackingTrack.backingTrackId);
+      setPlayingSession({ playingId: session.playingId, backingTrack: session.backingTrack });
+      navigate(`/practice/${session.backingTrack.backingTrackId}/play`);
+    } catch {
+      setToastMessage('새 연습 세션을 시작하지 못했습니다. 다시 시도해주세요.');
+      setTimeout(() => setToastMessage(null), 3000);
+    }
+  };
+
   const formatPlayedAt = (isoString?: string) => {
     if (!isoString) return '5월 4일 · 14:32';
     const date = new Date(isoString);
@@ -564,16 +594,11 @@ export default function AnalysisResultPage() {
       {/* 최하단 네비게이션 액션 버튼 그룹 */}
       <div className="flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-4 pt-2">
         <button
-          onClick={() => {
-            if (isNavigating) return;
-            const targetId = analysisData?.playingId;
-            if (!targetId) return;
 
-            setIsNavigating(true);
-            navigate(`/practice/${targetId}/play`);
-          }}
-          disabled={isNavigating}
-          className="cursor-pointer rounded-xl bg-gray-800 px-8 py-4 text-base font-medium text-gray-300 shadow-md transition-colors hover:bg-gray-700">
+          onClick={handleRestartPractice}
+          disabled={isRestartingPractice || !canRestartWithStoredSession}
+          className="cursor-pointer rounded-xl bg-gray-800 px-8 py-4 text-base font-medium text-gray-300 shadow-md transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50">
+
           다시 연주하기
         </button>
         <button

@@ -78,12 +78,14 @@ function ScorePage() {
             다시하기
             <RefreshIcon className="ml-2 h-[24px] w-[24px]" />
           </button>
-          {/* 다음 스텝의 이론 화면으로 이동 (마지막 스텝이면 커리큘럼 상세로) — 커리큘럼 조회 성공 전에는 nextStep을 신뢰할 수 없어 이동 차단 */}
+          {/* 다음 스텝의 이론 화면으로 이동 (마지막 스텝이면 커리큘럼 상세로) — 커리큘럼 조회 성공 전에는 nextStep을 신뢰할 수 없어 이동 차단
+              + 90점 이상일 때만 다음 학습으로 진행 가능 */}
           <button
             type="button"
-            disabled={!hasCurriculum}
+            disabled={!hasCurriculum || result.score < 90}
             onClick={() =>
               hasCurriculum &&
+              result.score >= 90 &&
               navigate(
                 nextStep
                   ? `/learn/curriculum/${curriculumId}/steps/${nextStep.learningStepId}/theory`
