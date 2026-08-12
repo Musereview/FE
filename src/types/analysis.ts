@@ -134,6 +134,7 @@ export interface MidiEvent {
 
 export interface AnalysisContextData {
   playingId: number;
+  backingTrackId: number;
   title: string;
   genre: string;
   key: string;

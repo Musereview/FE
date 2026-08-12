@@ -16,11 +16,15 @@ export { DIFFICULTY_LABEL, DIFFICULTY_COLOR } from '@/constants/difficulty';
 /** mock 로그인 사용자 (인증 전) */
 export const CURRENT_USER = '김뮤즈';
 
-export function buildFallbackProgression(chords: string[], numerator: number, measureCount = 8): ChordMeasure[] {
+export function buildFallbackProgression(
+  chords: BackingTrackChordEntry[],
+  numerator: number,
+  measureCount = 8,
+): ChordMeasure[] {
   if (chords.length === 0) return [];
   return Array.from({ length: measureCount }, (_, measureIndex) => {
-    const chord = chords[measureIndex % chords.length];
-    return Array.from({ length: numerator }, (_, beat) => (beat === 0 ? chord : null));
+    const { chordName } = chords[measureIndex % chords.length];
+    return Array.from({ length: numerator }, (_, beat) => (beat === 0 ? chordName : null));
   });
 }
 
@@ -57,10 +61,6 @@ function buildChordMeasures(entries: BackingTrackChordEntry[], numerator: number
   });
 
   return measures;
-}
-
-function uniqueChordNames(entries: BackingTrackChordEntry[]): string[] {
-  return [...new Set(entries.map((entry) => entry.chordName))];
 }
 
 export function mapListItemToTrack(item: BackingTrackListItem): Track {
@@ -108,7 +108,7 @@ export function mapDetailToTrack(detail: BackingTrackDetail): Track {
     key: detail.keySignature,
     mode: detail.scaleType.toLowerCase() as KeyMode,
     timeSignature: detail.timeSignature,
-    chords: uniqueChordNames(detail.chordProgression),
+    chords: detail.chordProgression,
     genre: detail.genre,
     bpm: detail.bpm,
     difficulty: LEVEL_MAP[detail.level],

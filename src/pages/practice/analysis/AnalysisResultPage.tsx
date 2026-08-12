@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import ScoreViewer, { type ScoreViewerHandle } from '@/components/score/ScoreViewer';
 import { useMetronome } from '@/hooks/useMetronome';
 import { getAnalysisDetail } from '@/apis/analysis';
+import { useHistoryDetail } from '@/hooks/useHistory';
 import {
   computeMeasureTimings,
   findMeasureIndexAtTime,
@@ -96,6 +97,18 @@ export default function AnalysisResultPage() {
     enabled: !!realAnalysisId,
     placeholderData: passedAnalysisData,
   });
+
+  // "다시 연주하기"에 쓸 백킹트랙 id
+  const storedSessionMatches =
+    !!restartBackingTrack && restartSessionPlayingId != null && restartSessionPlayingId === analysisData?.playingId;
+  const lookupPlayingId = storedSessionMatches ? undefined : analysisData?.playingId;
+
+  const { data: playingHistoryDetail } = useHistoryDetail(lookupPlayingId ?? 0);
+
+  // 백킹트랙이 없는 연주는 null
+  const restartBackingTrackId = storedSessionMatches
+    ? restartBackingTrack.backingTrackId
+    : playingHistoryDetail?.backingTrackId;
 
   // 2. 악보 XML 로드 및 타이밍 계산 (유저 연주 마디 기반 동적 종료 마디 반영)
   const {
@@ -427,18 +440,14 @@ export default function AnalysisResultPage() {
     handleRewind();
   };
 
-  // 저장된 세션이 지금 보고 있는 분석의 playingId와 같을 때만 신뢰해서 재사용한다
-  const canRestartWithStoredSession =
-    !!restartBackingTrack && restartSessionPlayingId != null && restartSessionPlayingId === analysisData?.playingId;
-
   const handleRestartPractice = async () => {
-    if (!canRestartWithStoredSession) {
+    if (restartBackingTrackId == null) {
       setToastMessage('연습 세션 정보를 찾을 수 없습니다. 트랙 목록에서 다시 시작해주세요.');
       setTimeout(() => setToastMessage(null), 3000);
       return;
     }
     try {
-      const session = await createPlaying(restartBackingTrack.backingTrackId);
+      const session = await createPlaying(restartBackingTrackId);
       setPlayingSession({ playingId: session.playingId, backingTrack: session.backingTrack });
       navigate(`/practice/${session.backingTrack.backingTrackId}/play`);
     } catch {
@@ -592,7 +601,7 @@ export default function AnalysisResultPage() {
       <div className="flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-4 pt-2">
         <button
           onClick={handleRestartPractice}
-          disabled={isRestartingPractice || !canRestartWithStoredSession}
+          disabled={isRestartingPractice || restartBackingTrackId == null}
           className="cursor-pointer rounded-xl bg-gray-800 px-8 py-4 text-base font-medium text-gray-300 shadow-md transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50">
           다시 연주하기
         </button>

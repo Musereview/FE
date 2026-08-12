@@ -15,9 +15,11 @@ interface RecordingSession {
 export function usePianoSound() {
   const synthRef = useRef<Tone.PolySynth | null>(null);
   const sessionRef = useRef<RecordingSession | null>(null);
+  const disposedRef = useRef(false); // 언마운트 후 지연 초기화로 신디가 되살아나는 것 방지
 
   // 신디는 한 번만 생성 (지연 초기화)
   const getSynth = () => {
+    if (disposedRef.current) return null; // 늦게 도착한 입력이 새 신디를 만들어 소리내지 않도록
     if (!synthRef.current) {
       synthRef.current = new Tone.PolySynth(Tone.Synth).toDestination();
       synthRef.current.volume.value = -4; // 화음 시 클리핑 방지
@@ -26,7 +28,9 @@ export function usePianoSound() {
   };
 
   useEffect(() => {
+    disposedRef.current = false; // StrictMode 이중 마운트 대비
     return () => {
+      disposedRef.current = true;
       const session = sessionRef.current;
       if (session) {
         if (session.recorder.state !== 'inactive') session.recorder.stop();
@@ -42,13 +46,13 @@ export function usePianoSound() {
   // 누름: 즉시 소리 시작 (velocity 0~127 → 0~1)
   const noteOn = (midi: number, velocity = 100) => {
     const note = Tone.Frequency(midi, 'midi').toNote();
-    getSynth().triggerAttack(note, Tone.immediate(), velocity / 127);
+    getSynth()?.triggerAttack(note, Tone.immediate(), velocity / 127);
   };
 
   // 뗌: 즉시 소리 끝 (홀드 길이 반영)
   const noteOff = (midi: number) => {
     const note = Tone.Frequency(midi, 'midi').toNote();
-    getSynth().triggerRelease(note, Tone.immediate());
+    getSynth()?.triggerRelease(note, Tone.immediate());
   };
 
   // 울리고 있는 모든 소리 즉시 끊기 (정지/일시정지 등)
@@ -74,6 +78,7 @@ export function usePianoSound() {
     }
 
     const synth = getSynth();
+    if (!synth) return; // 언마운트된 훅에서는 녹음을 시작 X
     const rawContext = Tone.getContext().rawContext as AudioContext;
     const dest = rawContext.createMediaStreamDestination();
     synth.connect(dest);
