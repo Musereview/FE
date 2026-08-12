@@ -91,7 +91,7 @@ function TrackDetailModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleTogglePlay = () => {
+  const handleTogglePlay = async () => {
     if (isPlaying) {
       stopAll();
       setIsPlaying(false);
@@ -99,6 +99,8 @@ function TrackDetailModal({
       return;
     }
     if (totalBeats === 0) return;
+
+    await Tone.start(); // 오디오 잠금 해제 (클릭 핸들러 안에서만 가능) — 이 모달은 Tone.start()를 거치지 않고 직접 열릴 수 있음
 
     setHasFinished(false);
     beatCountRef.current = 0;
