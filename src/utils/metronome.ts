@@ -42,6 +42,12 @@ export function createMetronome() {
   // 하므로, 여기선 경고만 막기 위한 빈 catch를 별도로 붙여둔다 (원본 ready는 그대로 반환해 정상 reject됨).
   ready.catch(() => {});
 
+  // 아직 울리지 않은 클릭 Player들 — transport에 sync되지 않은 독립 재생이라 transport.cancel()로는
+  // 못 멈춘다(Transport의 lookahead 때문에 stop() 시점에 이미 Web Audio 레벨로 예약된 Player가 있을 수 있음).
+  // 재시작처럼 재생 중간에 stop()이 끼어들 때 이 남은 클릭음이 다음 세션 소리에 섞여 들리는 걸 막기 위해
+  // 직접 추적해뒀다가 stop() 시점에 강제로 정지시킨다.
+  const pendingPlayers = new Set<Tone.Player>();
+
   return {
     ready,
     /**
@@ -81,8 +87,12 @@ export function createMetronome() {
           if (buffer.loaded) {
             // 매 박마다 새 Player 생성 → 겹침 없음, 재생 후 자동 정리
             const player = new Tone.Player(buffer).toDestination();
+            pendingPlayers.add(player);
             player.start(time);
-            player.onstop = () => player.dispose();
+            player.onstop = () => {
+              pendingPlayers.delete(player);
+              player.dispose();
+            };
           }
         }
         beat += 1;
@@ -92,6 +102,14 @@ export function createMetronome() {
     stop(time?: number) {
       transport.stop(time);
       transport.cancel(time);
+      // transport.cancel()은 앞으로의 콜백만 취소할 뿐, 이미 lookahead로 예약되어 Web Audio 레벨에
+      // 진입한 클릭 Player는 못 멈춘다 — 남겨두면 다음 세션(재시작 등) 소리에 섞여 들린다.
+      for (const player of pendingPlayers) {
+        player.onstop = () => {}; // 아래에서 바로 dispose하므로 원래 onstop(재dispose)은 막는다
+        player.stop();
+        player.dispose();
+      }
+      pendingPlayers.clear();
     },
     pause() {
       transport.pause(); // 현재 위치 유지하고 멈춤
