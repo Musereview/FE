@@ -17,6 +17,7 @@ import { usePlayingSessionStore } from '@/stores/playingSessionStore';
 import { getRecordingUploadUrl, saveMidiEvents } from '@/apis/practice';
 import { uploadRecordingToS3 } from '@/utils/s3Upload';
 import { toMidiEventPayload } from '@/utils/midiEventPayload';
+import { applyLatencyCompensation } from '@/utils/latencyCompensation';
 import { isAudioUnlocked } from '@/utils/audioUnlock';
 import { buildFallbackProgression, mapDetailToTrack, MODE_LABEL } from '@/pages/practice/trackDisplay';
 import PlayIcon from '@/assets/practice/play.svg?react';
@@ -406,7 +407,7 @@ function PracticePlayPage() {
       setResult({ trackId: practiceId, recording: recordingRef.current, latencyMs, audioBlob });
       recordingFinalizedRef.current = true;
     }
-    const { audioBlob } = usePracticeResultStore.getState();
+    const { audioBlob, latencyMs } = usePracticeResultStore.getState();
 
     // 녹음이나 연주 세션이 없으면 연주를 서버에 저장 X
     if (!audioBlob || !playingId) {
@@ -425,7 +426,8 @@ function PracticePlayPage() {
       });
       await uploadRecordingToS3(uploadUrl, audioBlob, requiredHeaders);
       await saveMidiEvents(playingId, {
-        events: toMidiEventPayload(recordingRef.current),
+        // 화면이랑 동일하게 레이턴시를 보정해서 보냄
+        events: toMidiEventPayload(applyLatencyCompensation(recordingRef.current, latencyMs)),
         recordingObjectKey: objectKey,
       });
     } catch (err) {
