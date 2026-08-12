@@ -36,7 +36,7 @@ export interface BackingTrackListItem {
   keySignature: string;
   scaleType: BackingTrackScaleType;
   timeSignature: string;
-  chordProgression: string[];
+  chordProgression: BackingTrackChordEntry[];
   bpm: number;
   level: BackingTrackLevel;
   playtimeSec: number;

@@ -59,8 +59,9 @@ function buildChordMeasures(entries: BackingTrackChordEntry[], numerator: number
   return measures;
 }
 
-function uniqueChordNames(entries: BackingTrackChordEntry[]): string[] {
-  return [...new Set(entries.map((entry) => entry.chordName))];
+// 문자열/객체 두 형태 모두 허용
+function uniqueChordNames(entries: (string | BackingTrackChordEntry)[] = []): string[] {
+  return [...new Set(entries.map((entry) => (typeof entry === 'string' ? entry : entry.chordName)))];
 }
 
 export function mapListItemToTrack(item: BackingTrackListItem): Track {
@@ -70,7 +71,7 @@ export function mapListItemToTrack(item: BackingTrackListItem): Track {
     key: item.keySignature,
     mode: item.scaleType.toLowerCase() as KeyMode,
     timeSignature: item.timeSignature,
-    chords: item.chordProgression,
+    chords: uniqueChordNames(item.chordProgression),
     genre: item.genre,
     bpm: item.bpm,
     difficulty: LEVEL_MAP[item.level],
@@ -88,7 +89,7 @@ export function mapRecommendedItemToTrack(item: RecommendedBackingTrackItem): Tr
     key: item.keySignature,
     mode: item.scaleType.toLowerCase() as KeyMode,
     timeSignature: item.timeSignature,
-    chords: item.chordProgression,
+    chords: uniqueChordNames(item.chordProgression),
     genre: item.genre,
     bpm: item.bpm,
     difficulty: LEVEL_MAP[item.level],
