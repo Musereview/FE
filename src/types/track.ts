@@ -101,10 +101,28 @@ export interface SaveBackingTrackRequest {
   timeSignature: string;
   bpm: number;
   playtimeSec: number;
-  audioFileUrl?: string;
+  /** 생성(CreateDTO)에만 있는 필드 — 수정(UpdateDTO)에는 없어서 수정 시엔 payload에서 제외해야 함 */
+  audioObjectKey?: string;
   accessLevel: BackingTrackAccessLevel;
   level: BackingTrackLevel;
   chordProgression: BackingTrackChordEntry[];
+}
+
+// POST /api/backing-tracks/audio-upload-url 요청
+export interface AudioUploadUrlRequest {
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+}
+
+// POST /api/backing-tracks/audio-upload-url 응답 data
+// uploadUrl로 S3에 직접 PUT하며, requiredHeaders를 그 요청에 그대로 실어야 한다.
+// 업로드 후 반환된 objectKey를 백킹트랙 생성 API의 audioObjectKey 필드로 전달한다.
+export interface AudioUploadUrlResponse {
+  objectKey: string;
+  uploadUrl: string;
+  expiresAt: string;
+  requiredHeaders: Record<string, string>;
 }
 
 export interface CreateBackingTrackResponse {
