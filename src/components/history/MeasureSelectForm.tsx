@@ -8,6 +8,7 @@ interface MeasureSelectFormProps {
   setEndMeasure: (v: string) => void;
   totalMeasures: number;
   onSubmit: () => void;
+  disabled?: boolean;
 }
 
 export default function MeasureSelectForm({
@@ -20,6 +21,7 @@ export default function MeasureSelectForm({
   setEndMeasure,
   totalMeasures,
   onSubmit,
+  disabled = false,
 }: MeasureSelectFormProps) {
   return (
     <div className="mt-[44px] flex items-end justify-between">
@@ -59,7 +61,8 @@ export default function MeasureSelectForm({
       <button
         type="button"
         onClick={onSubmit}
-        className="bg-primary-400 flex h-[60px] w-[366px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] px-[14px] py-[6px] transition-all hover:opacity-90 active:scale-[0.98]">
+        disabled={disabled}
+        className="bg-primary-400 flex h-[60px] w-[366px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] px-[14px] py-[6px] transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50">
         <span className="text-[16px] font-bold text-gray-900">추가 분석하기</span>
         <svg
           xmlns="http://www.w3.org/2000/svg"
