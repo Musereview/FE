@@ -24,6 +24,7 @@ export function useMidi(
 
   useEffect(() => {
     let cancelled = false;
+    const attached = new Set<MIDIInput>(); // 언마운트 시 해제할 입력 포트
 
     if (!navigator.requestMIDIAccess) {
       setError('이 브라우저는 MIDI를 지원하지 않습니다. Chrome 또는 Edge를 사용해 주세요.');
@@ -43,6 +44,7 @@ export function useMidi(
           setInputs(list.map((i) => ({ id: i.id, name: i.name ?? 'Unknown' })));
 
           for (const input of list) {
+            attached.add(input);
             input.onmidimessage = (e) => {
               // input에서 선택한 기기만 처리 (미선택이면 아무 입력도 받지 않음)
               const active = handlers.current.activeInputId;
@@ -74,6 +76,13 @@ export function useMidi(
 
     return () => {
       cancelled = true;
+
+      for (const input of attached) input.onmidimessage = null;
+      attached.clear();
+      if (accessRef.current) {
+        accessRef.current.onstatechange = null;
+        accessRef.current = null;
+      }
     };
   }, []);
 
