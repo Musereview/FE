@@ -24,6 +24,8 @@ function PracticeSettingsPage() {
   const { mutateAsync: createPlaying, isPending: isStarting } = useCreatePlaying();
   const [startError, setStartError] = useState<string | null>(null);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // isStarting(리렌더 기반)보다 먼저 막아야 하는 연타 방지 — 같은 틱 안의 두 번째 클릭까지 차단
+  const startInFlightRef = useRef(false);
   const track = useMemo(() => (backingTrack ? mapDetailToTrack(backingTrack) : null), [backingTrack]);
   const beatsPerBar = track ? Number(track.timeSignature.split('/')[0]) : 4; // '4/4' → 4
   const measures = track ? (track.chordProgression ?? buildFallbackProgression(track.chords, beatsPerBar)) : [];
@@ -47,11 +49,12 @@ function PracticeSettingsPage() {
 
   // 시작하기
   const handleStart = async () => {
-    if (!backingTrack) return;
+    if (!backingTrack || startInFlightRef.current) return;
     if (!isCompleted) {
       navigate(`/practice/${backingTrack.backingTrackId}/play`);
       return;
     }
+    startInFlightRef.current = true;
     try {
       const session = await createPlaying(backingTrack.backingTrackId);
       setPlayingSession({ playingId: session.playingId, backingTrack: session.backingTrack });
@@ -61,6 +64,8 @@ function PracticeSettingsPage() {
       if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
       setStartError('새 연습 세션을 시작하지 못했습니다. 다시 시도해주세요.');
       errorTimerRef.current = setTimeout(() => setStartError(null), 3000);
+    } finally {
+      startInFlightRef.current = false;
     }
   };
 
