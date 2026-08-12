@@ -25,12 +25,12 @@ import {
 import AudioUploadField from './AudioUploadField';
 import { useCreateBackingTrack } from '@/hooks/useCreateBackingTrack';
 import { useUpdateBackingTrack } from '@/hooks/useUpdateBackingTrack';
+import { createAudioUploadUrl } from '@/apis/backingTrack';
+import { uploadRecordingToS3 } from '@/utils/s3Upload';
 
 export type TimeSignature = '4/4' | '3/4';
 type TrackAccess = 'private' | 'public';
 
-// TODO: 백킹트랙 오디오 업로드 API가 아직 없어 실제 업로드가 불가능 — 생성 시 항상 빈 문자열 전송(선택 필드)
-const DEFAULT_AUDIO_FILE_URL = '';
 // TODO: 폼에 트랙 길이(초) 입력 필드가 없어 임시 고정값 사용 — 실제 값 입력 UI는 추후 추가
 const DEFAULT_PLAYTIME_SEC = 180;
 
@@ -89,7 +89,6 @@ export interface TrackFormInitialValues {
   measures: string[][];
   access?: TrackAccess;
   playtimeSec?: number;
-  audioFileUrl?: string;
 }
 
 interface TrackFormProps {
@@ -122,9 +121,10 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
   const [selectedChordCell, setSelectedChordCell] = useState<ChordCell | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
 
   const [openField, setOpenField] = useState<FilterKey | null>(null);
-  const isSubmitting = createBackingTrack.isPending || updateBackingTrack.isPending;
+  const isSubmitting = isUploadingAudio || createBackingTrack.isPending || updateBackingTrack.isPending;
   const normalizedTitle = title.trim();
   const isTitleValid = !!normalizedTitle && isValidTitle(normalizedTitle);
 
@@ -140,10 +140,30 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
     setSelectedChordCell(null);
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!isTitleValid) return;
     setSubmitError(null);
+
+    // 오디오 업로드는 생성(CreateDTO)에만 있는 필드 — 수정(UpdateDTO)은 아직 오디오 교체를 지원하지 않음
+    let audioObjectKey: string | undefined;
+    if (mode === 'create' && audioFile) {
+      setIsUploadingAudio(true);
+      try {
+        const { uploadUrl, objectKey, requiredHeaders } = await createAudioUploadUrl({
+          fileName: audioFile.name,
+          contentType: audioFile.type || 'audio/mpeg',
+          fileSize: audioFile.size,
+        });
+        await uploadRecordingToS3(uploadUrl, audioFile, requiredHeaders);
+        audioObjectKey = objectKey;
+      } catch {
+        setIsUploadingAudio(false);
+        setSubmitError('오디오 파일 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
+      setIsUploadingAudio(false);
+    }
 
     const payload: SaveBackingTrackRequest = {
       title: normalizedTitle,
@@ -152,9 +172,9 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
       scaleType: keyMode === 'major' ? 'MAJOR' : 'MINOR',
       timeSignature,
       bpm,
-      // 수정 시엔 원래 있던 값을 유지(PUT은 전체 교체라 빈 값을 보내면 기존 데이터가 지워짐), 생성 시엔 임시 고정값
+      // TODO: 폼에 트랙 길이(초) 입력 필드가 없어 임시 고정값 사용 — 실제 값 입력 UI는 추후 추가
       playtimeSec: initialValues?.playtimeSec ?? DEFAULT_PLAYTIME_SEC,
-      audioFileUrl: initialValues?.audioFileUrl ?? DEFAULT_AUDIO_FILE_URL,
+      ...(audioObjectKey ? { audioObjectKey } : {}),
       accessLevel: ACCESS_TO_LEVEL[access],
       level: DIFFICULTY_TO_LEVEL[difficulty],
       chordProgression: toChordProgressionEntries(measures),
