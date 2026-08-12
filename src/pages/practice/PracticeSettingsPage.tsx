@@ -1,5 +1,5 @@
 // 연주 트랙 설정 페이지 — 배경은 연습 플레이 화면과 동일한 UI(정적), 그 위에 설정 모달
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import Piano from '@/components/piano/Piano';
@@ -7,6 +7,7 @@ import MetronomeDots from '@/components/metronome/MetronomeDots';
 import BackingTrack from '@/components/practice/BackingTrack';
 import { useSettingStore } from '@/stores/settingsStore';
 import { usePlayingSessionStore } from '@/stores/playingSessionStore';
+import { useCreatePlaying } from '@/hooks/useCreatePlaying';
 import { buildFallbackProgression, mapDetailToTrack, MODE_LABEL } from '@/pages/practice/trackDisplay';
 import PlayIcon from '@/assets/practice/play.svg?react';
 import RefreshIcon from '@/assets/restart.svg?react';
@@ -18,6 +19,13 @@ function PracticeSettingsPage() {
   const navigate = useNavigate();
   const { keyCount, setBpm, setBeatsPerBar } = useSettingStore();
   const backingTrack = usePlayingSessionStore((s) => s.backingTrack);
+  const isCompleted = usePlayingSessionStore((s) => s.isCompleted);
+  const setPlayingSession = usePlayingSessionStore((s) => s.setSession);
+  const { mutateAsync: createPlaying, isPending: isStarting } = useCreatePlaying();
+  const [startError, setStartError] = useState<string | null>(null);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // isStarting(리렌더 기반)보다 먼저 막아야 하는 연타 방지 — 같은 틱 안의 두 번째 클릭까지 차단
+  const startInFlightRef = useRef(false);
   const track = useMemo(() => (backingTrack ? mapDetailToTrack(backingTrack) : null), [backingTrack]);
   const beatsPerBar = track ? Number(track.timeSignature.split('/')[0]) : 4; // '4/4' → 4
   const measures = track ? (track.chordProgression ?? buildFallbackProgression(track.chords, beatsPerBar)) : [];
@@ -32,6 +40,34 @@ function PracticeSettingsPage() {
     setBpm(track.bpm);
     setBeatsPerBar(beatsPerBar);
   }, [track, beatsPerBar, setBpm, setBeatsPerBar]);
+
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
+  }, []);
+
+  // 시작하기
+  const handleStart = async () => {
+    if (!backingTrack || startInFlightRef.current) return;
+    if (!isCompleted) {
+      navigate(`/practice/${backingTrack.backingTrackId}/play`);
+      return;
+    }
+    startInFlightRef.current = true;
+    try {
+      const session = await createPlaying(backingTrack.backingTrackId);
+      setPlayingSession({ playingId: session.playingId, backingTrack: session.backingTrack });
+      navigate(`/practice/${session.backingTrack.backingTrackId}/play`);
+    } catch (err) {
+      console.error('연주 세션 생성 실패', err);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      setStartError('새 연습 세션을 시작하지 못했습니다. 다시 시도해주세요.');
+      errorTimerRef.current = setTimeout(() => setStartError(null), 3000);
+    } finally {
+      startInFlightRef.current = false;
+    }
+  };
 
   if (!track) return null;
 
@@ -98,9 +134,18 @@ function PracticeSettingsPage() {
         </div>
       </div>
 
+      {startError && (
+        <div
+          role="alert"
+          className="bg-error body-small fixed top-[40px] left-1/2 z-50 flex -translate-x-1/2 items-center gap-[12px] rounded-[12px] px-[24px] py-[16px] text-gray-100 shadow-2xl">
+          <span>⚠️</span> {startError}
+        </div>
+      )}
+
       <SettingsModal
-        onClose={() => navigate(-1)}
-        onStart={() => navigate(`/practice/${track.id}/play`)}
+        onClose={() => navigate('/practice', { replace: true })}
+        onStart={handleStart}
+        startDisabled={isStarting}
         onLatencyCheck={() => navigate(`/latency-check?from=practice`)}
       />
     </div>
