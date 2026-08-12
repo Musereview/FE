@@ -9,6 +9,28 @@ export function getChordsPerMeasure(timeSignature: string) {
   return Number(timeSignature.split('/')[0]) || 4;
 }
 
+// 목록 API 응답(measureNo/sequenceNo 좌표 목록) → 카드에 표시할 마디 단위 라벨
+export function toMeasureLabels(entries: BackingTrackChordEntry[]): string[] {
+  if (entries.length === 0) return [];
+
+  const byMeasure = new Map<number, BackingTrackChordEntry[]>();
+  entries.forEach((entry) => {
+    const measure = byMeasure.get(entry.measureNo) ?? [];
+    measure.push(entry);
+    byMeasure.set(entry.measureNo, measure);
+  });
+
+  const lastMeasureNo = Math.max(...entries.map((entry) => entry.measureNo));
+
+  return Array.from({ length: lastMeasureNo }, (_, index) => {
+    const measure = byMeasure.get(index + 1) ?? [];
+    return [...measure]
+      .sort((a, b) => a.sequenceNo - b.sequenceNo)
+      .map((entry) => entry.chordName)
+      .join(' ');
+  });
+}
+
 // 저장은 8마디 기본 패턴만 하고(서승기 백엔드와 합의), 실제 재생 시 이 8마디를 몇 번 반복해야
 // mp3 재생 시간(playtimeSec)을 채우는지 계산. 오디오 파일이 없으면 기본값(4회)을 반환.
 export function calculateRepeatCount(

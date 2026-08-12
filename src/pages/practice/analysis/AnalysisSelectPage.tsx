@@ -18,17 +18,12 @@ export default function AnalysisSelectPage() {
 
   const { practiceId, trackId } = useParams<{ practiceId?: string; trackId?: string }>();
 
-  const {
-    recording: storeRecording,
-    latencyMs: storeLatencyMs,
-    trackId: storeTrackId,
-    audioBlob,
-  } = usePracticeResultStore();
+  const { recording: storeRecording, latencyMs: storeLatencyMs, audioBlob } = usePracticeResultStore();
 
   const recording = location.state?.recording ?? storeRecording;
   const latencyMs = location.state?.latencyMs ?? storeLatencyMs ?? 0;
 
-  const targetId = practiceId ?? trackId ?? storeTrackId;
+  const targetId = practiceId ?? trackId;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [startMeasure, setStartMeasure] = useState('1마디');
@@ -45,6 +40,7 @@ export default function AnalysisSelectPage() {
 
   const backingAudioRef = useRef<HTMLAudioElement | null>(null);
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const analysisRequestedRef = useRef(false); // 더블 클릭 가드
 
   useEffect(() => {
     return () => {
@@ -254,6 +250,8 @@ export default function AnalysisSelectPage() {
   });
 
   const handleStartAnalysis = async () => {
+    if (analysisRequestedRef.current) return;
+
     const startNum = getMeasureNumber(startMeasure);
     const endNum = getMeasureNumber(endMeasure);
     const diff = endNum - startNum + 1;
@@ -288,6 +286,7 @@ export default function AnalysisSelectPage() {
       return;
     }
 
+    analysisRequestedRef.current = true;
     const rangeXml = await extractMeasureRange(xmlContent, startNum, endNum);
 
     try {
@@ -310,6 +309,7 @@ export default function AnalysisSelectPage() {
         },
       });
     } catch (error: unknown) {
+      analysisRequestedRef.current = false; // 재시도 허용
       console.error('분석 요청 실패:', error);
       const errMessage = error instanceof Error ? error.message : '분석 요청 중 오류가 발생했습니다.';
       triggerToast(errMessage);
