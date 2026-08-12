@@ -10,7 +10,7 @@ export interface Track {
   key: string;
   mode: KeyMode;
   timeSignature: string;
-  chords: string[];
+  chords: BackingTrackChordEntry[];
   genre: string;
   bpm: number;
   difficulty: TrackDifficulty;
@@ -62,7 +62,7 @@ export interface RecommendedBackingTrackItem {
   keySignature: string;
   scaleType: BackingTrackScaleType;
   timeSignature: string;
-  chordProgression: string[];
+  chordProgression: BackingTrackChordEntry[];
   bpm: number;
   level: BackingTrackLevel;
   playtimeSec: number;

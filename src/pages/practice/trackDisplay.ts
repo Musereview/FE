@@ -16,11 +16,15 @@ export { DIFFICULTY_LABEL, DIFFICULTY_COLOR } from '@/constants/difficulty';
 /** mock 로그인 사용자 (인증 전) */
 export const CURRENT_USER = '김뮤즈';
 
-export function buildFallbackProgression(chords: string[], numerator: number, measureCount = 8): ChordMeasure[] {
+export function buildFallbackProgression(
+  chords: BackingTrackChordEntry[],
+  numerator: number,
+  measureCount = 8,
+): ChordMeasure[] {
   if (chords.length === 0) return [];
   return Array.from({ length: measureCount }, (_, measureIndex) => {
-    const chord = chords[measureIndex % chords.length];
-    return Array.from({ length: numerator }, (_, beat) => (beat === 0 ? chord : null));
+    const { chordName } = chords[measureIndex % chords.length];
+    return Array.from({ length: numerator }, (_, beat) => (beat === 0 ? chordName : null));
   });
 }
 
@@ -59,11 +63,6 @@ function buildChordMeasures(entries: BackingTrackChordEntry[], numerator: number
   return measures;
 }
 
-// 문자열/객체 두 형태 모두 허용
-function uniqueChordNames(entries: (string | BackingTrackChordEntry)[] = []): string[] {
-  return [...new Set(entries.map((entry) => (typeof entry === 'string' ? entry : entry.chordName)))];
-}
-
 export function mapListItemToTrack(item: BackingTrackListItem): Track {
   return {
     id: String(item.backingTrackId),
@@ -71,7 +70,7 @@ export function mapListItemToTrack(item: BackingTrackListItem): Track {
     key: item.keySignature,
     mode: item.scaleType.toLowerCase() as KeyMode,
     timeSignature: item.timeSignature,
-    chords: uniqueChordNames(item.chordProgression),
+    chords: item.chordProgression,
     genre: item.genre,
     bpm: item.bpm,
     difficulty: LEVEL_MAP[item.level],
@@ -89,7 +88,7 @@ export function mapRecommendedItemToTrack(item: RecommendedBackingTrackItem): Tr
     key: item.keySignature,
     mode: item.scaleType.toLowerCase() as KeyMode,
     timeSignature: item.timeSignature,
-    chords: uniqueChordNames(item.chordProgression),
+    chords: item.chordProgression,
     genre: item.genre,
     bpm: item.bpm,
     difficulty: LEVEL_MAP[item.level],
@@ -109,7 +108,7 @@ export function mapDetailToTrack(detail: BackingTrackDetail): Track {
     key: detail.keySignature,
     mode: detail.scaleType.toLowerCase() as KeyMode,
     timeSignature: detail.timeSignature,
-    chords: uniqueChordNames(detail.chordProgression),
+    chords: detail.chordProgression,
     genre: detail.genre,
     bpm: detail.bpm,
     difficulty: LEVEL_MAP[detail.level],
