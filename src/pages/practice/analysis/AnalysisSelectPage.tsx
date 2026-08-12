@@ -10,6 +10,8 @@ import { extractMeasureRange } from '@/utils/musicXmlMeasureRange';
 import { toPlayableUrl } from '@/utils/audioUrl';
 import { getAnalysisContext, requestAnalysis } from '@/apis/analysis';
 import { usePracticeResultStore, type PlayedNote } from '@/stores/practiceResultStore';
+import { usePlayingSessionStore } from '@/stores/playingSessionStore';
+import { useCreatePlaying } from '@/hooks/useCreatePlaying';
 import AnalysisLoadingPage from './AnalysisLoadingPage';
 
 export default function AnalysisSelectPage() {
@@ -19,6 +21,9 @@ export default function AnalysisSelectPage() {
   const { practiceId, trackId } = useParams<{ practiceId?: string; trackId?: string }>();
 
   const { recording: storeRecording, latencyMs: storeLatencyMs, audioBlob } = usePracticeResultStore();
+  const sessionBackingTrack = usePlayingSessionStore((s) => s.backingTrack);
+  const setPlayingSession = usePlayingSessionStore((s) => s.setSession);
+  const { mutateAsync: createPlaying, isPending: isStartingPractice } = useCreatePlaying();
 
   const recording = location.state?.recording ?? storeRecording;
   const latencyMs = location.state?.latencyMs ?? storeLatencyMs ?? 0;
@@ -55,6 +60,25 @@ export default function AnalysisSelectPage() {
     setToastMessage(msg);
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
   }, []);
+
+  // 연습으로
+  // 새 연주 세션을 발급받아 연습 화면으로
+  const handleBackToPractice = async () => {
+    backingAudioRef.current?.pause();
+    recordingAudioRef.current?.pause();
+    if (!sessionBackingTrack) {
+      navigate('/practice');
+      return;
+    }
+    try {
+      const session = await createPlaying(sessionBackingTrack.backingTrackId);
+      setPlayingSession({ playingId: session.playingId, backingTrack: session.backingTrack });
+      navigate(`/practice/${session.backingTrack.backingTrackId}/play`);
+    } catch (err) {
+      console.error('연주 세션 생성 실패', err);
+      triggerToast('새 연습 세션을 시작하지 못했습니다. 다시 시도해주세요.');
+    }
+  };
 
   // targetId가 숫자로 확실히 변환될 때만 쿼리가 실행되도록 수정 (오인식 토스트 방지)
   const parsedTargetId = Number(targetId);
@@ -338,8 +362,9 @@ export default function AnalysisSelectPage() {
         {/* 연습으로 돌아가기 버튼 */}
         <button
           type="button"
-          onClick={() => navigate(-1)}
-          className="inline-flex w-fit cursor-pointer items-center gap-[8px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-400 transition-colors hover:text-white">
+          onClick={handleBackToPractice}
+          disabled={isStartingPractice}
+          className="inline-flex w-fit cursor-pointer items-center gap-[8px] text-[18px] leading-[30px] font-medium tracking-[-0.36px] text-gray-400 transition-colors hover:text-white disabled:cursor-default disabled:opacity-40">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"

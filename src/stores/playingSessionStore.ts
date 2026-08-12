@@ -7,7 +7,9 @@ import type { BackingTrackDetail } from '@/types/track';
 interface PlayingSessionState {
   playingId: number | null;
   backingTrack: BackingTrackDetail | null;
+  isCompleted: boolean; // 저장까지 끝나 서버에서 COMPLETED된 세션인지 -> 재사용하면 저장 시 409
   setSession: (s: { playingId: number; backingTrack: BackingTrackDetail }) => void;
+  markCompleted: () => void;
   clear: () => void;
 }
 
@@ -16,8 +18,10 @@ export const usePlayingSessionStore = create<PlayingSessionState>()(
     (set) => ({
       playingId: null,
       backingTrack: null,
-      setSession: ({ playingId, backingTrack }) => set({ playingId, backingTrack }),
-      clear: () => set({ playingId: null, backingTrack: null }),
+      isCompleted: false,
+      setSession: ({ playingId, backingTrack }) => set({ playingId, backingTrack, isCompleted: false }),
+      markCompleted: () => set({ isCompleted: true }),
+      clear: () => set({ playingId: null, backingTrack: null, isCompleted: false }),
     }),
     {
       name: 'playing-session',

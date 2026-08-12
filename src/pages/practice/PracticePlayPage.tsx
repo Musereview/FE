@@ -50,6 +50,7 @@ function PracticePlayPage() {
   const setResult = usePracticeResultStore((s) => s.setResult);
   const backingTrack = usePlayingSessionStore((s) => s.backingTrack);
   const playingId = usePlayingSessionStore((s) => s.playingId);
+  const markCompleted = usePlayingSessionStore((s) => s.markCompleted);
 
   const track = useMemo(() => (backingTrack ? mapDetailToTrack(backingTrack) : null), [backingTrack]);
   const beatsPerBar = track ? Number(track.timeSignature.split('/')[0]) : 4; // '4/4' → 4
@@ -430,6 +431,7 @@ function PracticePlayPage() {
         events: toMidiEventPayload(applyLatencyCompensation(recordingRef.current, latencyMs)),
         recordingObjectKey: objectKey,
       });
+      markCompleted(); // 서버에서 COMPLETED —> 재진입 시 새 세션을 받도록 표시
     } catch (err) {
       console.error('연주 녹음 업로드/저장 실패', err);
       abortAnalyze('연주 기록 저장에 실패했습니다. 다시 시도해주세요.');
@@ -463,20 +465,21 @@ function PracticePlayPage() {
     };
   }, [stop]);
 
-  // 세션 자체가 없으면(직접 진입) 목록으로, 세션은 있는데 오디오 잠금만 안 풀린 채(새로고침) 들어왔으면
-  // 설정 화면으로 되돌려 "시작하기"를 다시 누르게 한다 (세션은 그대로 살아있으니 재생성 안 함).
-  // Tone.start()는 클릭 제스처 안에서만 성공하는데, 새로고침 직후엔 그 제스처가 없어 재생을 시작할 수 없음.
+  // 세션 자체가 없으면(직접 진입) 목록으로, 아래 두 경우엔 설정 화면으로 되돌려 "시작하기"를 다시 누르게 한다.
+  // - 이미 저장이 끝난 세션으로 되돌아온 경우(뒤로가기 등): 같은 playingId로 또 저장하면 409라 새 세션이 필요
+  // - 오디오 잠금만 안 풀린 경우(새로고침): Tone.start()는 클릭 제스처 안에서만 성공하므로 재생 불가
+  // isCompleted는 구독하지 않고 진입 시점 값만 본다 — handleAnalyze가 표시한 직후 분석 화면 이동을 가로채지 않도록.
   useEffect(() => {
     if (!backingTrack) {
       navigate('/practice', { replace: true });
-    } else if (!isAudioUnlocked()) {
+    } else if (usePlayingSessionStore.getState().isCompleted || !isAudioUnlocked()) {
       navigate(`/practice/${backingTrack.backingTrackId}/settings`, { replace: true });
     }
   }, [backingTrack, navigate]);
 
   // 진입 시 카운트다운(4,3,2,1) → 자동 재생
   useEffect(() => {
-    if (!backingTrack || !isAudioUnlocked()) return;
+    if (!backingTrack || !isAudioUnlocked() || usePlayingSessionStore.getState().isCompleted) return;
     isMountedRef.current = true;
     runCountdown();
     return () => {
