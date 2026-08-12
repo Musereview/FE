@@ -18,17 +18,12 @@ export default function AnalysisSelectPage() {
 
   const { practiceId, trackId } = useParams<{ practiceId?: string; trackId?: string }>();
 
-  const {
-    recording: storeRecording,
-    latencyMs: storeLatencyMs,
-    trackId: storeTrackId,
-    audioBlob,
-  } = usePracticeResultStore();
+  const { recording: storeRecording, latencyMs: storeLatencyMs, audioBlob } = usePracticeResultStore();
 
   const recording = location.state?.recording ?? storeRecording;
   const latencyMs = location.state?.latencyMs ?? storeLatencyMs ?? 0;
 
-  const targetId = practiceId ?? trackId ?? storeTrackId;
+  const targetId = practiceId ?? trackId;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [startMeasure, setStartMeasure] = useState('1마디');
