@@ -10,6 +10,7 @@ interface RecordingSession {
   recorder: MediaRecorder;
   dest: MediaStreamAudioDestinationNode;
   chunks: Blob[];
+  keepAlive: Tone.Oscillator; // 아래 startRecording 주석 참고 — 완전한 디지털 무음이 되는 걸 막기 위한 신호원
 }
 
 export function usePianoSound() {
@@ -34,6 +35,7 @@ export function usePianoSound() {
       const session = sessionRef.current;
       if (session) {
         if (session.recorder.state !== 'inactive') session.recorder.stop();
+        session.keepAlive.dispose();
         session.dest.disconnect();
         sessionRef.current = null;
       }
@@ -74,6 +76,7 @@ export function usePianoSound() {
     const prevSession = sessionRef.current;
     if (prevSession) {
       if (prevSession.recorder.state !== 'inactive') prevSession.recorder.stop();
+      prevSession.keepAlive.dispose();
       prevSession.dest.disconnect();
     }
 
@@ -83,9 +86,17 @@ export function usePianoSound() {
     const dest = rawContext.createMediaStreamDestination();
     synth.connect(dest);
 
+    // MediaStreamAudioDestinationNode의 스트림이 완전한 디지털 무음(값이 계속 정확히 0)만 흐르면
+    // 크롬이 트랙을 muted 상태로 판단해 MediaRecorder가 그 구간을 아예 기록하지 않는 경우가 있다 —
+    // 연주 시작 전 사용자가 가만히 있는 무음 구간이 녹음 파일에서 통째로 사라지는 원인.
+    // 사람이 들을 수 없는(-100dB) 신호를 계속 흘려보내 스트림이 항상 "활성" 상태를 유지하게 한다.
+    const keepAlive = new Tone.Oscillator(20, 'sine').connect(dest);
+    keepAlive.volume.value = -100;
+    keepAlive.start();
+
     const recorder = new MediaRecorder(dest.stream, { mimeType: supportedMimeType });
     const chunks: Blob[] = [];
-    const session: RecordingSession = { recorder, dest, chunks };
+    const session: RecordingSession = { recorder, dest, chunks, keepAlive };
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data);
     };
@@ -108,10 +119,11 @@ export function usePianoSound() {
     const session = sessionRef.current;
     if (!session || session.recorder.state === 'inactive') return Promise.resolve(null);
 
-    const { recorder, dest, chunks } = session;
+    const { recorder, dest, chunks, keepAlive } = session;
     return new Promise((resolve) => {
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        keepAlive.dispose();
         dest.disconnect();
         // 이 recorder가 여전히 "현재" 세션일 때만 공유 ref 정리 (그 사이 새 녹음이 시작됐다면 건드리지 않음)
         if (sessionRef.current === session) sessionRef.current = null;
