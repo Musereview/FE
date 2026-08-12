@@ -296,7 +296,11 @@ function TrackForm({ heading, submitLabel, initialValues, backTrackId, mode, bac
           />
 
           <div className="flex w-full items-start justify-between">
-            <AudioUploadField file={audioFile} onChange={setAudioFile} className="w-[500px]" />
+            {mode === 'create' ? (
+              <AudioUploadField file={audioFile} onChange={setAudioFile} className="w-[500px]" />
+            ) : (
+              <p className="body-small w-[500px] text-gray-400">오디오 파일 교체는 아직 지원하지 않습니다.</p>
+            )}
             <SelectDropdown
               label="사용 권한"
               size="large"
