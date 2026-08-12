@@ -4,7 +4,7 @@ import ChordDividerIcon from '@/assets/practice/chord-divider.svg?react';
 import DifficultyBadge from '@/components/common/DifficultyBadge';
 import ClickableCard from '@/components/common/ClickableCard';
 import { MODE_LABEL } from '@/pages/practice/trackDisplay';
-
+import { toMeasureLabels } from './create/chordGrid';
 interface TrackCardProps {
   track: Track;
   onClick?: () => void;
@@ -24,10 +24,10 @@ function TrackCard({ track, onClick }: TrackCardProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          {chords.map((chord, index) => (
-            <div key={`${chord}-${index}`} className="flex items-center gap-1.5">
+          {toMeasureLabels(chords).map((measureLabel, index) => (
+            <div key={index} className="flex items-center gap-1.5">
               <ChordDividerIcon />
-              <span className="button-label2 text-gray-300">{chord}</span>
+              <span className="button-label2 text-gray-300">{measureLabel}</span>
             </div>
           ))}
         </div>
