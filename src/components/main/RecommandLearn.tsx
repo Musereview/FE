@@ -19,7 +19,24 @@ export default function RecommendedLearnings({ data }: RecommendedLearningsProps
     <div className="flex w-full flex-col">
       <div className="flex w-full gap-4">
         {data.map((item) => {
+          //레벨 상태 판별
+          const isBeginner = item.level === 'BEGINNER';
           const isAdvanced = item.level === 'ADVANCED';
+
+          // ── 난이도별 뱃지 스타일 분기 (초급, 중급, 고급 색상 적용) ──
+          const badgeBorderColor = isBeginner
+            ? 'border-[#60E272]'
+            : isAdvanced
+              ? 'border-[#F0ABFF]' // 고급 색상
+              : 'border-[#A2ACFF]'; // 중급 색상
+
+          const badgeTextColor = isBeginner
+            ? 'text-[#60E272]'
+            : isAdvanced
+              ? 'text-[#F0ABFF]' // 고급 색상
+              : 'text-[#A2ACFF]'; // 중급 색상
+
+          const badgeText = isBeginner ? '초급' : isAdvanced ? '고급' : '중급';
 
           return (
             <div
@@ -33,11 +50,8 @@ export default function RecommendedLearnings({ data }: RecommendedLearningsProps
                 </span>
 
                 <div
-                  className={`flex w-[40px] shrink-0 items-center justify-center gap-[6px] rounded-full border-[0.5px] bg-gray-900 px-[6px] py-1 ${isAdvanced ? 'border-secondary-300' : 'border-secondary-400'}`}>
-                  <span
-                    className={`font-['Pretendard'] text-[12px] font-semibold ${isAdvanced ? 'text-secondary-300' : 'text-secondary-400'}`}>
-                    {isAdvanced ? '고급' : '중급'}
-                  </span>
+                  className={`flex w-[40px] shrink-0 items-center justify-center gap-[6px] rounded-full border-[0.5px] bg-gray-900 px-[6px] py-1 ${badgeBorderColor}`}>
+                  <span className={`font-['Pretendard'] text-[12px] font-semibold ${badgeTextColor}`}>{badgeText}</span>
                 </div>
               </div>
 
