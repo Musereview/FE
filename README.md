@@ -116,6 +116,26 @@ npm run format:check   # 포맷 검사만 수행
 
 <div>
 
+## 🎹 시연 준비
+
+MuseReview는 **Web MIDI API**로 건반 입력을 받습니다.
+
+| 항목      | 내용                                                      |
+| --------- | --------------------------------------------------------- |
+| 브라우저  | **Chrome 또는 Edge** (Safari · Firefox는 Web MIDI 미지원) |
+| 권한      | 최초 접속 시 **MIDI 기기 접근 허용** 팝업에서 "허용"      |
+| 기기 선택 | **설정 → MIDI 기기**에서 사용할 기기를 **클릭해 선택**    |
+| 레이턴시  | 연주 시작 전 **레이턴시 체크** 실행                       |
+
+- **전자 피아노** — USB 케이블로 연결 후 전원을 켜면 자동 인식됩니다. 앱이 자체 사운드를 재생하므로 소리가 겹치면 피아노 볼륨을 줄여 주세요.
+- **전자 피아노가 없다면** — 가상 MIDI 건반으로 시연할 수 있습니다 → **[가상 건반 시연 가이드](https://simple-earthworm-05a.notion.site/3bb3dea8aef680ebbbb0e86c702a867f)**
+
+</div>
+
+<br/>
+
+<div>
+
 ## 🔗 Git Convention
 
 ### 📌 Git Flow
@@ -218,6 +238,6 @@ npm run format:check   # 포맷 검사만 수행
 ┗ 📜 설정 파일                   # .coderabbit.yaml, .prettierrc, .stylelintrc, eslint.config.js, tsconfig.*, vite.config.ts, vercel.json
 ```
 
-> ⚠️ `src/pages/admin`(및 `/admin` 라우트)은 MVP 범위에서 제외된 기능입니다. 추후 확장을 위해 코드는 그대로 유지하고 있습니다.
+> ⚠️ `src/pages/admin`(및 `/admin` 라우트)은 MVP 범위에서 제외된 기능입니다.
 
 </div>
