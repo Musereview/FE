@@ -1,5 +1,13 @@
 import { create } from 'zustand';
 
+// 레이턴시를 영구 저장하지 않기로 되돌리기 전(persist 적용 배포 ~ 되돌리기 전) 브라우저에 이미 저장된
+// practice-settings 값이 남아있으면 이전 레이턴시가 계속 재사용된다 — 이번 배포에서 한 번 정리한다.
+try {
+  localStorage.removeItem('practice-settings');
+} catch {
+  // localStorage 접근 불가 환경(프라이빗 모드 등)은 애초에 값도 저장 안 됐으므로 무시
+}
+
 interface SettingsState {
   inputId: string | null;
   outputSelected: boolean; // ← 추가
