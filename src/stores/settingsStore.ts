@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
 
 interface SettingsState {
   inputId: string | null;
@@ -17,42 +16,27 @@ interface SettingsState {
   clearLatency: (deviceId: string) => void;
 }
 
-export const useSettingStore = create<SettingsState>()(
-  persist(
-    (set) => ({
-      inputId: null,
-      outputSelected: false,
-      bpm: 120,
-      beatsPerBar: 4,
-      keyCount: 88,
-      latencyByDevice: {},
-      setInput: (inputId) => set({ inputId }),
-      setOutputSelected: (outputSelected) => set({ outputSelected }),
-      setBpm: (bpm) => set({ bpm }),
-      setBeatsPerBar: (beatsPerBar) => set({ beatsPerBar }),
-      setKeyCount: (keyCount) => set({ keyCount }),
-      setLatency: (deviceId, ms) =>
-        set((state) => ({
-          latencyByDevice: { ...state.latencyByDevice, [deviceId]: ms },
-        })),
-      clearLatency: (deviceId) =>
-        // 레이턴시 삭제
-        set((state) => {
-          const next = { ...state.latencyByDevice };
-          delete next[deviceId];
-          return { latencyByDevice: next };
-        }),
+export const useSettingStore = create<SettingsState>((set) => ({
+  inputId: null,
+  outputSelected: false,
+  bpm: 120,
+  beatsPerBar: 4,
+  keyCount: 88,
+  latencyByDevice: {},
+  setInput: (inputId) => set({ inputId }),
+  setOutputSelected: (outputSelected) => set({ outputSelected }),
+  setBpm: (bpm) => set({ bpm }),
+  setBeatsPerBar: (beatsPerBar) => set({ beatsPerBar }),
+  setKeyCount: (keyCount) => set({ keyCount }),
+  setLatency: (deviceId, ms) =>
+    set((state) => ({
+      latencyByDevice: { ...state.latencyByDevice, [deviceId]: ms },
+    })),
+  clearLatency: (deviceId) =>
+    // 레이턴시 삭제
+    set((state) => {
+      const next = { ...state.latencyByDevice };
+      delete next[deviceId];
+      return { latencyByDevice: next };
     }),
-    {
-      name: 'practice-settings',
-      storage: createJSONStorage(() => localStorage),
-
-      partialize: (state) => ({
-        bpm: state.bpm,
-        beatsPerBar: state.beatsPerBar,
-        keyCount: state.keyCount,
-        latencyByDevice: state.latencyByDevice,
-      }),
-    },
-  ),
-);
+}));
