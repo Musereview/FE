@@ -30,6 +30,28 @@ const PITCH_CLASS_INFO: { step: string; alter: number }[] = [
   { step: 'B', alter: 0 },
 ];
 
+// alter 값 → 악보에 실제로 그려질 기호 이름(MusicXML <accidental>).
+// <alter>는 '소리'만 정하고 기호는 그리지 않으므로, 제자리표는 이 태그로 명시해야 한다.
+const ACCIDENTAL_NAME: Record<number, string> = {
+  [-2]: 'flat-flat',
+  [-1]: 'flat',
+  0: 'natural',
+  1: 'sharp',
+  2: 'double-sharp',
+};
+
+// 조표에 포함된 음은 임시표 없이도 이미 올림/내림 상태다 (예: G major의 F는 기본이 F#).
+const SHARP_ORDER = ['F', 'C', 'G', 'D', 'A', 'E', 'B'];
+const FLAT_ORDER = ['B', 'E', 'A', 'D', 'G', 'C', 'F'];
+
+/** fifths(조표) → step별 기본 alter. 여기 없는 step은 0(제자리). */
+function buildKeyAlters(fifths: number): Map<string, number> {
+  const map = new Map<string, number>();
+  if (fifths > 0) SHARP_ORDER.slice(0, fifths).forEach((s) => map.set(s, 1));
+  if (fifths < 0) FLAT_ORDER.slice(0, -fifths).forEach((s) => map.set(s, -1));
+  return map;
+}
+
 // 조성 이름 → fifths(조표) 매핑. 목록에 없는 조성은 0(C major/A minor)으로 처리.
 const KEY_FIFTHS: Record<string, number> = {
   'C-major': 0,
@@ -241,8 +263,11 @@ export function buildMusicXmlFromRecording(recording: PlayedNote[], options: Bui
   while (bassMeasures.length < totalMeasureCount) bassMeasures.push(fullMeasureRest(measureTicks));
 
   const fifths = KEY_FIFTHS[`${key}-${mode}`] ?? 0;
+  const keyAlters = buildKeyAlters(fifths);
 
-  const noteXml = (frag: NoteFragment, voice: number, staff: number): string => {
+  // state: `${step}${octave}` → 이 마디에서 현재 유효한 alter.
+  // 임시표는 마디 끝까지 유지되므로, 마디마다 보표별로 새로 만들어 넘긴다.
+  const noteXml = (frag: NoteFragment, voice: number, staff: number, state: Map<string, number>): string => {
     const parts: string[] = [];
     const pitches = frag.pitches;
     if (pitches) {
@@ -261,6 +286,16 @@ export function buildMusicXmlFromRecording(recording: PlayedNote[], options: Bui
         parts.push(`<voice>${voice}</voice>`);
         parts.push(`<type>${frag.type}</type>`);
         if (frag.dot) parts.push('<dot/>');
+
+        // 직전에 유효하던 alter와 다를 때만 기호를 찍는다. C# 뒤의 C가 제자리표(♮)를 받는 지점.
+        // 붙임줄로 앞 마디에서 넘어온 조각은 이미 기호가 붙어 있으므로 생략하되, 상태는 갱신한다.
+        const slot = `${step}${octave}`;
+        const effective = state.get(slot) ?? keyAlters.get(step) ?? 0;
+        if (alter !== effective && !frag.tieStop) {
+          parts.push(`<accidental>${ACCIDENTAL_NAME[alter]}</accidental>`);
+        }
+        state.set(slot, alter);
+
         parts.push(`<staff>${staff}</staff>`);
         if (frag.tieStart || frag.tieStop) {
           parts.push('<notations>');
@@ -290,9 +325,12 @@ export function buildMusicXmlFromRecording(recording: PlayedNote[], options: Bui
       idx === 0
         ? `<attributes><divisions>${DIVISIONS}</divisions><key><fifths>${fifths}</fifths></key><time><beats>${beatsPerBar}</beats><beat-type>${beatType}</beat-type></time><staves>2</staves><clef number="1"><sign>G</sign><line>2</line></clef><clef number="2"><sign>F</sign><line>4</line></clef></attributes><sound tempo="${bpm}"/>`
         : '';
-    const trebleXml = trebleMeasures[idx].map((f) => noteXml(f, 1, 1)).join('');
+    // 임시표 효력은 마디가 바뀌면 사라지고, 보표(높은음/낮은음)마다 독립적으로 적용된다.
+    const trebleState = new Map<string, number>();
+    const bassState = new Map<string, number>();
+    const trebleXml = trebleMeasures[idx].map((f) => noteXml(f, 1, 1, trebleState)).join('');
     const backupXml = `<backup><duration>${measureTicks}</duration></backup>`;
-    const bassXml = bassMeasures[idx].map((f) => noteXml(f, 2, 2)).join('');
+    const bassXml = bassMeasures[idx].map((f) => noteXml(f, 2, 2, bassState)).join('');
     return `<measure number="${idx + 1}">${attributesXml}${trebleXml}${backupXml}${bassXml}</measure>`;
   }).join('');
 
