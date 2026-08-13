@@ -234,14 +234,24 @@ function StepLearningPlayPage() {
     endedRef.current = false; // 재생 시작 시 끝 가드 해제 (재시작/재생 시 다시 정지 가능하도록)
     lastProgressBeatRef.current = -1;
     recordingRef.current = []; // 처음부터 재생 시 녹음 초기화
+    // 판정 상태(대조 기준)는 여기서 동기로 먼저 지운다 — 아래 SVG 재색칠(reset)을 다음 프레임으로 미루는 동안
+    // isPlaying이 true가 되어 입력이 먼저 들어오면, 그 입력이 지난 세션의 판정 상태를 보고 채점되는 걸 방지.
+    scoreRef.current?.resetJudgment();
     setIsPlaying(true);
     setMeasureIndex(0);
-    scoreRef.current?.reset(); // 처음부터 재생 시 색칠 초기화
     // 클릭 소리만 담당 — 진행점 갱신·종료 판정은 아래 rAF 이펙트가 Transport 실제 위치를 보고 처리한다.
     start(bpmRef.current, beatsPerBar, () => {
       const pbeat = totalBeatRef.current; // 곡 시작 기준 현재 박(언랩)
       totalBeatRef.current += 1;
       return pbeat < totalCells; // 곡이 끝난 박은 클릭 소리 재생 안 함
+    });
+    // 무거운 SVG 재색칠(reset)을 start()와 같은 동기 실행 구간에서 돌리면, start()가 예약한 첫 박 발화 전에
+    // 메인 스레드를 막아버려 그 박이 통째로 씹힐 수 있다 — 한 프레임 미뤄 첫 박이 발화할 틈을 준다.
+    // (판정 상태는 위에서 이미 지웠으므로 여기선 사실상 색칠만 다시 지우는 셈 — 첫 프레임 입력이 씹힐 일 없음)
+    // 그 사이 재시작 등으로 세션이 바뀌면(token 변경) 낡은 reset()이 새 세션 색칠을 덮지 않도록 가드.
+    requestAnimationFrame(() => {
+      if (!isMountedRef.current || token !== countdownTokenRef.current) return;
+      scoreRef.current?.reset(); // 색칠 초기화(판정 상태는 위에서 이미 초기화됨 — 다시 지워도 무해)
     });
   };
 
