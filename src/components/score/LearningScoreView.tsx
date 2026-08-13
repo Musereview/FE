@@ -25,6 +25,9 @@ export interface LearningScoreHandle {
   judge: (midi: number, atSec: number) => void;
   /** 모든 음표 색을 기본으로 되돌린다. (재시작/정지) */
   reset: () => void;
+  /** 판정 상태만 즉시(동기) 초기화 — SVG 재색칠(reset)은 무거워 다음 프레임으로 미룰 수 있는데,
+   *  그 사이 들어오는 입력이 이전 세션 상태로 판정되지 않도록 상태만 먼저 지워둔다. */
+  resetJudgment: () => void;
   /** 지금까지의 판정을 집계한 최종 점수 지표 (점수 화면 연동용). */
   getScore: () => LearningScore;
   /** 현재 재생 박(소수, quarter-beat 단위)으로 현재 음 하이라이트/놓친 음 처리를 갱신. rAF로 매 프레임 호출. */
@@ -160,6 +163,13 @@ const LearningScoreView = forwardRef<LearningScoreHandle, LearningScoreViewProps
       },
       reset: () => {
         for (const ev of eventsRef.current) paintDefault(ev.gnotes);
+        judgedRef.current.clear();
+        missedRef.current.clear();
+        hitMidisRef.current.clear();
+        wrongHitsRef.current = 0;
+        currentIdxRef.current = -1;
+      },
+      resetJudgment: () => {
         judgedRef.current.clear();
         missedRef.current.clear();
         hitMidisRef.current.clear();

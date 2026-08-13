@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import bannerBg from '@/assets/main/image-mesh-gradient.png';
+import DifficultyBadge from '@/components/common/DifficultyBadge';
+import type { Difficulty } from '@/constants/difficulty';
 
 interface LearningBannerProps {
   data: {
@@ -29,7 +31,6 @@ export default function LearningBanner({ data }: LearningBannerProps) {
   }
 
   const { learningId, title, subtitle, level, progressRate, nextStepId } = data;
-  const isAdvanced = level === 'ADVANCED';
 
   return (
     <div
@@ -44,13 +45,7 @@ export default function LearningBanner({ data }: LearningBannerProps) {
       <div className="flex shrink-0 flex-col items-start gap-2 text-left">
         <div className="flex items-center gap-[6px]">
           <span className="font-sans text-2xl font-bold tracking-tight">{title}</span>
-          <div
-            className={`flex w-[40px] shrink-0 items-center justify-center gap-[10px] rounded-full border-[0.5px] bg-gray-900 px-[6px] py-1 ${isAdvanced ? 'border-secondary-300' : 'border-secondary-400'}`}>
-            <span
-              className={`font-['Pretendard'] text-[12px] font-semibold ${isAdvanced ? 'text-secondary-300' : 'text-secondary-400'}`}>
-              {isAdvanced ? '고급' : '중급'}
-            </span>
-          </div>
+          <DifficultyBadge difficulty={level.toLowerCase() as Difficulty} variant="pill" size="md" />
         </div>
         <p className="font-sans text-sm tracking-wide text-gray-300">{subtitle}</p>
       </div>
