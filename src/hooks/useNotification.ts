@@ -46,6 +46,9 @@ export function useNotificationList(page = 0, size = 10) {
     queryFn: () => notificationList(page, size),
     select: (data) => data.notificationList.map(toNotiItem),
     retry: retryExceptClientError,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -102,4 +105,12 @@ export function useNotificationUnreadStatus() {
     queryFn: notificationUnreadStatus,
     retry: retryExceptClientError,
   });
+}
+
+// 알림 쿼리 강제 갱신 (라우트 이동 등 특정 시점에 사용)
+export function useRefetchNotifications() {
+  const queryClient = useQueryClient();
+  return useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: NOTIFICATION_QUERY_KEY });
+  }, [queryClient]);
 }
