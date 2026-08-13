@@ -10,6 +10,8 @@ export const useSaveLearningResult = () => {
       saveLearningResult(learningId, body),
     onSuccess: (_data, { learningId }) => {
       queryClient.invalidateQueries({ queryKey: ['learningCurriculum', learningId] });
+      // 학습 홈 화면의 "최근 학습 이어서 하기" 배너도 최신 진행 상태를 반영하도록 갱신
+      queryClient.invalidateQueries({ queryKey: ['learningHome'] });
     },
   });
 };
