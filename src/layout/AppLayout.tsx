@@ -7,6 +7,7 @@ import {
   useNotificationList,
   useNotificationUnreadStatus,
   useReadAllNotifications,
+  useRefetchNotifications,
 } from '@/hooks/useNotification';
 
 export default function AppLayout() {
@@ -18,9 +19,12 @@ export default function AppLayout() {
   const mainScrollRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
 
+  const refetchNotifications = useRefetchNotifications();
+
   useEffect(() => {
     mainScrollRef.current?.scrollTo(0, 0);
-  }, [pathname]);
+    refetchNotifications();
+  }, [pathname, refetchNotifications]);
 
   const handleNotificationClick = useNotificationClick();
   const { mutate: readAll } = useReadAllNotifications();
